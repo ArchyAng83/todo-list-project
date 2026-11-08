@@ -14,7 +14,7 @@ docker compose up -d
 
 | Service | Address |
 |---|---|
-| PostgreSQL | `localhost:5432`, database/user `todolist`, password `todolist_dev` |
+| PostgreSQL | `localhost:5433`, database/user `todolist`, password `todolist_dev` |
 | Mailpit SMTP | `localhost:1025` |
 | Mailpit UI | http://localhost:8025 |
 
@@ -49,5 +49,5 @@ See [testing](testing.en.md) for the full strategy and per-suite commands.
 ## Troubleshooting
 
 - **Docker daemon is not running:** start Docker Desktop and retry `docker compose up -d`.
-- **Port 5432 or 8025 is busy:** stop the conflicting service or change the host port in `docker-compose.yml`.
+- **Port 5433 or 8025 is busy:** stop the conflicting service or change the host port in `docker-compose.yml`. The database is published on 5433 so it does not clash with a locally installed PostgreSQL on 5432.
 - **SDK mismatch:** run `dotnet --version`; it must satisfy `global.json`.

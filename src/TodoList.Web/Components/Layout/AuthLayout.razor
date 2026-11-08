@@ -1,0 +1,17 @@
+@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> L
+
+<div class="auth-page">
+    <header class="auth-header">
+        <a href="/" class="auth-brand">@L["AppName"]</a>
+        <CultureSwitcher />
+    </header>
+
+    <main class="auth-card">
+        @Body
+    </main>
+
+    <footer class="auth-footer">
+        &copy; @DateTime.UtcNow.Year @L["AppName"]
+    </footer>
+</div>

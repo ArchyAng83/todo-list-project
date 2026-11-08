@@ -1,0 +1,10 @@
+@page "/account/access-denied"
+@attribute [ExcludeFromInteractiveRouting]
+@layout AuthLayout
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["AccessDenied"] · @L["AppName"]</PageTitle>
+
+<h1 class="auth-title">@L["AccessDenied"]</h1>
+<p class="auth-subtitle">@L["AccessDeniedMessage"]</p>
+<a class="auth-submit auth-submit-link" href="/">@L["BackToHome"]</a>

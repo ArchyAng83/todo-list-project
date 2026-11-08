@@ -1,9 +1,76 @@
 ﻿@inherits LayoutComponentBase
+@inject IStringLocalizer<SharedResource> L
 
-@Body
+<MudThemeProvider />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="1" Dense="true">
+        <AuthorizeView>
+            <Authorized>
+                <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                               Color="Color.Inherit"
+                               Edge="Edge.Start"
+                               aria-label="Menu"
+                               OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+            </Authorized>
+        </AuthorizeView>
+        <MudText Typo="Typo.h6" Class="ml-2 app-brand-text">
+            <a href="/" class="app-brand">@L["AppName"]</a>
+        </MudText>
+        <MudSpacer />
+        <CultureSwitcher />
+        <AuthorizeView>
+            <Authorized>
+                <MudText Typo="Typo.body2" Class="ml-4 mr-2 hide-xs">@context.User.Identity?.Name</MudText>
+                <MudButton Href="/account/logout"
+                           Color="Color.Inherit"
+                           Variant="Variant.Text"
+                           StartIcon="@Icons.Material.Filled.Logout">
+                    @L["SignOut"]
+                </MudButton>
+            </Authorized>
+            <NotAuthorized>
+                <MudButton Href="/account/login" Color="Color.Inherit" Variant="Variant.Text">
+                    @L["SignIn"]
+                </MudButton>
+            </NotAuthorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudDrawer @bind-Open="_drawerOpen"
+                       Elevation="1"
+                       Breakpoint="Breakpoint.Sm"
+                       ClipMode="DrawerClipMode.Always">
+                <MudNavMenu Class="mt-2">
+                    <MudNavLink Href="/tasks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Checklist">
+                        @L["Tasks"]
+                    </MudNavLink>
+                    <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
+                        @L["Settings"]
+                    </MudNavLink>
+                </MudNavMenu>
+            </MudDrawer>
+        </Authorized>
+    </AuthorizeView>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private bool _drawerOpen = true;
+}

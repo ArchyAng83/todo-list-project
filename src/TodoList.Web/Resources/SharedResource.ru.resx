@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="AppName" xml:space="preserve">
+    <value>TodoList</value>
+  </data>
+  <data name="Tagline" xml:space="preserve">
+    <value>Таск-менеджер, сделанный на .NET 10 и Blazor.</value>
+  </data>
+  <data name="HeroTitle" xml:space="preserve">
+    <value>Что вы хотите успеть сделать?</value>
+  </data>
+  <data name="HeroSubtitle" xml:space="preserve">
+    <value>Собирайте задачи в проекты, планируйте день и держите дедлайны под контролем.</value>
+  </data>
+  <data name="GetStarted" xml:space="preserve">
+    <value>Начать</value>
+  </data>
+  <data name="GoToTasks" xml:space="preserve">
+    <value>К задачам</value>
+  </data>
+  <data name="SignIn" xml:space="preserve">
+    <value>Войти</value>
+  </data>
+  <data name="SignOut" xml:space="preserve">
+    <value>Выйти</value>
+  </data>
+  <data name="Register" xml:space="preserve">
+    <value>Создать аккаунт</value>
+  </data>
+  <data name="Email" xml:space="preserve">
+    <value>Email</value>
+  </data>
+  <data name="Password" xml:space="preserve">
+    <value>Пароль</value>
+  </data>
+  <data name="ConfirmPassword" xml:space="preserve">
+    <value>Повторите пароль</value>
+  </data>
+  <data name="DisplayName" xml:space="preserve">
+    <value>Имя</value>
+  </data>
+  <data name="RememberMe" xml:space="preserve">
+    <value>Запомнить меня</value>
+  </data>
+  <data name="NoAccount" xml:space="preserve">
+    <value>Нет аккаунта?</value>
+  </data>
+  <data name="HaveAccount" xml:space="preserve">
+    <value>Уже есть аккаунт?</value>
+  </data>
+  <data name="LoginSubtitle" xml:space="preserve">
+    <value>С возвращением. Войдите, чтобы продолжить.</value>
+  </data>
+  <data name="RegisterSubtitle" xml:space="preserve">
+    <value>Создайте аккаунт и начните планировать.</value>
+  </data>
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Неверный email или пароль.</value>
+  </data>
+  <data name="AccountLockedOut" xml:space="preserve">
+    <value>Аккаунт временно заблокирован. Попробуйте позже.</value>
+  </data>
+  <data name="AccessDenied" xml:space="preserve">
+    <value>Доступ запрещён</value>
+  </data>
+  <data name="AccessDeniedMessage" xml:space="preserve">
+    <value>У вас нет прав для просмотра этой страницы.</value>
+  </data>
+  <data name="BackToHome" xml:space="preserve">
+    <value>На главную</value>
+  </data>
+  <data name="Tasks" xml:space="preserve">
+    <value>Задачи</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Настройки</value>
+  </data>
+  <data name="Profile" xml:space="preserve">
+    <value>Профиль</value>
+  </data>
+  <data name="TimeZone" xml:space="preserve">
+    <value>Часовой пояс</value>
+  </data>
+  <data name="MemberSince" xml:space="preserve">
+    <value>В проекте с</value>
+  </data>
+  <data name="Language" xml:space="preserve">
+    <value>Язык</value>
+  </data>
+  <data name="EmptyTasksTitle" xml:space="preserve">
+    <value>Задач пока нет</value>
+  </data>
+  <data name="EmptyTasksMessage" xml:space="preserve">
+    <value>Управление задачами появится на следующем шаге. Аккаунт и рабочее пространство уже готовы.</value>
+  </data>
+  <data name="NotFoundTitle" xml:space="preserve">
+    <value>Страница не найдена</value>
+  </data>
+  <data name="NotFoundMessage" xml:space="preserve">
+    <value>Страницы, которую вы ищете, не существует.</value>
+  </data>
+</root>

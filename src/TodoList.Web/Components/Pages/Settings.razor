@@ -1,0 +1,47 @@
+@page "/settings"
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Settings"] · @L["AppName"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-6">@L["Settings"]</MudText>
+
+@if (_user is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper Elevation="0" Class="pa-6" Style="border: 1px solid var(--mud-palette-lines-default);">
+        <MudText Typo="Typo.h6" Class="mb-4">@L["Profile"]</MudText>
+
+        <dl class="profile-list">
+            <dt>@L["DisplayName"]</dt>
+            <dd>@_user.DisplayName</dd>
+
+            <dt>@L["Email"]</dt>
+            <dd>@_user.Email</dd>
+
+            <dt>@L["TimeZone"]</dt>
+            <dd>@_user.TimeZoneId</dd>
+
+            <dt>@L["MemberSince"]</dt>
+            <dd>@_user.CreatedAt.ToLocalTime().ToString("d")</dd>
+
+            <dt>@L["Language"]</dt>
+            <dd><CultureSwitcher /></dd>
+        </dl>
+    </MudPaper>
+}
+
+@code {
+    private ApplicationUser? _user;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = await UserManager.GetUserAsync(state.User);
+    }
+}

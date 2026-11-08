@@ -3,7 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
-[![Status](https://img.shields.io/badge/status-bootstrap-yellow)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%201%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -11,7 +11,7 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Bootstrap (Week 0/1).** The solution, test projects, documentation, Docker Compose, and CI skeleton are in place. Product features, authentication, and the REST API are next.
+**Week 1 complete.** The solution, persistence, Identity authentication, MudBlazor shell, RU/EN localization, and the first test suites are in place. Task and project features are next.
 
 See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-01.en.md](docs/progress/week-01.en.md) for the current week.
 
@@ -21,7 +21,7 @@ See [docs/progress/status.en.md](docs/progress/status.en.md) for the current sta
 |---|---|
 | Platform | .NET 10 LTS |
 | UI | Blazor Web App, Interactive Server |
-| Components | MudBlazor (planned) |
+| Components | MudBlazor |
 | Auth | ASP.NET Core Identity: cookie for Blazor, bearer for API |
 | Data | PostgreSQL 17 + EF Core 10 + Npgsql |
 | API | Minimal API `/api/v1`, OpenAPI + Scalar |
@@ -40,7 +40,7 @@ TodoList.Application    -> use cases, DTOs, validation, abstractions
 TodoList.Domain         -> entities, enums, domain rules
 ```
 
-- Blazor app pages use **Interactive Server**; auth pages will be static SSR so cookie authentication works reliably.
+- Blazor app pages use **Interactive Server**; auth pages are static SSR so cookie authentication works reliably.
 - The API is **bearer-only** and reuses Application services. Blazor does not call the API.
 - Every aggregate root is scoped by `UserId`; cross-user access returns 404.
 - Due dates are stored as local `DateOnly`/`TimeOnly`; instants use UTC `DateTimeOffset`.
@@ -98,7 +98,7 @@ docker compose up -d
 
 This starts:
 
-- PostgreSQL on `localhost:5432` (`todolist` / `todolist` / `todolist_dev`)
+- PostgreSQL on `localhost:5433` (`todolist` / `todolist` / `todolist_dev`)
 - Mailpit SMTP on `localhost:1025`, web UI on [http://localhost:8025](http://localhost:8025)
 
 ### Build and run
@@ -117,7 +117,7 @@ Open [https://localhost:7037](https://localhost:7037) or [http://localhost:5122]
 dotnet test
 ```
 
-Test infrastructure (Testcontainers, bUnit, Playwright) will be wired in Week 1.
+Unit tests cover domain rules; integration tests run against PostgreSQL via Testcontainers and require Docker. bUnit component tests and Playwright E2E tests are added in Week 4.
 
 ## Documentation
 
@@ -147,7 +147,7 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Сейчас завершён bootstrap: решение, тестовые проекты, документация, Docker Compose и CI-скелет. Дальше — auth, задачи, проекты, API и деплой.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 1 завершена: решение, персистентность, аутентификация, оболочка MudBlazor, локализация RU/EN и первые тесты готовы. Дальше — задачи, проекты, API и деплой.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)

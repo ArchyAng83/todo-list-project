@@ -1,0 +1,15 @@
+@page "/tasks"
+@attribute [Authorize]
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Tasks"] · @L["AppName"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-6">@L["Tasks"]</MudText>
+
+<MudPaper Elevation="0" Class="pa-10 d-flex flex-column align-center" Style="border: 1px dashed var(--mud-palette-lines-default);">
+    <MudIcon Icon="@Icons.Material.Outlined.Checklist" Size="Size.Large" Color="Color.Primary" />
+    <MudText Typo="Typo.h5" Class="mt-4">@L["EmptyTasksTitle"]</MudText>
+    <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+        @L["EmptyTasksMessage"]
+    </MudText>
+</MudPaper>

@@ -1,0 +1,19 @@
+@inject NavigationManager Navigation
+
+<nav class="culture-switcher" aria-label="Language">
+    <a href="@BuildUrl("en")" class="culture-link @(IsCurrent("en") ? "is-active" : null)">EN</a>
+    <a href="@BuildUrl("ru")" class="culture-link @(IsCurrent("ru") ? "is-active" : null)">RU</a>
+</nav>
+
+@code {
+    private static bool IsCurrent(string culture)
+        => CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == culture;
+
+    private string BuildUrl(string culture)
+    {
+        var relativePath = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var path = string.IsNullOrWhiteSpace(relativePath) ? "/" : "/" + relativePath;
+
+        return $"/culture/set?culture={culture}&redirect={Uri.EscapeDataString(path)}";
+    }
+}

@@ -1,10 +1,36 @@
 ﻿@page "/"
+@inject IStringLocalizer<SharedResource> L
 
-<PageTitle>TodoList</PageTitle>
+<PageTitle>@L["AppName"]</PageTitle>
 
-<main class="bootstrap-page">
-    <h1>TodoList</h1>
-    <p class="lead">A production-minded task manager built with .NET 10 and Blazor.</p>
-    <p>Bootstrap is in progress: the solution, test projects, documentation, and local infrastructure are ready.</p>
-    <p>Product features arrive in Week 1.</p>
-</main>
+<section class="hero">
+    <MudText Typo="Typo.h2" HtmlTag="h1" Class="hero-title">@L["HeroTitle"]</MudText>
+    <MudText Typo="Typo.h6" Color="Color.Secondary" Class="hero-subtitle">@L["HeroSubtitle"]</MudText>
+
+    <AuthorizeView>
+        <Authorized>
+            <MudButton Href="/tasks"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       Class="mt-6">
+                @L["GoToTasks"]
+            </MudButton>
+        </Authorized>
+        <NotAuthorized>
+            <div class="hero-actions">
+                <MudButton Href="/account/register"
+                           Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           Size="Size.Large">
+                    @L["GetStarted"]
+                </MudButton>
+                <MudButton Href="/account/login"
+                           Variant="Variant.Outlined"
+                           Size="Size.Large">
+                    @L["SignIn"]
+                </MudButton>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</section>

@@ -19,9 +19,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Shouldly" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\TodoList.Web\TodoList.Web.csproj" />
     <ProjectReference Include="..\..\src\TodoList.Application\TodoList.Application.csproj" />
     <ProjectReference Include="..\..\src\TodoList.Infrastructure\TodoList.Infrastructure.csproj" />
+    <ProjectReference Include="..\TodoList.Testing\TodoList.Testing.csproj" />
   </ItemGroup>
 
 </Project>

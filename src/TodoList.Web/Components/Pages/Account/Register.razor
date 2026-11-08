@@ -1,0 +1,125 @@
+@page "/account/register"
+@attribute [ExcludeFromInteractiveRouting]
+@layout AuthLayout
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@inject TimeProvider TimeProvider
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Register"] · @L["AppName"]</PageTitle>
+
+<h1 class="auth-title">@L["Register"]</h1>
+<p class="auth-subtitle">@L["RegisterSubtitle"]</p>
+
+@if (_errors.Count > 0)
+{
+    <div class="auth-error" role="alert">
+        <ul>
+            @foreach (var error in _errors)
+            {
+                <li>@error</li>
+            }
+        </ul>
+    </div>
+}
+
+<EditForm Model="Input" FormName="register" OnValidSubmit="RegisterAsync" class="auth-form">
+    <DataAnnotationsValidator />
+
+    <label class="auth-label" for="display-name">@L["DisplayName"]</label>
+    <InputText id="display-name"
+               class="auth-input"
+               autocomplete="name"
+               @bind-Value="Input.DisplayName" />
+    <ValidationMessage For="() => Input.DisplayName" class="auth-validation" />
+
+    <label class="auth-label" for="email">@L["Email"]</label>
+    <InputText id="email"
+               class="auth-input"
+               type="email"
+               autocomplete="email"
+               @bind-Value="Input.Email" />
+    <ValidationMessage For="() => Input.Email" class="auth-validation" />
+
+    <label class="auth-label" for="password">@L["Password"]</label>
+    <InputText id="password"
+               class="auth-input"
+               type="password"
+               autocomplete="new-password"
+               @bind-Value="Input.Password" />
+    <ValidationMessage For="() => Input.Password" class="auth-validation" />
+
+    <label class="auth-label" for="confirm-password">@L["ConfirmPassword"]</label>
+    <InputText id="confirm-password"
+               class="auth-input"
+               type="password"
+               autocomplete="new-password"
+               @bind-Value="Input.ConfirmPassword" />
+    <ValidationMessage For="() => Input.ConfirmPassword" class="auth-validation" />
+
+    <button type="submit" class="auth-submit">@L["Register"]</button>
+</EditForm>
+
+<p class="auth-alt">
+    @L["HaveAccount"] <a href="/account/login">@L["SignIn"]</a>
+</p>
+
+@code {
+    private readonly List<string> _errors = [];
+
+    [SupplyParameterFromForm]
+    public RegisterInput Input { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
+    private async Task RegisterAsync()
+    {
+        _errors.Clear();
+
+        var email = Input.Email.Trim();
+
+        var user = new ApplicationUser
+        {
+            Id = Guid.CreateVersion7(),
+            UserName = email,
+            Email = email,
+            DisplayName = Input.DisplayName.Trim(),
+            Culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            CreatedAt = TimeProvider.GetUtcNow()
+        };
+
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!result.Succeeded)
+        {
+            _errors.AddRange(result.Errors.Select(error => error.Description));
+            return;
+        }
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        Navigation.NavigateTo("/tasks");
+    }
+
+    public sealed class RegisterInput
+    {
+        [Required]
+        [StringLength(100, MinimumLength = 1)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(100, MinimumLength = 8)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        [Compare(nameof(Password))]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

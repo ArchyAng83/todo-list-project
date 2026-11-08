@@ -1,0 +1,106 @@
+@page "/account/login"
+@attribute [ExcludeFromInteractiveRouting]
+@layout AuthLayout
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["SignIn"] · @L["AppName"]</PageTitle>
+
+<h1 class="auth-title">@L["SignIn"]</h1>
+<p class="auth-subtitle">@L["LoginSubtitle"]</p>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="auth-error" role="alert">@_error</div>
+}
+
+<EditForm Model="Input" FormName="login" OnValidSubmit="SignInAsync" class="auth-form">
+    <DataAnnotationsValidator />
+
+    <label class="auth-label" for="email">@L["Email"]</label>
+    <InputText id="email"
+               class="auth-input"
+               type="email"
+               autocomplete="username"
+               @bind-Value="Input.Email" />
+    <ValidationMessage For="() => Input.Email" class="auth-validation" />
+
+    <label class="auth-label" for="password">@L["Password"]</label>
+    <InputText id="password"
+               class="auth-input"
+               type="password"
+               autocomplete="current-password"
+               @bind-Value="Input.Password" />
+    <ValidationMessage For="() => Input.Password" class="auth-validation" />
+
+    <label class="auth-check">
+        <InputCheckbox @bind-Value="Input.RememberMe" />
+        <span>@L["RememberMe"]</span>
+    </label>
+
+    <button type="submit" class="auth-submit">@L["SignIn"]</button>
+</EditForm>
+
+<p class="auth-alt">
+    @L["NoAccount"] <a href="/account/register">@L["Register"]</a>
+</p>
+
+@code {
+    private string? _error;
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromForm]
+    public LoginInput Input { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new();
+    }
+
+    private async Task SignInAsync()
+    {
+        _error = null;
+
+        var result = await SignInManager.PasswordSignInAsync(
+            Input.Email.Trim(),
+            Input.Password,
+            Input.RememberMe,
+            lockoutOnFailure: true);
+
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo(ResolveReturnUrl());
+            return;
+        }
+
+        _error = result.IsLockedOut ? L["AccountLockedOut"] : L["InvalidCredentials"];
+    }
+
+    private string ResolveReturnUrl()
+    {
+        if (!string.IsNullOrWhiteSpace(ReturnUrl)
+            && ReturnUrl.StartsWith('/')
+            && !ReturnUrl.StartsWith("//", StringComparison.Ordinal)
+            && !ReturnUrl.StartsWith("/\\", StringComparison.Ordinal))
+        {
+            return ReturnUrl;
+        }
+
+        return "/tasks";
+    }
+
+    public sealed class LoginInput
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        public string Password { get; set; } = string.Empty;
+
+        public bool RememberMe { get; set; }
+    }
+}

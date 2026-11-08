@@ -14,7 +14,7 @@ docker compose up -d
 
 | Сервис | Адрес |
 |---|---|
-| PostgreSQL | `localhost:5432`, база/пользователь `todolist`, пароль `todolist_dev` |
+| PostgreSQL | `localhost:5433`, база/пользователь `todolist`, пароль `todolist_dev` |
 | Mailpit SMTP | `localhost:1025` |
 | Mailpit UI | http://localhost:8025 |
 
@@ -49,5 +49,5 @@ dotnet test
 ## Troubleshooting
 
 - **Docker daemon не запущен:** запустите Docker Desktop и повторите `docker compose up -d`.
-- **Порт 5432 или 8025 занят:** остановите конфликтующий сервис или измените host-порт в `docker-compose.yml`.
+- **Порт 5433 или 8025 занят:** остановите конфликтующий сервис или измените host-порт в `docker-compose.yml`. База публикуется на 5433, чтобы не конфликтовать с локально установленным PostgreSQL на 5432.
 - **Несовпадение SDK:** выполните `dotnet --version`; версия должна удовлетворять `global.json`.

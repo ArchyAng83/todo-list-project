@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-08
 
-- **Current phase:** Week 1 — Foundation
-- **Overall:** Bootstrap complete; MVP in progress.
+- **Current phase:** Week 1 — Foundation (code complete)
+- **Overall:** Bootstrap and Week 1 foundation complete; MVP in progress.
 
 ## Done
 
@@ -14,10 +14,19 @@ Last updated: 2026-11-08
 - GitHub Actions CI skeleton.
 - Bilingual documentation foundation and progress tracking.
 - Initial repository commit on `main`.
+- Domain model: projects, tags, tasks, checklist items, task tags, reminders.
+- EF Core 10 + Npgsql persistence, snake_case naming, initial migration applied.
+- ASP.NET Core Identity with cookie authentication and renamed Identity tables.
+- Static SSR login, register, logout, and access-denied pages.
+- MudBlazor application shell, public landing page, tasks placeholder, profile settings.
+- RU/EN localization with cookie and `Accept-Language` negotiation.
+- Unit tests for domain rules (32 passing).
+- Testcontainers-based integration tests for auth and persistence (7 passing).
 
 ## In progress
 
-- Week 1: EF Core + PostgreSQL, Identity, auth pages, MudBlazor shell, i18n foundation.
+- First CI run (pending publication of the GitHub repository).
+- Week 2: projects, tags, tasks, subtasks, views, quick add.
 
 ## Next
 
@@ -33,10 +42,10 @@ Last updated: 2026-11-08
 
 | Gate | Status |
 |---|---|
-| Build | ✅ |
-| Unit tests | ⬜ scaffold only |
-| Integration tests | ⬜ scaffold only |
-| Component tests | ⬜ scaffold only |
-| E2E tests | ⬜ scaffold only |
+| Build | ✅ 0 warnings, 0 errors |
+| Unit tests | ✅ 32 passing |
+| Integration tests | ✅ 7 passing (Testcontainers) |
+| Component tests | ⬜ scaffold only (Week 4) |
+| E2E tests | ⬜ scaffold only (Week 4) |
 | CI | ⬜ workflow added, first run pending |
 | Deployed | ⬜ |

@@ -1,0 +1,53 @@
+# Локальный запуск
+
+## Требования
+
+- .NET SDK **10.0.400** — зафиксирован в `global.json`.
+- Docker Desktop — PostgreSQL, Mailpit, integration-тесты и E2E.
+- Git.
+
+## Инфраструктура
+
+```bash
+docker compose up -d
+```
+
+| Сервис | Адрес |
+|---|---|
+| PostgreSQL | `localhost:5432`, база/пользователь `todolist`, пароль `todolist_dev` |
+| Mailpit SMTP | `localhost:1025` |
+| Mailpit UI | http://localhost:8025 |
+
+## Сборка и запуск
+
+```bash
+dotnet restore
+dotnet build
+dotnet run --project src/TodoList.Web
+```
+
+Приложение доступно на https://localhost:7037 или http://localhost:5122.
+
+## База данных
+
+EF Core migrations и `AppDbContext` добавляются на неделе 1. После этого:
+
+```bash
+dotnet ef database update --project src/TodoList.Infrastructure --startup-project src/TodoList.Web
+```
+
+В Development миграции могут применяться при старте; в production — отдельным шагом деплоя.
+
+## Тесты
+
+```bash
+dotnet test
+```
+
+Полная стратегия и команды по suite — в [testing](testing.ru.md).
+
+## Troubleshooting
+
+- **Docker daemon не запущен:** запустите Docker Desktop и повторите `docker compose up -d`.
+- **Порт 5432 или 8025 занят:** остановите конфликтующий сервис или измените host-порт в `docker-compose.yml`.
+- **Несовпадение SDK:** выполните `dotnet --version`; версия должна удовлетворять `global.json`.

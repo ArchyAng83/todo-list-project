@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TodoList.Domain\TodoList.Domain.csproj" />
+    <ProjectReference Include="..\..\src\TodoList.Application\TodoList.Application.csproj" />
+    <ProjectReference Include="..\..\src\TodoList.Infrastructure\TodoList.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

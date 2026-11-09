@@ -14,6 +14,7 @@ Last updated: 2026-11-09
 - GitHub Actions CI skeleton.
 - Bilingual documentation foundation and progress tracking.
 - Initial repository commit on `main`.
+- Public GitHub repository with a passing GitHub Actions workflow.
 - Domain model: projects, tags, tasks, checklist items, task tags, reminders.
 - EF Core 10 + Npgsql persistence, snake_case naming, initial migration applied.
 - ASP.NET Core Identity with cookie authentication and renamed Identity tables.
@@ -55,7 +56,6 @@ Last updated: 2026-11-09
 
 ## In progress
 
-- First CI run (pending publication of the GitHub repository).
 - Deployment target selection for the MVP.
 
 ## Next
@@ -65,7 +65,6 @@ Last updated: 2026-11-09
 ## Blockers and risks
 
 - Docker Desktop must be running for PostgreSQL, Mailpit, integration tests, and E2E.
-- GitHub CLI is not installed; pushing to the public repository is pending.
 - The production SMTP provider and hosting target will be chosen before the MVP deployment.
 
 ## Quality gates
@@ -78,5 +77,5 @@ Last updated: 2026-11-09
 | Component tests | ✅ 32 passing (bUnit) |
 | E2E tests | ✅ 12 passing (Playwright) |
 | Container image | ✅ builds; health probes respond |
-| CI | ⬜ workflow added, first run pending |
+| CI | ✅ first run passed on GitHub Actions |
 | Deployed | ⬜ |

@@ -3,6 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
+[![CI](https://github.com/ArchyAng83/todo-list-project/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchyAng83/todo-list-project/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/status-week%207%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.

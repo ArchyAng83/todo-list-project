@@ -103,12 +103,282 @@
     <value>No tasks yet</value>
   </data>
   <data name="EmptyTasksMessage" xml:space="preserve">
-    <value>Task management arrives in the next step. Your account and workspace are ready.</value>
+    <value>Add your first task above to get started.</value>
   </data>
   <data name="NotFoundTitle" xml:space="preserve">
     <value>Page not found</value>
   </data>
   <data name="NotFoundMessage" xml:space="preserve">
     <value>The page you are looking for does not exist.</value>
+  </data>
+  <data name="Projects" xml:space="preserve">
+    <value>Projects</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Tags</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="GenericError" xml:space="preserve">
+    <value>Something went wrong. Please try again.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Loading...</value>
+  </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Optional</value>
+  </data>
+  <data name="QuickAddPlaceholder" xml:space="preserve">
+    <value>Add a task and press Add</value>
+  </data>
+  <data name="AddTask" xml:space="preserve">
+    <value>Add task</value>
+  </data>
+  <data name="AllStatuses" xml:space="preserve">
+    <value>All statuses</value>
+  </data>
+  <data name="AllProjects" xml:space="preserve">
+    <value>All projects</value>
+  </data>
+  <data name="AllTags" xml:space="preserve">
+    <value>All tags</value>
+  </data>
+  <data name="StatusTodo" xml:space="preserve">
+    <value>To do</value>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>In progress</value>
+  </data>
+  <data name="StatusDone" xml:space="preserve">
+    <value>Done</value>
+  </data>
+  <data name="NoPriority" xml:space="preserve">
+    <value>No priority</value>
+  </data>
+  <data name="PriorityLow" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="PriorityMedium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="PriorityHigh" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="PriorityUrgent" xml:space="preserve">
+    <value>Urgent</value>
+  </data>
+  <data name="NoProject" xml:space="preserve">
+    <value>No project</value>
+  </data>
+  <data name="EditTask" xml:space="preserve">
+    <value>Edit task</value>
+  </data>
+  <data name="TaskTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>Notes</value>
+  </data>
+  <data name="Project" xml:space="preserve">
+    <value>Project</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="DueDate" xml:space="preserve">
+    <value>Due date</value>
+  </data>
+  <data name="DueTime" xml:space="preserve">
+    <value>Due time</value>
+  </data>
+  <data name="Reminder" xml:space="preserve">
+    <value>Reminder</value>
+  </data>
+  <data name="ReminderNone" xml:space="preserve">
+    <value>No reminder</value>
+  </data>
+  <data name="ReminderAtDue" xml:space="preserve">
+    <value>At due time</value>
+  </data>
+  <data name="Reminder5Minutes" xml:space="preserve">
+    <value>5 minutes before</value>
+  </data>
+  <data name="Reminder15Minutes" xml:space="preserve">
+    <value>15 minutes before</value>
+  </data>
+  <data name="Reminder30Minutes" xml:space="preserve">
+    <value>30 minutes before</value>
+  </data>
+  <data name="Reminder1Hour" xml:space="preserve">
+    <value>1 hour before</value>
+  </data>
+  <data name="Reminder1Day" xml:space="preserve">
+    <value>1 day before</value>
+  </data>
+  <data name="Checklist" xml:space="preserve">
+    <value>Checklist</value>
+  </data>
+  <data name="AddChecklistItem" xml:space="preserve">
+    <value>Add checklist item</value>
+  </data>
+  <data name="TaskCreated" xml:space="preserve">
+    <value>Task added</value>
+  </data>
+  <data name="TaskSaved" xml:space="preserve">
+    <value>Task saved</value>
+  </data>
+  <data name="TaskDeleted" xml:space="preserve">
+    <value>Task deleted</value>
+  </data>
+  <data name="DeleteTask" xml:space="preserve">
+    <value>Delete task</value>
+  </data>
+  <data name="DeleteTaskConfirm" xml:space="preserve">
+    <value>Delete this task? This cannot be undone.</value>
+  </data>
+  <data name="NoTasksForFilter" xml:space="preserve">
+    <value>No tasks match these filters.</value>
+  </data>
+  <data name="MarkDone" xml:space="preserve">
+    <value>Mark as done</value>
+  </data>
+  <data name="Reopen" xml:space="preserve">
+    <value>Reopen</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Search tasks</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Overdue" xml:space="preserve">
+    <value>Overdue</value>
+  </data>
+  <data name="NewProject" xml:space="preserve">
+    <value>New project</value>
+  </data>
+  <data name="EditProject" xml:space="preserve">
+    <value>Edit project</value>
+  </data>
+  <data name="ProjectName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="ProjectColor" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="AddProject" xml:space="preserve">
+    <value>Add project</value>
+  </data>
+  <data name="IncludeArchived" xml:space="preserve">
+    <value>Show archived</value>
+  </data>
+  <data name="Archived" xml:space="preserve">
+    <value>Archived</value>
+  </data>
+  <data name="Archive" xml:space="preserve">
+    <value>Archive</value>
+  </data>
+  <data name="Unarchive" xml:space="preserve">
+    <value>Unarchive</value>
+  </data>
+  <data name="OpenTasks" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="TotalTasks" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="NoProjectsTitle" xml:space="preserve">
+    <value>No projects yet</value>
+  </data>
+  <data name="NoProjectsMessage" xml:space="preserve">
+    <value>Group related tasks into projects.</value>
+  </data>
+  <data name="ProjectSaved" xml:space="preserve">
+    <value>Project saved</value>
+  </data>
+  <data name="ProjectDeleted" xml:space="preserve">
+    <value>Project deleted</value>
+  </data>
+  <data name="ProjectArchived" xml:space="preserve">
+    <value>Project archived</value>
+  </data>
+  <data name="ProjectUnarchived" xml:space="preserve">
+    <value>Project restored</value>
+  </data>
+  <data name="DeleteProject" xml:space="preserve">
+    <value>Delete project</value>
+  </data>
+  <data name="DeleteProjectConfirm" xml:space="preserve">
+    <value>Delete this project? Its tasks will be kept and moved to no project.</value>
+  </data>
+  <data name="ProjectColorHint" xml:space="preserve">
+    <value>Hex color, e.g. #4F46E5</value>
+  </data>
+  <data name="NewTag" xml:space="preserve">
+    <value>New tag</value>
+  </data>
+  <data name="EditTag" xml:space="preserve">
+    <value>Edit tag</value>
+  </data>
+  <data name="TagName" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="TagColor" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="AddTag" xml:space="preserve">
+    <value>Add tag</value>
+  </data>
+  <data name="TagSaved" xml:space="preserve">
+    <value>Tag saved</value>
+  </data>
+  <data name="TagDeleted" xml:space="preserve">
+    <value>Tag deleted</value>
+  </data>
+  <data name="NoTagsTitle" xml:space="preserve">
+    <value>No tags yet</value>
+  </data>
+  <data name="NoTagsMessage" xml:space="preserve">
+    <value>Use tags to label tasks across projects.</value>
+  </data>
+  <data name="DeleteTag" xml:space="preserve">
+    <value>Delete tag</value>
+  </data>
+  <data name="DeleteTagConfirm" xml:space="preserve">
+    <value>Delete this tag? It will be removed from all tasks.</value>
+  </data>
+  <data name="TagUsage" xml:space="preserve">
+    <value>Tasks: {0}</value>
+  </data>
+  <data name="TagColorHint" xml:space="preserve">
+    <value>Hex color, e.g. #6B7280</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ChecklistEmpty" xml:space="preserve">
+    <value>No checklist items yet.</value>
   </data>
 </root>

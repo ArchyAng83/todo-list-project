@@ -20,3 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MudBlazor application shell, public landing page, tasks placeholder, and profile settings page.
 - RU/EN localization with a cookie-based culture switcher and `Accept-Language` fallback.
 - Domain unit tests and Testcontainers-based integration tests for auth and persistence.
+- Application layer for projects, tags, and tasks split into command and query services, with FluentValidation and `Result<T>`.
+- Projects page with create, edit, archive/unarchive, delete, and open/total task counts.
+- Tags page with create, edit, delete, color preview, and usage counts.
+- Tasks page with quick add, debounced search, status/project/tag filters, status toggle, edit, and delete.
+- Task edit dialog with title, notes, status, project, priority, due date/time, reminder, tags, and checklist items.
+- Integration tests for project scoping, task filters, checklist and tag persistence, duplicate tag conflicts, and cross-user access.
+- `CurrentUserProvider` and per-operation DI scopes for Blazor pages and dialogs.
+
+### Changed
+
+- EF Core now uses `QuerySplittingBehavior.SplitQuery` to keep task collection queries efficient.
+- Checklist items and task-tag links are added to the context explicitly after being created through the `TodoTask` aggregate.

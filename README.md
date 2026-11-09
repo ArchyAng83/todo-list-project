@@ -3,7 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
-[![Status](https://img.shields.io/badge/status-week%201%20complete-brightgreen)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%202%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -11,9 +11,9 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 1 complete.** The solution, persistence, Identity authentication, MudBlazor shell, RU/EN localization, and the first test suites are in place. Task and project features are next.
+**Week 2 complete.** Projects, tags, tasks, subtasks, filtering, and quick add are implemented on top of the foundation. Search polish, settings, the REST API, and deployment are next.
 
-See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-01.en.md](docs/progress/week-01.en.md) for the current week.
+See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-02.en.md](docs/progress/week-02.en.md) for the current week.
 
 ## Stack
 
@@ -147,7 +147,7 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 1 завершена: решение, персистентность, аутентификация, оболочка MudBlazor, локализация RU/EN и первые тесты готовы. Дальше — задачи, проекты, API и деплой.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 2 завершена: проекты, теги, задачи, подзадачи, фильтры и быстрый ввод поверх готового фундамента. Дальше — поиск, настройки, API и деплой.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)

@@ -1,15 +1,485 @@
 @page "/tasks"
 @attribute [Authorize]
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject TimeProvider TimeProvider
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Tasks"] · @L["AppName"]</PageTitle>
 
 <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-6">@L["Tasks"]</MudText>
 
-<MudPaper Elevation="0" Class="pa-10 d-flex flex-column align-center" Style="border: 1px dashed var(--mud-palette-lines-default);">
-    <MudIcon Icon="@Icons.Material.Outlined.Checklist" Size="Size.Large" Color="Color.Primary" />
-    <MudText Typo="Typo.h5" Class="mt-4">@L["EmptyTasksTitle"]</MudText>
-    <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
-        @L["EmptyTasksMessage"]
-    </MudText>
+<form class="quick-add mb-6" @onsubmit="QuickAddAsync" @onsubmit:preventDefault>
+    <MudTextField T="string"
+                  @bind-Value="_newTaskTitle"
+                  Placeholder="@L["QuickAddPlaceholder"]"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  MaxLength="200"
+                  Class="quick-add-field" />
+    <MudButton ButtonType="ButtonType.Submit"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               Disabled="_isCreating">
+        @L["AddTask"]
+    </MudButton>
+</form>
+
+<MudPaper Elevation="0"
+          Class="pa-4 mb-4"
+          Style="border: 1px solid var(--mud-palette-lines-default);">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" md="4">
+            <MudTextField T="string"
+                          @bind-Value="_search"
+                          @bind-Value:after="LoadTasksAsync"
+                          Immediate="true"
+                          DebounceInterval="300"
+                          Label="@L["SearchPlaceholder"]"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"
+                          Margin="Margin.Dense"
+                          Clearable="true" />
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="2">
+            <MudSelect T="TodoTaskStatus?"
+                       @bind-Value="_statusFilter"
+                       @bind-Value:after="LoadTasksAsync"
+                       Label="@L["Status"]"
+                       Margin="Margin.Dense">
+                <MudSelectItem T="TodoTaskStatus?" Value="@((TodoTaskStatus?)null)">@L["AllStatuses"]</MudSelectItem>
+                @foreach (var status in Enum.GetValues<TodoTaskStatus>())
+                {
+                    <MudSelectItem T="TodoTaskStatus?" Value="@status">@StatusLabel(status)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="Guid?"
+                       @bind-Value="_projectFilter"
+                       @bind-Value:after="LoadTasksAsync"
+                       Label="@L["Project"]"
+                       Margin="Margin.Dense">
+                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["AllProjects"]</MudSelectItem>
+                @foreach (var project in _projects)
+                {
+                    <MudSelectItem T="Guid?" Value="@project.Id">@project.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="Guid?"
+                       @bind-Value="_tagFilter"
+                       @bind-Value:after="LoadTasksAsync"
+                       Label="@L["Tags"]"
+                       Margin="Margin.Dense">
+                <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["AllTags"]</MudSelectItem>
+                @foreach (var tag in _tags)
+                {
+                    <MudSelectItem T="Guid?" Value="@tag.Id">@tag.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (HasActiveFilters)
+    {
+        <MudButton OnClick="ClearFiltersAsync"
+                   Variant="Variant.Text"
+                   Color="Color.Default"
+                   Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   Class="mt-2">
+            @L["Clear"]
+        </MudButton>
+    }
 </MudPaper>
+
+@if (_isInitialLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+    <MudButton OnClick="LoadTasksAsync" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else
+{
+    @if (_isRefreshing)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-2" />
+    }
+
+    @if (_tasks.Count == 0)
+    {
+        <MudPaper Elevation="0"
+                  Class="pa-10 d-flex flex-column align-center"
+                  Style="border: 1px dashed var(--mud-palette-lines-default);">
+            <MudIcon Icon="@Icons.Material.Outlined.Checklist" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5" Class="mt-4">
+                @(HasActiveFilters ? L["NoTasksForFilter"] : L["EmptyTasksTitle"])
+            </MudText>
+            @if (!HasActiveFilters)
+            {
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+                    @L["EmptyTasksMessage"]
+                </MudText>
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="0"
+                  Class="pa-0 task-list"
+                  Style="border: 1px solid var(--mud-palette-lines-default);">
+            @foreach (var task in _tasks)
+            {
+                <div class="task-row @(task.Status == TodoTaskStatus.Done ? "is-done" : null)">
+                    <MudCheckBox T="bool"
+                                 Value="@(task.Status == TodoTaskStatus.Done)"
+                                 ValueChanged="@(value => ToggleDoneAsync(task, value))"
+                                 Color="Color.Primary"
+                                 Dense="true"
+                                 aria-label="@(task.Status == TodoTaskStatus.Done ? L["Reopen"].Value : L["MarkDone"].Value)" />
+
+                    <div class="task-row-main">
+                        <MudText Typo="Typo.subtitle1" Class="task-title">@task.Title</MudText>
+
+                        <div class="task-meta">
+                            @if (task.ProjectName is not null)
+                            {
+                                <span class="task-meta-item">
+                                    <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
+                                    @task.ProjectName
+                                </span>
+                            }
+
+                            @if (task.DueDate is { } dueDate)
+                            {
+                                <span class="task-meta-item @(IsOverdue(task) ? "is-overdue" : null)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
+                                    @dueDate.ToString("d")
+                                    @if (task.DueTime is { } dueTime)
+                                    {
+                                        <text>@dueTime.ToString("t")</text>
+                                    }
+                                </span>
+                            }
+
+                            @if (task.ChecklistTotal > 0)
+                            {
+                                <span class="task-meta-item">
+                                    <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
+                                    @task.ChecklistCompleted/@task.ChecklistTotal
+                                </span>
+                            }
+
+                            @if (task.Priority != TaskPriority.None)
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@PriorityColor(task.Priority)"
+                                         Class="task-priority">
+                                    @PriorityLabel(task.Priority)
+                                </MudChip>
+                            }
+
+                            @foreach (var tag in task.Tags)
+                            {
+                                <span class="tag-chip" style="background:@tag.Color">@tag.Name</span>
+                            }
+
+                            @if (task.Status == TodoTaskStatus.InProgress)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="task-priority">
+                                    @L["StatusInProgress"]
+                                </MudChip>
+                            }
+                        </div>
+                    </div>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Default"
+                                   aria-label="@L["Edit"].Value"
+                                   OnClick="@(() => EditAsync(task))" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Default"
+                                   aria-label="@L["Delete"].Value"
+                                   OnClick="@(() => DeleteAsync(task))" />
+                </div>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    private IReadOnlyList<TaskListItem> _tasks = [];
+    private IReadOnlyList<ProjectListItem> _projects = [];
+    private IReadOnlyList<TagListItem> _tags = [];
+
+    private string _newTaskTitle = string.Empty;
+    private string? _search;
+    private TodoTaskStatus? _statusFilter;
+    private Guid? _projectFilter;
+    private Guid? _tagFilter;
+
+    private bool _isInitialLoading = true;
+    private bool _isRefreshing;
+    private bool _isCreating;
+    private string? _error;
+
+    private bool HasActiveFilters
+        => !string.IsNullOrWhiteSpace(_search)
+            || _statusFilter is not null
+            || _projectFilter is not null
+            || _tagFilter is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReferenceDataAsync();
+        await LoadTasksAsync();
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+
+        var projectQueries = scope.ServiceProvider.GetRequiredService<ProjectQueries>();
+        var tagQueries = scope.ServiceProvider.GetRequiredService<TagQueries>();
+
+        _projects = await projectQueries.ListAsync(user);
+        _tags = await tagQueries.ListAsync(user);
+    }
+
+    private async Task LoadTasksAsync()
+    {
+        _error = null;
+        _isRefreshing = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            var filter = new TaskListFilter(
+                _statusFilter,
+                _projectFilter,
+                _tagFilter,
+                string.IsNullOrWhiteSpace(_search) ? null : _search);
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+            _tasks = await queries.ListAsync(user, filter);
+        }
+        catch (Exception)
+        {
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isInitialLoading = false;
+            _isRefreshing = false;
+        }
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _search = null;
+        _statusFilter = null;
+        _projectFilter = null;
+        _tagFilter = null;
+
+        await LoadTasksAsync();
+    }
+
+    private async Task QuickAddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newTaskTitle))
+        {
+            return;
+        }
+
+        _isCreating = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+
+            var result = await service.CreateAsync(
+                user,
+                new CreateTaskRequest(_newTaskTitle, _projectFilter));
+
+            if (result.IsFailure)
+            {
+                Snackbar.Add(result.Error.Message, Severity.Error);
+                return;
+            }
+
+            _newTaskTitle = string.Empty;
+            Snackbar.Add(L["TaskCreated"], Severity.Success);
+            await LoadTasksAsync();
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+        }
+        finally
+        {
+            _isCreating = false;
+        }
+    }
+
+    private async Task ToggleDoneAsync(TaskListItem task, bool isDone)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+
+        var status = isDone ? TodoTaskStatus.Done : TodoTaskStatus.Todo;
+        var result = await service.SetStatusAsync(user, task.Id, status);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error.Message, Severity.Error);
+            return;
+        }
+
+        await LoadTasksAsync();
+    }
+
+    private async Task EditAsync(TaskListItem task)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        TaskDetails? details;
+
+        await using (var scope = ScopeFactory.CreateAsyncScope())
+        {
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+            details = await queries.GetAsync(user, task.Id);
+        }
+
+        if (details is null)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<TaskEditDialog>
+        {
+            { dialog => dialog.Details, details },
+            { dialog => dialog.Projects, _projects },
+            { dialog => dialog.Tags, _tags }
+        };
+
+        var dialog = await DialogService.ShowAsync<TaskEditDialog>(L["EditTask"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadTasksAsync();
+        }
+    }
+
+    private async Task DeleteAsync(TaskListItem task)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["DeleteTask"].Value,
+            L["DeleteTaskConfirm"].Value,
+            yesText: L["Delete"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.DeleteAsync(user, task.Id);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error.Message, Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(L["TaskDeleted"], Severity.Success);
+        await LoadTasksAsync();
+    }
+
+    private bool IsOverdue(TaskListItem task)
+        => task.Status != TodoTaskStatus.Done
+            && task.DueDate is { } dueDate
+            && dueDate < DateOnly.FromDateTime(TimeProvider.GetLocalNow().DateTime);
+
+    private string StatusLabel(TodoTaskStatus status) => status switch
+    {
+        TodoTaskStatus.InProgress => L["StatusInProgress"].Value,
+        TodoTaskStatus.Done => L["StatusDone"].Value,
+        _ => L["StatusTodo"].Value
+    };
+
+    private string PriorityLabel(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => L["PriorityLow"].Value,
+        TaskPriority.Medium => L["PriorityMedium"].Value,
+        TaskPriority.High => L["PriorityHigh"].Value,
+        TaskPriority.Urgent => L["PriorityUrgent"].Value,
+        _ => L["NoPriority"].Value
+    };
+
+    private static Color PriorityColor(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Color.Info,
+        TaskPriority.Medium => Color.Warning,
+        TaskPriority.High => Color.Error,
+        TaskPriority.Urgent => Color.Error,
+        _ => Color.Default
+    };
+}

@@ -30,7 +30,7 @@ The app is available at https://localhost:7037 or http://localhost:5122.
 
 ## Database
 
-EF Core migrations and the `AppDbContext` are added in Week 1. After that:
+EF Core migrations and the `AppDbContext` are in place. Apply them with:
 
 ```bash
 dotnet ef database update --project src/TodoList.Infrastructure --startup-project src/TodoList.Web

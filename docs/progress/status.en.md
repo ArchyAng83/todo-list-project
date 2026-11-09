@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-11-08
+Last updated: 2026-11-09
 
-- **Current phase:** Week 1 — Foundation (code complete)
-- **Overall:** Bootstrap and Week 1 foundation complete; MVP in progress.
+- **Current phase:** Week 2 - Core domain (code complete)
+- **Overall:** Foundation and core task management complete; MVP in progress.
 
 ## Done
 
@@ -18,19 +18,24 @@ Last updated: 2026-11-08
 - EF Core 10 + Npgsql persistence, snake_case naming, initial migration applied.
 - ASP.NET Core Identity with cookie authentication and renamed Identity tables.
 - Static SSR login, register, logout, and access-denied pages.
-- MudBlazor application shell, public landing page, tasks placeholder, profile settings.
+- MudBlazor application shell, public landing page, profile settings.
 - RU/EN localization with cookie and `Accept-Language` negotiation.
+- Projects: create, edit, archive/unarchive, delete, open and total task counts.
+- Tags: create, edit, delete, usage counts, color preview.
+- Tasks: quick add, edit dialog with status, priority, project, due date/time, reminder, tags, and checklist.
+- Task list: debounced search, filters by status, project, and tag, status toggle, delete.
+- Command/query Application services with FluentValidation and `Result<T>`.
 - Unit tests for domain rules (32 passing).
-- Testcontainers-based integration tests for auth and persistence (7 passing).
+- Testcontainers-based integration tests for auth, persistence, and task management (13 passing).
 
 ## In progress
 
 - First CI run (pending publication of the GitHub repository).
-- Week 2: projects, tags, tasks, subtasks, views, quick add.
+- Week 3: search and filter polish, settings, demo seed, `/api/v1`, OpenAPI.
 
 ## Next
 
-- Week 2: projects, tags, tasks, subtasks, views, quick add.
+- Week 3: search and filter polish, settings, demo seed, `/api/v1`, OpenAPI.
 
 ## Blockers and risks
 
@@ -44,7 +49,7 @@ Last updated: 2026-11-08
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
 | Unit tests | ✅ 32 passing |
-| Integration tests | ✅ 7 passing (Testcontainers) |
+| Integration tests | ✅ 13 passing (Testcontainers) |
 | Component tests | ⬜ scaffold only (Week 4) |
 | E2E tests | ⬜ scaffold only (Week 4) |
 | CI | ⬜ workflow added, first run pending |

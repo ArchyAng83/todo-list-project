@@ -1,0 +1,151 @@
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Tag is null ? L["NewTag"] : L["EditTag"])</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudTextField @bind-Value="_name"
+                      Label="@L["TagName"]"
+                      Required="true"
+                      MaxLength="50"
+                      Class="mb-4" />
+
+        <MudTextField @bind-Value="_color"
+                      Label="@L["TagColor"]"
+                      Placeholder="@L["TagColorHint"]"
+                      HelperText="@L["TagColorHint"]"
+                      MaxLength="7"
+                      Class="mb-4" />
+
+        @if (IsValidColor)
+        {
+            <MudStack Row="true" Class="align-center">
+                <span class="color-swatch" style="background:@_color"></span>
+                <MudChip T="string" Size="Size.Small" Style="@($"background:{_color};color:#fff;")">@_name</MudChip>
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        @if (Tag is not null)
+        {
+            <MudButton OnClick="DeleteAsync"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete">
+                @L["Delete"]
+            </MudButton>
+        }
+        <MudSpacer />
+        <MudButton OnClick="() => MudDialog.Cancel()">@L["Cancel"]</MudButton>
+        <MudButton OnClick="SaveAsync" Color="Color.Primary" Variant="Variant.Filled">@L["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public TagListItem? Tag { get; set; }
+
+    private string _name = string.Empty;
+    private string? _color;
+    private string? _error;
+
+    private bool IsValidColor
+        => !string.IsNullOrWhiteSpace(_color)
+            && _color.Length == 7
+            && _color[0] == '#'
+            && _color.Skip(1).All(Uri.IsHexDigit);
+
+    protected override void OnInitialized()
+    {
+        if (Tag is not null)
+        {
+            _name = Tag.Name;
+            _color = Tag.Color;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        var color = string.IsNullOrWhiteSpace(_color) ? null : _color.Trim();
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TagService>();
+
+        var result = Tag is null
+            ? await service.CreateAsync(user, new CreateTagRequest(_name, color))
+            : await service.UpdateAsync(user, Tag.Id, new UpdateTagRequest(_name, color));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        Snackbar.Add(L["TagSaved"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Tag is null)
+        {
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["DeleteTag"].Value,
+            L["DeleteTagConfirm"].Value,
+            yesText: L["Delete"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TagService>();
+        var result = await service.DeleteAsync(user, Tag.Id);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        Snackbar.Add(L["TagDeleted"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

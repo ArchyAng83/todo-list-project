@@ -1,0 +1,133 @@
+@page "/tags"
+@attribute [Authorize]
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Tags"] · @L["AppName"]</PageTitle>
+
+<MudStack Row="true" Class="align-center mb-6">
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="m-0">@L["Tags"]</MudText>
+    <MudSpacer />
+    <MudButton OnClick="CreateAsync"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add">
+        @L["AddTag"]
+    </MudButton>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+else if (_tags.Count == 0)
+{
+    <MudPaper Elevation="0"
+              Class="pa-10 d-flex flex-column align-center"
+              Style="border: 1px dashed var(--mud-palette-lines-default);">
+        <MudIcon Icon="@Icons.Material.Outlined.Label" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h5" Class="mt-4">@L["NoTagsTitle"]</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+            @L["NoTagsMessage"]
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Elevation="0" Class="pa-0 project-list" Style="border: 1px solid var(--mud-palette-lines-default);">
+        @foreach (var tag in _tags)
+        {
+            <div class="project-row">
+                <span class="color-swatch" style="background:@tag.Color"></span>
+
+                <div class="project-row-main">
+                    <MudChip T="string" Size="Size.Small" Style="@($"background:{tag.Color};color:#fff;")">
+                        @tag.Name
+                    </MudChip>
+                    <MudStack Row="true" Class="align-center project-meta">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["TagUsage", tag.TaskCount]
+                        </MudText>
+                    </MudStack>
+                </div>
+
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Color="Color.Default"
+                               aria-label="@L["Edit"].Value"
+                               OnClick="@(() => EditAsync(tag))" />
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<TagListItem> _tags = [];
+    private bool _isLoading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<TagQueries>();
+            _tags = await queries.ListAsync(user);
+        }
+        catch (Exception)
+        {
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<TagEditDialog>(L["NewTag"]);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync(TagListItem tag)
+    {
+        var parameters = new DialogParameters<TagEditDialog>
+        {
+            { dialog => dialog.Tag, tag }
+        };
+
+        var dialog = await DialogService.ShowAsync<TagEditDialog>(L["EditTag"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+}

@@ -1,0 +1,151 @@
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(Project is null ? L["NewProject"] : L["EditProject"])</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudTextField @bind-Value="_name"
+                      Label="@L["ProjectName"]"
+                      Required="true"
+                      MaxLength="100"
+                      Class="mb-4" />
+
+        <MudTextField @bind-Value="_color"
+                      Label="@L["ProjectColor"]"
+                      Placeholder="@L["ProjectColorHint"]"
+                      HelperText="@L["ProjectColorHint"]"
+                      MaxLength="7"
+                      Class="mb-4" />
+
+        @if (IsValidColor)
+        {
+            <MudStack Row="true" Class="align-center">
+                <span class="color-swatch" style="background:@_color"></span>
+                <MudText Typo="Typo.body2">@_color</MudText>
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        @if (Project is not null)
+        {
+            <MudButton OnClick="DeleteAsync"
+                       Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.Delete">
+                @L["Delete"]
+            </MudButton>
+        }
+        <MudSpacer />
+        <MudButton OnClick="() => MudDialog.Cancel()">@L["Cancel"]</MudButton>
+        <MudButton OnClick="SaveAsync" Color="Color.Primary" Variant="Variant.Filled">@L["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public ProjectListItem? Project { get; set; }
+
+    private string _name = string.Empty;
+    private string? _color;
+    private string? _error;
+
+    private bool IsValidColor
+        => !string.IsNullOrWhiteSpace(_color)
+            && _color.Length == 7
+            && _color[0] == '#'
+            && _color.Skip(1).All(Uri.IsHexDigit);
+
+    protected override void OnInitialized()
+    {
+        if (Project is not null)
+        {
+            _name = Project.Name;
+            _color = Project.Color;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        var color = string.IsNullOrWhiteSpace(_color) ? null : _color.Trim();
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<ProjectService>();
+
+        var result = Project is null
+            ? await service.CreateAsync(user, new CreateProjectRequest(_name, color))
+            : await service.UpdateAsync(user, Project.Id, new UpdateProjectRequest(_name, color));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        Snackbar.Add(L["ProjectSaved"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (Project is null)
+        {
+            return;
+        }
+
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["DeleteProject"].Value,
+            L["DeleteProjectConfirm"].Value,
+            yesText: L["Delete"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<ProjectService>();
+        var result = await service.DeleteAsync(user, Project.Id);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        Snackbar.Add(L["ProjectDeleted"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

@@ -17,7 +17,9 @@ public static class DependencyInjection
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
         services.AddDbContextFactory<AppDbContext>(options => options
-            .UseNpgsql(connectionString)
+            .UseNpgsql(
+                connectionString,
+                npgsql => npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
             .UseSnakeCaseNamingConvention());
 
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());

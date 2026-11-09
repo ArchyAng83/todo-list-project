@@ -103,12 +103,282 @@
     <value>Задач пока нет</value>
   </data>
   <data name="EmptyTasksMessage" xml:space="preserve">
-    <value>Управление задачами появится на следующем шаге. Аккаунт и рабочее пространство уже готовы.</value>
+    <value>Добавьте первую задачу выше, чтобы начать.</value>
   </data>
   <data name="NotFoundTitle" xml:space="preserve">
     <value>Страница не найдена</value>
   </data>
   <data name="NotFoundMessage" xml:space="preserve">
     <value>Страницы, которую вы ищете, не существует.</value>
+  </data>
+  <data name="Projects" xml:space="preserve">
+    <value>Проекты</value>
+  </data>
+  <data name="Tags" xml:space="preserve">
+    <value>Теги</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Сохранить</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Редактировать</value>
+  </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Подтвердить</value>
+  </data>
+  <data name="GenericError" xml:space="preserve">
+    <value>Что-то пошло не так. Попробуйте ещё раз.</value>
+  </data>
+  <data name="Loading" xml:space="preserve">
+    <value>Загрузка...</value>
+  </data>
+  <data name="Optional" xml:space="preserve">
+    <value>Необязательно</value>
+  </data>
+  <data name="QuickAddPlaceholder" xml:space="preserve">
+    <value>Добавьте задачу и нажмите «Добавить»</value>
+  </data>
+  <data name="AddTask" xml:space="preserve">
+    <value>Добавить задачу</value>
+  </data>
+  <data name="AllStatuses" xml:space="preserve">
+    <value>Все статусы</value>
+  </data>
+  <data name="AllProjects" xml:space="preserve">
+    <value>Все проекты</value>
+  </data>
+  <data name="AllTags" xml:space="preserve">
+    <value>Все теги</value>
+  </data>
+  <data name="StatusTodo" xml:space="preserve">
+    <value>К выполнению</value>
+  </data>
+  <data name="StatusInProgress" xml:space="preserve">
+    <value>В работе</value>
+  </data>
+  <data name="StatusDone" xml:space="preserve">
+    <value>Готово</value>
+  </data>
+  <data name="NoPriority" xml:space="preserve">
+    <value>Без приоритета</value>
+  </data>
+  <data name="PriorityLow" xml:space="preserve">
+    <value>Низкий</value>
+  </data>
+  <data name="PriorityMedium" xml:space="preserve">
+    <value>Средний</value>
+  </data>
+  <data name="PriorityHigh" xml:space="preserve">
+    <value>Высокий</value>
+  </data>
+  <data name="PriorityUrgent" xml:space="preserve">
+    <value>Срочный</value>
+  </data>
+  <data name="NoProject" xml:space="preserve">
+    <value>Без проекта</value>
+  </data>
+  <data name="EditTask" xml:space="preserve">
+    <value>Редактировать задачу</value>
+  </data>
+  <data name="TaskTitle" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="Notes" xml:space="preserve">
+    <value>Заметки</value>
+  </data>
+  <data name="Project" xml:space="preserve">
+    <value>Проект</value>
+  </data>
+  <data name="Priority" xml:space="preserve">
+    <value>Приоритет</value>
+  </data>
+  <data name="DueDate" xml:space="preserve">
+    <value>Срок</value>
+  </data>
+  <data name="DueTime" xml:space="preserve">
+    <value>Время</value>
+  </data>
+  <data name="Reminder" xml:space="preserve">
+    <value>Напоминание</value>
+  </data>
+  <data name="ReminderNone" xml:space="preserve">
+    <value>Без напоминания</value>
+  </data>
+  <data name="ReminderAtDue" xml:space="preserve">
+    <value>В момент срока</value>
+  </data>
+  <data name="Reminder5Minutes" xml:space="preserve">
+    <value>За 5 минут</value>
+  </data>
+  <data name="Reminder15Minutes" xml:space="preserve">
+    <value>За 15 минут</value>
+  </data>
+  <data name="Reminder30Minutes" xml:space="preserve">
+    <value>За 30 минут</value>
+  </data>
+  <data name="Reminder1Hour" xml:space="preserve">
+    <value>За 1 час</value>
+  </data>
+  <data name="Reminder1Day" xml:space="preserve">
+    <value>За 1 день</value>
+  </data>
+  <data name="Checklist" xml:space="preserve">
+    <value>Чек-лист</value>
+  </data>
+  <data name="AddChecklistItem" xml:space="preserve">
+    <value>Добавить пункт</value>
+  </data>
+  <data name="TaskCreated" xml:space="preserve">
+    <value>Задача добавлена</value>
+  </data>
+  <data name="TaskSaved" xml:space="preserve">
+    <value>Задача сохранена</value>
+  </data>
+  <data name="TaskDeleted" xml:space="preserve">
+    <value>Задача удалена</value>
+  </data>
+  <data name="DeleteTask" xml:space="preserve">
+    <value>Удалить задачу</value>
+  </data>
+  <data name="DeleteTaskConfirm" xml:space="preserve">
+    <value>Удалить эту задачу? Отменить действие нельзя.</value>
+  </data>
+  <data name="NoTasksForFilter" xml:space="preserve">
+    <value>По этим фильтрам задач нет.</value>
+  </data>
+  <data name="MarkDone" xml:space="preserve">
+    <value>Отметить выполненной</value>
+  </data>
+  <data name="Reopen" xml:space="preserve">
+    <value>Вернуть в работу</value>
+  </data>
+  <data name="SearchPlaceholder" xml:space="preserve">
+    <value>Поиск задач</value>
+  </data>
+  <data name="Clear" xml:space="preserve">
+    <value>Очистить</value>
+  </data>
+  <data name="Overdue" xml:space="preserve">
+    <value>Просрочено</value>
+  </data>
+  <data name="NewProject" xml:space="preserve">
+    <value>Новый проект</value>
+  </data>
+  <data name="EditProject" xml:space="preserve">
+    <value>Редактировать проект</value>
+  </data>
+  <data name="ProjectName" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="ProjectColor" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="AddProject" xml:space="preserve">
+    <value>Добавить проект</value>
+  </data>
+  <data name="IncludeArchived" xml:space="preserve">
+    <value>Показывать архив</value>
+  </data>
+  <data name="Archived" xml:space="preserve">
+    <value>В архиве</value>
+  </data>
+  <data name="Archive" xml:space="preserve">
+    <value>В архив</value>
+  </data>
+  <data name="Unarchive" xml:space="preserve">
+    <value>Вернуть из архива</value>
+  </data>
+  <data name="OpenTasks" xml:space="preserve">
+    <value>Открытых</value>
+  </data>
+  <data name="TotalTasks" xml:space="preserve">
+    <value>Всего</value>
+  </data>
+  <data name="NoProjectsTitle" xml:space="preserve">
+    <value>Проектов пока нет</value>
+  </data>
+  <data name="NoProjectsMessage" xml:space="preserve">
+    <value>Группируйте связанные задачи в проекты.</value>
+  </data>
+  <data name="ProjectSaved" xml:space="preserve">
+    <value>Проект сохранён</value>
+  </data>
+  <data name="ProjectDeleted" xml:space="preserve">
+    <value>Проект удалён</value>
+  </data>
+  <data name="ProjectArchived" xml:space="preserve">
+    <value>Проект в архиве</value>
+  </data>
+  <data name="ProjectUnarchived" xml:space="preserve">
+    <value>Проект восстановлен</value>
+  </data>
+  <data name="DeleteProject" xml:space="preserve">
+    <value>Удалить проект</value>
+  </data>
+  <data name="DeleteProjectConfirm" xml:space="preserve">
+    <value>Удалить проект? Задачи сохранятся и останутся без проекта.</value>
+  </data>
+  <data name="ProjectColorHint" xml:space="preserve">
+    <value>HEX-цвет, например #4F46E5</value>
+  </data>
+  <data name="NewTag" xml:space="preserve">
+    <value>Новый тег</value>
+  </data>
+  <data name="EditTag" xml:space="preserve">
+    <value>Редактировать тег</value>
+  </data>
+  <data name="TagName" xml:space="preserve">
+    <value>Название</value>
+  </data>
+  <data name="TagColor" xml:space="preserve">
+    <value>Цвет</value>
+  </data>
+  <data name="AddTag" xml:space="preserve">
+    <value>Добавить тег</value>
+  </data>
+  <data name="TagSaved" xml:space="preserve">
+    <value>Тег сохранён</value>
+  </data>
+  <data name="TagDeleted" xml:space="preserve">
+    <value>Тег удалён</value>
+  </data>
+  <data name="NoTagsTitle" xml:space="preserve">
+    <value>Тегов пока нет</value>
+  </data>
+  <data name="NoTagsMessage" xml:space="preserve">
+    <value>Помечайте задачи тегами независимо от проектов.</value>
+  </data>
+  <data name="DeleteTag" xml:space="preserve">
+    <value>Удалить тег</value>
+  </data>
+  <data name="DeleteTagConfirm" xml:space="preserve">
+    <value>Удалить тег? Он будет снят со всех задач.</value>
+  </data>
+  <data name="TagUsage" xml:space="preserve">
+    <value>Задач: {0}</value>
+  </data>
+  <data name="TagColorHint" xml:space="preserve">
+    <value>HEX-цвет, например #6B7280</value>
+  </data>
+  <data name="Status" xml:space="preserve">
+    <value>Статус</value>
+  </data>
+  <data name="Retry" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="ChecklistEmpty" xml:space="preserve">
+    <value>Пунктов пока нет.</value>
   </data>
 </root>

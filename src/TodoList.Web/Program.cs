@@ -1,9 +1,11 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Localization;
 using MudBlazor.Services;
+using TodoList.Application;
 using TodoList.Infrastructure;
 using TodoList.Infrastructure.Persistence;
 using TodoList.Web.Components;
+using TodoList.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,8 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("The 'Default' connection string is not configured.");
 
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddApplication();
+builder.Services.AddScoped<CurrentUserProvider>();
 
 var app = builder.Build();
 

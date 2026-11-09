@@ -1,0 +1,415 @@
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["EditTask"]</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudTextField @bind-Value="_title"
+                      Label="@L["TaskTitle"]"
+                      Required="true"
+                      Class="mb-4" />
+
+        <MudTextField @bind-Value="_notes"
+                      Label="@L["Notes"]"
+                      Lines="3"
+                      Class="mb-4" />
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="TodoTaskStatus" @bind-Value="_status" Label="@L["Status"]">
+                    @foreach (var status in Enum.GetValues<TodoTaskStatus>())
+                    {
+                        <MudSelectItem T="TodoTaskStatus" Value="@status">@StatusLabel(status)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid?" @bind-Value="_projectId" Label="@L["Project"]">
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["NoProject"]</MudSelectItem>
+                    @foreach (var project in Projects)
+                    {
+                        <MudSelectItem T="Guid?" Value="@project.Id">@project.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="TaskPriority" @bind-Value="_priority" Label="@L["Priority"]">
+                    @foreach (var priority in Enum.GetValues<TaskPriority>())
+                    {
+                        <MudSelectItem T="TaskPriority" Value="@priority">@PriorityLabel(priority)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_dueDate" Label="@L["DueDate"]" Clearable="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTimePicker @bind-Time="_dueTime" Label="@L["DueTime"]" Clearable="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="int?"
+                           @bind-Value="_reminderOffsetMinutes"
+                           Label="@L["Reminder"]"
+                           Disabled="_dueDate is null">
+                    @foreach (var option in ReminderOptions)
+                    {
+                        <MudSelectItem T="int?" Value="@option.Value">@option.Label</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid"
+                           MultiSelection="true"
+                           @bind-SelectedValues="_selectedTagIds"
+                           ToStringFunc="@TagName"
+                           Label="@L["Tags"]">
+                    @foreach (var tag in Tags)
+                    {
+                        <MudSelectItem T="Guid" Value="@tag.Id">@tag.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.subtitle1" Class="mt-6 mb-2">@L["Checklist"]</MudText>
+
+        @if (_checklist.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@L["ChecklistEmpty"]</MudText>
+        }
+        else
+        {
+            @foreach (var item in _checklist)
+            {
+                <MudStack Row="true" Class="align-center">
+                    <MudCheckBox T="bool"
+                                 Value="@item.IsCompleted"
+                                 ValueChanged="@(value => SetChecklistItemAsync(item.Id, value))"
+                                 Dense="true" />
+                    <MudText Class="@(item.IsCompleted ? "task-done" : null)">@item.Title</MudText>
+                    <MudSpacer />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Size="Size.Small"
+                                   OnClick="@(() => RemoveChecklistItemAsync(item.Id))" />
+                </MudStack>
+            }
+        }
+
+        <MudStack Row="true" Class="align-center mt-2">
+            <MudTextField @bind-Value="_newChecklistItemTitle"
+                          Placeholder="@L["AddChecklistItem"]"
+                          Margin="Margin.Dense"
+                          Class="flex-grow-1" />
+            <MudIconButton Icon="@Icons.Material.Filled.Add"
+                           Color="Color.Primary"
+                           OnClick="AddChecklistItemAsync" />
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="DeleteAsync"
+                   Color="Color.Error"
+                   StartIcon="@Icons.Material.Filled.Delete">
+            @L["Delete"]
+        </MudButton>
+        <MudSpacer />
+        <MudButton OnClick="() => MudDialog.Cancel()">@L["Cancel"]</MudButton>
+        <MudButton OnClick="SaveAsync" Color="Color.Primary" Variant="Variant.Filled">@L["Save"]</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public TaskDetails Details { get; set; } = default!;
+
+    [Parameter]
+    public IReadOnlyList<ProjectListItem> Projects { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<TagListItem> Tags { get; set; } = [];
+
+    private string _title = string.Empty;
+    private string? _notes;
+    private Guid? _projectId;
+    private TaskPriority _priority;
+    private TodoTaskStatus _status;
+    private DateTime? _dueDate;
+    private TimeSpan? _dueTime;
+    private int? _reminderOffsetMinutes;
+    private IReadOnlyCollection<Guid> _selectedTagIds = [];
+    private List<ChecklistItemDto> _checklist = [];
+    private string _newChecklistItemTitle = string.Empty;
+    private string? _error;
+
+    private IEnumerable<(int? Value, string Label)> ReminderOptions =>
+    [
+        (null, L["ReminderNone"].Value),
+        (0, L["ReminderAtDue"].Value),
+        (5, L["Reminder5Minutes"].Value),
+        (15, L["Reminder15Minutes"].Value),
+        (30, L["Reminder30Minutes"].Value),
+        (60, L["Reminder1Hour"].Value),
+        (1440, L["Reminder1Day"].Value)
+    ];
+
+    protected override void OnInitialized()
+    {
+        _title = Details.Title;
+        _notes = Details.Notes;
+        _projectId = Details.ProjectId;
+        _priority = Details.Priority;
+        _status = Details.Status;
+        _dueDate = Details.DueDate?.ToDateTime(TimeOnly.MinValue);
+        _dueTime = Details.DueTime?.ToTimeSpan();
+        _reminderOffsetMinutes = Details.ReminderOffsetMinutes;
+        _selectedTagIds = Details.Tags.Select(tag => tag.Id).ToArray();
+        _checklist = Details.ChecklistItems.ToList();
+    }
+
+    private string PriorityLabel(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => L["PriorityLow"].Value,
+        TaskPriority.Medium => L["PriorityMedium"].Value,
+        TaskPriority.High => L["PriorityHigh"].Value,
+        TaskPriority.Urgent => L["PriorityUrgent"].Value,
+        _ => L["NoPriority"].Value
+    };
+
+    private string StatusLabel(TodoTaskStatus status) => status switch
+    {
+        TodoTaskStatus.InProgress => L["StatusInProgress"].Value,
+        TodoTaskStatus.Done => L["StatusDone"].Value,
+        _ => L["StatusTodo"].Value
+    };
+
+    private string TagName(Guid tagId)
+        => Tags.FirstOrDefault(tag => tag.Id == tagId)?.Name ?? string.Empty;
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        var dueDate = _dueDate is { } date ? DateOnly.FromDateTime(date) : (DateOnly?)null;
+        var dueTime = _dueTime is { } time ? TimeOnly.FromTimeSpan(time) : (TimeOnly?)null;
+
+        var request = new UpdateTaskRequest(
+            _title,
+            _notes,
+            _projectId,
+            _priority,
+            dueDate,
+            dueTime,
+            _reminderOffsetMinutes);
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+
+        var result = await service.UpdateAsync(user, Details.Id, request);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        if (_status != Details.Status)
+        {
+            var statusResult = await service.SetStatusAsync(user, Details.Id, _status);
+
+            if (statusResult.IsFailure)
+            {
+                _error = statusResult.Error.Message;
+                return;
+            }
+        }
+
+        var originalTagIds = Details.Tags.Select(tag => tag.Id).ToHashSet();
+        var selectedTagIds = _selectedTagIds.ToHashSet();
+
+        foreach (var tagId in selectedTagIds.Except(originalTagIds))
+        {
+            var addResult = await service.AddTagAsync(user, Details.Id, new AddTaskTagRequest(tagId));
+
+            if (addResult.IsFailure)
+            {
+                _error = addResult.Error.Message;
+                return;
+            }
+        }
+
+        foreach (var tagId in originalTagIds.Except(selectedTagIds))
+        {
+            var removeResult = await service.RemoveTagAsync(user, Details.Id, tagId);
+
+            if (removeResult.IsFailure)
+            {
+                _error = removeResult.Error.Message;
+                return;
+            }
+        }
+
+        Snackbar.Add(L["TaskSaved"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private async Task AddChecklistItemAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newChecklistItemTitle))
+        {
+            return;
+        }
+
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.AddChecklistItemAsync(
+            user,
+            Details.Id,
+            new AddChecklistItemRequest(_newChecklistItemTitle));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        _newChecklistItemTitle = string.Empty;
+        await ReloadChecklistAsync(user);
+    }
+
+    private async Task SetChecklistItemAsync(Guid checklistItemId, bool isCompleted)
+    {
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.SetChecklistItemCompletedAsync(
+            user,
+            Details.Id,
+            checklistItemId,
+            new SetChecklistItemCompletedRequest(isCompleted));
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        await ReloadChecklistAsync(user);
+    }
+
+    private async Task RemoveChecklistItemAsync(Guid checklistItemId)
+    {
+        _error = null;
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.RemoveChecklistItemAsync(user, Details.Id, checklistItemId);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        await ReloadChecklistAsync(user);
+    }
+
+    private async Task ReloadChecklistAsync(UserContext user)
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+        var details = await queries.GetAsync(user, Details.Id);
+
+        if (details is null)
+        {
+            return;
+        }
+
+        Details = details;
+        _checklist = details.ChecklistItems.ToList();
+    }
+
+    private async Task DeleteAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["DeleteTask"].Value,
+            L["DeleteTaskConfirm"].Value,
+            yesText: L["Delete"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.DeleteAsync(user, Details.Id);
+
+        if (result.IsFailure)
+        {
+            _error = result.Error.Message;
+            return;
+        }
+
+        Snackbar.Add(L["TaskDeleted"], Severity.Success);
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+}

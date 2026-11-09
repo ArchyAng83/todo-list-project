@@ -30,7 +30,7 @@ dotnet run --project src/TodoList.Web
 
 ## База данных
 
-EF Core migrations и `AppDbContext` добавляются на неделе 1. После этого:
+EF Core migrations и `AppDbContext` уже есть. Применить их можно так:
 
 ```bash
 dotnet ef database update --project src/TodoList.Infrastructure --startup-project src/TodoList.Web

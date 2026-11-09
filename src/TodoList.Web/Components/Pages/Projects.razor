@@ -1,0 +1,181 @@
+@page "/projects"
+@attribute [Authorize]
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["Projects"] · @L["AppName"]</PageTitle>
+
+<MudStack Row="true" Class="align-center mb-6">
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="m-0">@L["Projects"]</MudText>
+    <MudSpacer />
+    <MudButton OnClick="CreateAsync"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add">
+        @L["AddProject"]
+    </MudButton>
+</MudStack>
+
+<MudStack Row="true" Class="align-center mb-4">
+    <MudSwitch T="bool"
+               @bind-Value="_includeArchived"
+               @bind-Value:after="LoadAsync"
+               Color="Color.Primary"
+               Label="@L["IncludeArchived"]" />
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+    <MudButton OnClick="LoadAsync" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else if (_projects.Count == 0)
+{
+    <MudPaper Elevation="0"
+              Class="pa-10 d-flex flex-column align-center"
+              Style="border: 1px dashed var(--mud-palette-lines-default);">
+        <MudIcon Icon="@Icons.Material.Outlined.Folder" Size="Size.Large" Color="Color.Primary" />
+        <MudText Typo="Typo.h5" Class="mt-4">@L["NoProjectsTitle"]</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+            @L["NoProjectsMessage"]
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Elevation="0" Class="pa-0 project-list" Style="border: 1px solid var(--mud-palette-lines-default);">
+        @foreach (var project in _projects)
+        {
+            <div class="project-row @(project.IsArchived ? "is-archived" : null)">
+                <span class="color-swatch"
+                      style="background:@(project.Color ?? "var(--mud-palette-text-secondary)")"></span>
+
+                <div class="project-row-main">
+                    <MudText Typo="Typo.subtitle1" Class="project-name">@project.Name</MudText>
+                    <MudStack Row="true" Class="align-center project-meta">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["OpenTasks"]: @project.OpenTaskCount
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @L["TotalTasks"]: @project.TotalTaskCount
+                        </MudText>
+                        @if (project.IsArchived)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">@L["Archived"]</MudChip>
+                        }
+                    </MudStack>
+                </div>
+
+                <MudIconButton Icon="@(project.IsArchived ? Icons.Material.Filled.Unarchive : Icons.Material.Filled.Archive)"
+                               Color="Color.Default"
+                               aria-label="@(project.IsArchived ? L["Unarchive"].Value : L["Archive"].Value)"
+                               OnClick="@(() => SetArchivedAsync(project, !project.IsArchived))" />
+
+                <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                               Color="Color.Default"
+                               aria-label="@L["Edit"].Value"
+                               OnClick="@(() => EditAsync(project))" />
+            </div>
+        }
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<ProjectListItem> _projects = [];
+    private bool _includeArchived;
+    private bool _isLoading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<ProjectQueries>();
+            _projects = await queries.ListAsync(user, _includeArchived);
+        }
+        catch (Exception)
+        {
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        var dialog = await DialogService.ShowAsync<ProjectEditDialog>(L["NewProject"]);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync(ProjectListItem project)
+    {
+        var parameters = new DialogParameters<ProjectEditDialog>
+        {
+            { dialog => dialog.Project, project }
+        };
+
+        var dialog = await DialogService.ShowAsync<ProjectEditDialog>(L["EditProject"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task SetArchivedAsync(ProjectListItem project, bool isArchived)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<ProjectService>();
+        var result = await service.SetArchivedAsync(user, project.Id, isArchived);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error.Message, Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(
+            isArchived ? L["ProjectArchived"].Value : L["ProjectUnarchived"].Value,
+            Severity.Success);
+
+        await LoadAsync();
+    }
+}

@@ -11,7 +11,7 @@
 | Продукт | [Vision](product/vision.ru.md) · [Scope](product/scope.ru.md) · [Roadmap](product/roadmap.ru.md) |
 | Архитектура | [Обзор](architecture/overview.ru.md) · [ADR](architecture/decisions/) |
 | Разработка | [Setup](development/setup.ru.md) · [Тестирование](development/testing.ru.md) · [Соглашения](development/conventions.ru.md) · [Git workflow](development/git-workflow.ru.md) · [Политика документации](development/documentation.ru.md) |
-| Прогресс | [Текущий статус](progress/status.ru.md) · [Неделя 1](progress/week-01.ru.md) |
+| Прогресс | [Текущий статус](progress/status.ru.md) · [Неделя 2](progress/week-02.ru.md) |
 
 Документы по API, эксплуатации и демо добавляются по мере старта соответствующих фаз.
 

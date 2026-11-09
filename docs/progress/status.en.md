@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-09
 
-- **Current phase:** Week 4 - testing, containers, and observability (code complete)
-- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, and the container image are complete; MVP in progress.
+- **Current phase:** Week 5 - Kanban board (code complete)
+- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, and the Kanban board are complete; MVP in progress.
 
 ## Done
 
@@ -33,13 +33,16 @@ Last updated: 2026-11-09
 - OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
 - Command/query Application services with FluentValidation and `Result<T>`.
 - Unit tests for domain rules and user settings (35 passing).
-- Testcontainers-based integration tests for auth, persistence, task management, and the REST API (24 passing).
-- bUnit component tests for the task list, layout, and culture switcher (14 passing).
-- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (6 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, board ordering, and the REST API (30 passing).
+- bUnit component tests for the task list, Kanban board, layout, and culture switcher (22 passing).
+- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (8 passing).
 - `/health/live` and `/health/ready` endpoints with a database readiness check.
 - JSON console logging outside Development for container platforms.
 - Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
 - CI that runs every test suite, installs Playwright browsers, and builds the container image.
+- Kanban board at `/board` with `Todo`, `InProgress`, and `Done` columns ordered by a manual sort order.
+- Drag-and-drop between and inside columns, plus a card menu with move up, move down, and move to another column.
+- `TaskService.MoveAsync` renumbers only the source and target columns in one `SaveChangesAsync`; `TaskQueries.BoardAsync` serves the ordered board.
 
 ## In progress
 
@@ -48,7 +51,7 @@ Last updated: 2026-11-09
 
 ## Next
 
-- Week 5: Kanban board with status columns, drag-and-drop, ordering, and tests.
+- Week 6: calendar month view with due-date placement and create-on-click.
 
 ## Blockers and risks
 
@@ -62,9 +65,9 @@ Last updated: 2026-11-09
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
 | Unit tests | ✅ 35 passing |
-| Integration tests | ✅ 24 passing (Testcontainers) |
-| Component tests | ✅ 14 passing (bUnit) |
-| E2E tests | ✅ 6 passing (Playwright) |
+| Integration tests | ✅ 30 passing (Testcontainers) |
+| Component tests | ✅ 22 passing (bUnit) |
+| E2E tests | ✅ 8 passing (Playwright) |
 | Container image | ✅ builds; health probes respond |
 | CI | ⬜ workflow added, first run pending |
 | Deployed | ⬜ |

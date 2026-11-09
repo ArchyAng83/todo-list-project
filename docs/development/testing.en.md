@@ -7,7 +7,7 @@
 | Unit | xUnit, Shouldly, NSubstitute | Domain rules, validation, timezone calculations, pure Application logic | Every commit |
 | Integration | WebApplicationFactory, Testcontainers PostgreSQL | EF Core mappings/migrations, Application services, Identity, API, data isolation, concurrency | Every PR |
 | Component | bUnit, NSubstitute | Presentational Blazor components: loading, empty, error, callbacks, localization, layout | Every PR |
-| E2E | Playwright .NET | Static SSR auth, the SignalR circuit, quick add, search, views, RU/EN, real cookies and assets | Every PR |
+| E2E | Playwright .NET | Static SSR auth, the SignalR circuit, quick add, search, views, board drag-and-drop, RU/EN, real cookies and assets | Every PR |
 
 ## Commands
 
@@ -35,6 +35,8 @@ On Linux CI add `--with-deps` so the Chromium system libraries are installed too
 - Component tests render components in isolation with localization and MudBlazor services; they do not touch a database.
 - E2E starts a PostgreSQL container, runs the real web app on a free port, waits for `/health/ready`, and drives headless Chromium.
 - E2E waits until Blazor has attached event handlers before clicking, so interactions do not fall through to native form submits.
+- Board cards rendered after enhanced navigation do not carry the `_bl_*` marker, so board tests wait for the card to be visible instead.
+- E2E contexts use a 1280x800 viewport: the default viewport stacks the Kanban columns, which makes cross-column drag-and-drop unreliable.
 
 ## Test data and fakes
 

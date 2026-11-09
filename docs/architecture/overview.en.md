@@ -39,9 +39,16 @@ Every aggregate root carries `UserId`; child entities are verified through their
 - Blazor uses **cookie authentication** via ASP.NET Core Identity.
 - Auth pages are **static SSR** so cookies are set during an HTTP response, not inside a SignalR circuit.
 - `/api/v1` uses **bearer tokens only** and reuses Application services. Blazor does not call the API, which avoids CSRF and cookie/bearer mixing.
-- `POST /api/v1/auth/login` issues access and refresh tokens, and `POST /api/v1/auth/refresh` rotates them; the API covers tasks, projects, tags, and `/me/settings`.
+- `POST /api/v1/auth/login` issues access and refresh tokens, and `POST /api/v1/auth/refresh` rotates them; the API covers tasks (including board ordering), projects, tags, and `/me/settings`.
 - The API is documented with OpenAPI at `/openapi/v1.json` and exposed through Scalar at `/scalar`.
 - User settings (language, theme, timezone, week start, default reminder) live on `ApplicationUser` and are accessed through `IUserSettingsStore`, keeping Identity out of Application.
+
+## Task ordering and Kanban
+
+- `TodoTask.SortOrder` is a per-column manual order, not a global one. `TaskQueries.BoardAsync` orders by `SortOrder` then `CreatedAt`, so ties and legacy rows still render deterministically.
+- `TaskService.MoveAsync` loads the source and target columns, renumbers only those two, and saves once; the other columns are not touched.
+- The board groups tasks into `Todo`, `InProgress`, and `Done` columns and deliberately ignores the list filters, because manual ordering only makes sense over the full column.
+- `TaskListItem` is shared by the list and the board, so `/api/v1` and the task page keep one contract.
 
 ## Blazor and DI scopes
 

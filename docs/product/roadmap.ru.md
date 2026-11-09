@@ -9,7 +9,7 @@
 | 2 | Ядро | Проекты, теги, задачи, подзадачи, views, quick add | ✅ |
 | 3 | UX + API | Поиск, фильтры, настройки, demo seed, `/api/v1`, OpenAPI | ✅ |
 | 4 | MVP release | bUnit, Playwright, Dockerfile, health checks, сборка образа в CI | ✅ |
-| 5 | Kanban | Колонки статусов, drag-and-drop, сортировка, тесты | ⬜ |
+| 5 | Kanban | Колонки статусов, drag-and-drop, сортировка, тесты | ✅ |
 | 6 | Calendar | Месячный вид, задачи по датам, создание по клику | ⬜ |
 | 7 | Productivity | Recurring tasks, email reminders, dispatcher | ⬜ |
 | 8 | Release v1.0 | Import/export, полный E2E, accessibility, финальный деплой | ⬜ |

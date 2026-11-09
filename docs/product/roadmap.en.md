@@ -9,7 +9,7 @@
 | 2 | Core domain | Projects, tags, tasks, subtasks, views, quick add | ✅ |
 | 3 | UX + API | Search, filters, settings, demo seed, `/api/v1`, OpenAPI | ✅ |
 | 4 | MVP release | bUnit, Playwright, Dockerfile, health checks, CI image build | ✅ |
-| 5 | Kanban | Status columns, drag-and-drop, ordering, tests | ⬜ |
+| 5 | Kanban | Status columns, drag-and-drop, ordering, tests | ✅ |
 | 6 | Calendar | Month view, due-date placement, create-on-click | ⬜ |
 | 7 | Productivity | Recurring tasks, email reminders, dispatcher | ⬜ |
 | 8 | Release v1.0 | Import/export, full E2E, accessibility, final deploy | ⬜ |

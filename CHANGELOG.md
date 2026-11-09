@@ -44,6 +44,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
 - CI installs Playwright browsers and builds the container image.
 - Deployment guide covering configuration, migrations, probes, and Blazor Server constraints.
+- Kanban board at `/board` with `Todo`, `InProgress`, and `Done` columns, per-column counts, and an empty-column placeholder.
+- `TaskService.MoveAsync` and `MoveTaskRequest` for moving a task to a status and zero-based position, renumbering only the source and target columns.
+- `TaskBoard`/`TaskBoardColumn` DTOs and `TaskQueries.BoardAsync`, sharing one `ToListItem` projection with the task list.
+- HTML5 drag-and-drop between and inside board columns, with a `board.js` helper that seeds the drag payload.
+- Card menu with move up, move down, and move to another column, plus edit and delete actions.
+- Board navigation entry and English/Russian resource keys.
+- `GET /api/v1/tasks/board` returns the ordered columns, and `POST /api/v1/tasks/{id}/move` moves a card for API clients.
+- 6 integration tests for board ordering, index clamping, cross-user moves, and validation; 8 bUnit tests for the board; 2 Playwright journeys for menu and drag moves.
 
 ### Changed
 
@@ -52,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Priority sorting uses a translatable `CASE` expression instead of a CLR helper method.
 - Pages and dialogs inject `ICurrentUserProvider` instead of the concrete `CurrentUserProvider`.
 - `CurrentUserProvider` resolves `UserManager` in a per-call scope because Blazor Server shares one scope per circuit.
+- `TodoTask.SetSortOrder` ignores a call that would write the current value, so board renumbering does not mark every card as modified.
+- E2E browser contexts use a 1280x800 viewport so the Kanban columns stay side by side during drag-and-drop.
 
 ### Fixed
 

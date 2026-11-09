@@ -16,7 +16,8 @@ public sealed record TaskListItem(
     string? ProjectName,
     IReadOnlyList<TagRef> Tags,
     int ChecklistTotal,
-    int ChecklistCompleted);
+    int ChecklistCompleted,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None);
 
 public sealed record TaskDetails(
     Guid Id,
@@ -27,6 +28,9 @@ public sealed record TaskDetails(
     DateOnly? DueDate,
     TimeOnly? DueTime,
     int? ReminderOffsetMinutes,
+    RecurrenceFrequency Recurrence,
+    int RecurrenceInterval,
+    DateOnly? RecurrenceEndDate,
     Guid? ProjectId,
     string? ProjectName,
     DateTimeOffset CreatedAt,

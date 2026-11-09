@@ -1,3 +1,5 @@
+using TodoList.Application.Common;
+
 namespace TodoList.Web.Services;
 
 /// <summary>
@@ -7,20 +9,5 @@ namespace TodoList.Web.Services;
 public static class UserClock
 {
     public static DateOnly Today(TimeProvider timeProvider, string timeZoneId)
-    {
-        TimeZoneInfo zone;
-
-        try
-        {
-            zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (Exception exception)
-            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            zone = TimeZoneInfo.Utc;
-        }
-
-        return DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTime(timeProvider.GetUtcNow(), zone).DateTime);
-    }
+        => UserTime.Today(timeProvider, timeZoneId);
 }

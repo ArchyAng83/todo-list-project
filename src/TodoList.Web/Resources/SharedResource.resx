@@ -519,4 +519,25 @@
   <data name="MoreTasks" xml:space="preserve">
     <value>and {0} more</value>
   </data>
+  <data name="Recurrence" xml:space="preserve">
+    <value>Repeat</value>
+  </data>
+  <data name="RecurrenceNone" xml:space="preserve">
+    <value>Does not repeat</value>
+  </data>
+  <data name="RecurrenceDaily" xml:space="preserve">
+    <value>Every day</value>
+  </data>
+  <data name="RecurrenceWeekly" xml:space="preserve">
+    <value>Every week</value>
+  </data>
+  <data name="RecurrenceMonthly" xml:space="preserve">
+    <value>Every month</value>
+  </data>
+  <data name="RecurrenceInterval" xml:space="preserve">
+    <value>Repeat every</value>
+  </data>
+  <data name="RecurrenceEndDate" xml:space="preserve">
+    <value>Repeat until</value>
+  </data>
 </root>

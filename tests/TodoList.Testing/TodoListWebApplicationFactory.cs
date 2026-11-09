@@ -12,5 +12,6 @@ public sealed class TodoListWebApplicationFactory(string connectionString)
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Default", connectionString);
         builder.UseSetting("Seed:Demo", "false");
+        builder.UseSetting("Reminders:Enabled", "false");
     }
 }

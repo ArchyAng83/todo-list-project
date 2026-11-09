@@ -207,7 +207,11 @@ public static class TaskEndpoints
                 body.ProjectId,
                 body.Priority,
                 body.DueDate,
-                body.DueTime),
+                body.DueTime,
+                body.ReminderOffsetMinutes,
+                body.Recurrence,
+                body.RecurrenceInterval,
+                body.RecurrenceEndDate),
             cancellationToken);
 
         return result.IsFailure
@@ -237,7 +241,10 @@ public static class TaskEndpoints
             body.Priority,
             body.DueDate,
             body.DueTime,
-            body.ReminderOffsetMinutes);
+            body.ReminderOffsetMinutes,
+            body.Recurrence,
+            body.RecurrenceInterval,
+            body.RecurrenceEndDate);
 
         var result = await service.UpdateAsync(user, id, request, cancellationToken);
 

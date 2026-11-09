@@ -143,6 +143,21 @@ public sealed class TaskListTests : ComponentTestContext
         deleted.Id.ShouldBe(task.Id);
     }
 
+    [Fact]
+    public void TaskList_RecurringTask_RendersRepeatIndicator()
+    {
+        var cut = Render<TaskList>(parameters => parameters
+            .Add(component => component.Today, Today)
+            .Add(component => component.Tasks, new[]
+            {
+                CreateTask("Weekly report", dueDate: Today, recurrence: RecurrenceFrequency.Weekly)
+            }));
+
+        cut.FindAll(".task-meta-item")
+            .Count(element => element.GetAttribute("title") == "Every week")
+            .ShouldBe(1);
+    }
+
     private static TaskListItem CreateTask(
         string title,
         TodoTaskStatus status = TodoTaskStatus.Todo,
@@ -151,7 +166,8 @@ public sealed class TaskListTests : ComponentTestContext
         string? projectName = null,
         IReadOnlyList<TagRef>? tags = null,
         int checklistTotal = 0,
-        int checklistCompleted = 0)
+        int checklistCompleted = 0,
+        RecurrenceFrequency recurrence = RecurrenceFrequency.None)
         => new(
             Guid.NewGuid(),
             title,
@@ -163,5 +179,6 @@ public sealed class TaskListTests : ComponentTestContext
             projectName,
             tags ?? [],
             checklistTotal,
-            checklistCompleted);
+            checklistCompleted,
+            recurrence);
 }

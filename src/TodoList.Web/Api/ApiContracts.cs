@@ -17,7 +17,11 @@ public sealed record CreateTaskBody(
     Guid? ProjectId = null,
     TaskPriority Priority = TaskPriority.None,
     DateOnly? DueDate = null,
-    TimeOnly? DueTime = null);
+    TimeOnly? DueTime = null,
+    int? ReminderOffsetMinutes = null,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
+    int RecurrenceInterval = 1,
+    DateOnly? RecurrenceEndDate = null);
 
 public sealed record UpdateTaskBody(
     string Title,
@@ -26,7 +30,10 @@ public sealed record UpdateTaskBody(
     TaskPriority Priority,
     DateOnly? DueDate,
     TimeOnly? DueTime,
-    int? ReminderOffsetMinutes);
+    int? ReminderOffsetMinutes,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
+    int RecurrenceInterval = 1,
+    DateOnly? RecurrenceEndDate = null);
 
 public sealed record SetTaskStatusBody(TodoTaskStatus Status);
 

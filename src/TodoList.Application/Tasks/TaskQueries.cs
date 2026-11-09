@@ -135,6 +135,9 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
             task.DueDate,
             task.DueTime,
             task.ReminderOffsetMinutes,
+            task.Recurrence,
+            task.RecurrenceInterval,
+            task.RecurrenceEndDate,
             task.ProjectId,
             task.Project?.Name,
             task.CreatedAt,
@@ -167,7 +170,8 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
             .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
             .ToList(),
         task.ChecklistItems.Count,
-        task.ChecklistItems.Count(item => item.IsCompleted));
+        task.ChecklistItems.Count(item => item.IsCompleted),
+        task.Recurrence);
 
     private static IQueryable<TodoTask> ApplyView(
         IQueryable<TodoTask> query,
@@ -219,23 +223,5 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
         };
 
     private DateOnly LocalToday(UserContext user)
-    {
-        var now = timeProvider.GetUtcNow();
-        var zone = ResolveTimeZone(user.TimeZoneId);
-
-        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
-    }
-
-    private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
-    {
-        try
-        {
-            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (Exception exception)
-            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            return TimeZoneInfo.Utc;
-        }
-    }
+        => UserTime.Today(timeProvider, user.TimeZoneId);
 }

@@ -396,6 +396,74 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    [Fact]
+    public async Task TaskRecurrence_CreateAndRead_RoundTrips()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var create = await client.PostAsJsonAsync(
+            "/api/v1/tasks",
+            new
+            {
+                title = "Weekly review",
+                dueDate = "2026-12-10",
+                dueTime = "09:00",
+                reminderOffsetMinutes = 15,
+                recurrence = "Weekly",
+                recurrenceInterval = 2,
+                recurrenceEndDate = "2027-03-01"
+            });
+
+        create.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var created = await create.Content.ReadFromJsonAsync<CreatedResponse>(JsonOptions);
+        created.ShouldNotBeNull();
+
+        var details = await client.GetFromJsonAsync<TaskDetails>(
+            $"/api/v1/tasks/{created.Id}",
+            JsonOptions);
+
+        details.ShouldNotBeNull();
+        details.Recurrence.ShouldBe(RecurrenceFrequency.Weekly);
+        details.RecurrenceInterval.ShouldBe(2);
+        details.RecurrenceEndDate.ShouldBe(new DateOnly(2027, 3, 1));
+        details.ReminderOffsetMinutes.ShouldBe(15);
+    }
+
+    [Fact]
+    public async Task TaskRecurrence_WithoutDueDate_ReturnsBadRequest()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/tasks",
+            new
+            {
+                title = "Invalid recurrence",
+                recurrence = "Weekly"
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task TaskRecurrence_EndDateBeforeDueDate_ReturnsBadRequest()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/tasks",
+            new
+            {
+                title = "Invalid recurrence window",
+                dueDate = "2026-12-10",
+                recurrence = "Weekly",
+                recurrenceEndDate = "2026-12-01"
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
     private async Task<Guid> CreateProjectAsync(HttpClient client, string name)
     {
         var create = await client.PostAsJsonAsync("/api/v1/projects", new { name });

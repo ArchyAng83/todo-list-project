@@ -7,7 +7,11 @@ public sealed record CreateTaskRequest(
     Guid? ProjectId = null,
     TaskPriority Priority = TaskPriority.None,
     DateOnly? DueDate = null,
-    TimeOnly? DueTime = null);
+    TimeOnly? DueTime = null,
+    int? ReminderOffsetMinutes = null,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
+    int RecurrenceInterval = 1,
+    DateOnly? RecurrenceEndDate = null);
 
 public sealed record MoveTaskRequest(TodoTaskStatus Status, int TargetIndex);
 
@@ -18,7 +22,10 @@ public sealed record UpdateTaskRequest(
     TaskPriority Priority,
     DateOnly? DueDate,
     TimeOnly? DueTime,
-    int? ReminderOffsetMinutes);
+    int? ReminderOffsetMinutes,
+    RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
+    int RecurrenceInterval = 1,
+    DateOnly? RecurrenceEndDate = null);
 
 public sealed record AddChecklistItemRequest(string Title);
 

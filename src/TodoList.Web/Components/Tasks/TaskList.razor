@@ -72,6 +72,13 @@ else
                                 </span>
                             }
 
+                            @if (task.Recurrence != RecurrenceFrequency.None)
+                            {
+                                <span class="task-meta-item" title="@RecurrenceLabel(task.Recurrence)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Repeat" Size="Size.Small" />
+                                </span>
+                            }
+
                             @if (task.ChecklistTotal > 0)
                             {
                                 <span class="task-meta-item">
@@ -154,6 +161,14 @@ else
         => task.Status != TodoTaskStatus.Done
             && task.DueDate is { } dueDate
             && dueDate < Today;
+
+    private string RecurrenceLabel(RecurrenceFrequency recurrence) => recurrence switch
+    {
+        RecurrenceFrequency.Daily => L["RecurrenceDaily"].Value,
+        RecurrenceFrequency.Weekly => L["RecurrenceWeekly"].Value,
+        RecurrenceFrequency.Monthly => L["RecurrenceMonthly"].Value,
+        _ => string.Empty
+    };
 
     private string PriorityLabel(TaskPriority priority) => priority switch
     {

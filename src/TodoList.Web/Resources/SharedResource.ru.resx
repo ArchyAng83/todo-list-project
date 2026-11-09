@@ -519,4 +519,25 @@
   <data name="MoreTasks" xml:space="preserve">
     <value>и ещё {0}</value>
   </data>
+  <data name="Recurrence" xml:space="preserve">
+    <value>Повтор</value>
+  </data>
+  <data name="RecurrenceNone" xml:space="preserve">
+    <value>Не повторяется</value>
+  </data>
+  <data name="RecurrenceDaily" xml:space="preserve">
+    <value>Каждый день</value>
+  </data>
+  <data name="RecurrenceWeekly" xml:space="preserve">
+    <value>Каждую неделю</value>
+  </data>
+  <data name="RecurrenceMonthly" xml:space="preserve">
+    <value>Каждый месяц</value>
+  </data>
+  <data name="RecurrenceInterval" xml:space="preserve">
+    <value>Повторять каждые</value>
+  </data>
+  <data name="RecurrenceEndDate" xml:space="preserve">
+    <value>Повторять до</value>
+  </data>
 </root>

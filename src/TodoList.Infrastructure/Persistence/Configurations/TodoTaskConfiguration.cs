@@ -16,6 +16,9 @@ public sealed class TodoTaskConfiguration : IEntityTypeConfiguration<TodoTask>
         builder.Property(x => x.Notes).HasMaxLength(TodoTask.NotesMaxLength);
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(x => x.Priority).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(x => x.Recurrence).HasConversion<string>().HasMaxLength(20).IsRequired();
+        builder.Property(x => x.RecurrenceInterval).HasDefaultValue(1).IsRequired();
+        builder.Property(x => x.RecurrenceGenerated).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt).IsRequired();
 

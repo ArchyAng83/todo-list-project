@@ -75,6 +75,34 @@
             </MudItem>
 
             <MudItem xs="12" sm="6">
+                <MudSelect T="RecurrenceFrequency"
+                           @bind-Value="_recurrence"
+                           Label="@L["Recurrence"]"
+                           Disabled="_dueDate is null">
+                    @foreach (var frequency in Enum.GetValues<RecurrenceFrequency>())
+                    {
+                        <MudSelectItem T="RecurrenceFrequency" Value="@frequency">@RecurrenceLabel(frequency)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudNumericField T="int"
+                                 @bind-Value="_recurrenceInterval"
+                                 Label="@L["RecurrenceInterval"]"
+                                 Min="1"
+                                 Max="@TodoTask.MaxRecurrenceInterval"
+                                 Disabled="_recurrence == RecurrenceFrequency.None" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_recurrenceEndDate"
+                               Label="@L["RecurrenceEndDate"]"
+                               Clearable="true"
+                               Disabled="_recurrence == RecurrenceFrequency.None" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
                 <MudSelect T="Guid"
                            MultiSelection="true"
                            @bind-SelectedValues="_selectedTagIds"
@@ -156,6 +184,9 @@
     private DateTime? _dueDate;
     private TimeSpan? _dueTime;
     private int? _reminderOffsetMinutes;
+    private RecurrenceFrequency _recurrence;
+    private int _recurrenceInterval = 1;
+    private DateTime? _recurrenceEndDate;
     private IReadOnlyCollection<Guid> _selectedTagIds = [];
     private List<ChecklistItemDto> _checklist = [];
     private string _newChecklistItemTitle = string.Empty;
@@ -182,6 +213,9 @@
         _dueDate = Details.DueDate?.ToDateTime(TimeOnly.MinValue);
         _dueTime = Details.DueTime?.ToTimeSpan();
         _reminderOffsetMinutes = Details.ReminderOffsetMinutes;
+        _recurrence = Details.Recurrence;
+        _recurrenceInterval = Details.RecurrenceInterval;
+        _recurrenceEndDate = Details.RecurrenceEndDate?.ToDateTime(TimeOnly.MinValue);
         _selectedTagIds = Details.Tags.Select(tag => tag.Id).ToArray();
         _checklist = Details.ChecklistItems.ToList();
     }
@@ -202,6 +236,14 @@
         _ => L["StatusTodo"].Value
     };
 
+    private string RecurrenceLabel(RecurrenceFrequency recurrence) => recurrence switch
+    {
+        RecurrenceFrequency.Daily => L["RecurrenceDaily"].Value,
+        RecurrenceFrequency.Weekly => L["RecurrenceWeekly"].Value,
+        RecurrenceFrequency.Monthly => L["RecurrenceMonthly"].Value,
+        _ => L["RecurrenceNone"].Value
+    };
+
     private string TagName(Guid tagId)
         => Tags.FirstOrDefault(tag => tag.Id == tagId)?.Name ?? string.Empty;
 
@@ -218,6 +260,10 @@
 
         var dueDate = _dueDate is { } date ? DateOnly.FromDateTime(date) : (DateOnly?)null;
         var dueTime = _dueTime is { } time ? TimeOnly.FromTimeSpan(time) : (TimeOnly?)null;
+        var recurrence = dueDate is null ? RecurrenceFrequency.None : _recurrence;
+        var recurrenceEndDate = recurrence == RecurrenceFrequency.None || _recurrenceEndDate is not { } end
+            ? (DateOnly?)null
+            : DateOnly.FromDateTime(end);
 
         var request = new UpdateTaskRequest(
             _title,
@@ -226,7 +272,10 @@
             _priority,
             dueDate,
             dueTime,
-            _reminderOffsetMinutes);
+            _reminderOffsetMinutes,
+            recurrence,
+            recurrence == RecurrenceFrequency.None ? 1 : _recurrenceInterval,
+            recurrenceEndDate);
 
         await using var scope = ScopeFactory.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<TaskService>();

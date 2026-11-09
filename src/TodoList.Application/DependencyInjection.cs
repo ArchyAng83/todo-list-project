@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<TagQueries>();
         services.AddScoped<TaskService>();
         services.AddScoped<TaskQueries>();
+        services.AddScoped<TaskReminderScheduler>();
         services.AddScoped<UserSettingsService>();
 
         return services;

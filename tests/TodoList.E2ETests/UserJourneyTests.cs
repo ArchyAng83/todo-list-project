@@ -212,6 +212,26 @@ public sealed class UserJourneyTests(E2EFixture fixture)
         await Expect(page.Locator("h1")).ToHaveTextAsync("Войти");
     }
 
+    [Fact]
+    public async Task RecurringTask_CompletingIt_CreatesTheNextOccurrence()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        var rows = page.Locator(".task-row").Filter(new() { HasTextString = "Weekly planning" });
+
+        await Expect(rows).ToHaveCountAsync(1);
+        await rows.First.Locator(".mud-checkbox").ClickAsync();
+
+        var openRows = page
+            .Locator(".task-row:not(.is-done)")
+            .Filter(new() { HasTextString = "Weekly planning" });
+
+        await Expect(openRows).ToHaveCountAsync(1);
+        await Expect(page.Locator(".task-meta-item[title='Every week']").First)
+            .ToBeVisibleAsync();
+    }
+
     private static async Task OpenBoardAsync(IPage page)
     {
         await page.GetByRole(AriaRole.Link, new() { Name = "Board", Exact = true }).ClickAsync();

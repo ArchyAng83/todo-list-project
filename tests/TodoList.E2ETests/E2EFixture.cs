@@ -104,6 +104,7 @@ public sealed class E2EFixture : IAsyncLifetime
         startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
         startInfo.Environment["ConnectionStrings__Default"] = _postgres.ConnectionString;
         startInfo.Environment["Seed__Demo"] = "true";
+        startInfo.Environment["Reminders__Enabled"] = "false";
         startInfo.Environment["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning";
 
         _app = Process.Start(startInfo)

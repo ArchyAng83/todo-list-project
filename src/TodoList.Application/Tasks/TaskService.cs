@@ -10,6 +10,7 @@ namespace TodoList.Application.Tasks;
 public sealed class TaskService(
     IAppDbContext db,
     TimeProvider timeProvider,
+    TaskReminderScheduler reminderScheduler,
     IValidator<CreateTaskRequest> createValidator,
     IValidator<UpdateTaskRequest> updateValidator,
     IValidator<MoveTaskRequest> moveValidator,
@@ -38,8 +39,15 @@ public sealed class TaskService(
         task.MoveToProject(request.ProjectId, now);
         task.SetPriority(request.Priority, now);
         task.SetDueDate(request.DueDate, request.DueTime, now);
+        task.SetReminder(request.ReminderOffsetMinutes, now);
+        task.SetRecurrence(
+            request.Recurrence,
+            request.RecurrenceInterval,
+            request.RecurrenceEndDate,
+            now);
 
         db.Tasks.Add(task);
+        await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success(task.Id);
@@ -77,7 +85,13 @@ public sealed class TaskService(
         task.SetPriority(request.Priority, now);
         task.SetDueDate(request.DueDate, request.DueTime, now);
         task.SetReminder(request.ReminderOffsetMinutes, now);
+        task.SetRecurrence(
+            request.Recurrence,
+            request.RecurrenceInterval,
+            request.RecurrenceEndDate,
+            now);
 
+        await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return Result.Success();
     }
@@ -88,14 +102,28 @@ public sealed class TaskService(
         TodoTaskStatus status,
         CancellationToken cancellationToken = default)
     {
-        var task = await FindAsync(user, taskId, cancellationToken);
+        var task = await FindWithStructureAsync(user, taskId, cancellationToken);
 
         if (task is null)
         {
             return Result.Failure(Error.NotFound("Task was not found."));
         }
 
-        task.SetStatus(status, timeProvider.GetUtcNow());
+        var now = timeProvider.GetUtcNow();
+        var wasDone = task.Status == TodoTaskStatus.Done;
+        task.SetStatus(status, now);
+
+        var next = wasDone || status != TodoTaskStatus.Done
+            ? null
+            : GenerateNextOccurrence(task, now);
+
+        await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
+
+        if (next is not null)
+        {
+            await reminderScheduler.ReconcileAsync(next, user, cancellationToken);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
@@ -114,7 +142,7 @@ public sealed class TaskService(
             return Result.Failure(ValidationErrors.From(validation));
         }
 
-        var task = await FindAsync(user, taskId, cancellationToken);
+        var task = await FindWithStructureAsync(user, taskId, cancellationToken);
 
         if (task is null)
         {
@@ -148,8 +176,20 @@ public sealed class TaskService(
         var targetIndex = Math.Clamp(request.TargetIndex, 0, target.Count);
         target.Insert(targetIndex, task);
 
+        var wasDone = task.Status == TodoTaskStatus.Done;
         task.SetStatus(request.Status, now);
         Renumber(target, now);
+
+        var next = wasDone || request.Status != TodoTaskStatus.Done
+            ? null
+            : GenerateNextOccurrence(task, now);
+
+        await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
+
+        if (next is not null)
+        {
+            await reminderScheduler.ReconcileAsync(next, user, cancellationToken);
+        }
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -314,6 +354,21 @@ public sealed class TaskService(
         }
     }
 
+    private TodoTask? GenerateNextOccurrence(TodoTask task, DateTimeOffset now)
+    {
+        var next = task.CreateNextOccurrence(now);
+
+        if (next is null)
+        {
+            return null;
+        }
+
+        next.CopyStructureFrom(task, now);
+        db.Tasks.Add(next);
+
+        return next;
+    }
+
     private Task<TodoTask?> FindAsync(UserContext user, Guid taskId, CancellationToken cancellationToken)
         => db.Tasks.SingleOrDefaultAsync(
             task => task.Id == taskId && task.UserId == user.UserId,
@@ -334,6 +389,17 @@ public sealed class TaskService(
         Guid taskId,
         CancellationToken cancellationToken)
         => db.Tasks
+            .Include(task => task.Tags)
+            .SingleOrDefaultAsync(
+                task => task.Id == taskId && task.UserId == user.UserId,
+                cancellationToken);
+
+    private Task<TodoTask?> FindWithStructureAsync(
+        UserContext user,
+        Guid taskId,
+        CancellationToken cancellationToken)
+        => db.Tasks
+            .Include(task => task.ChecklistItems)
             .Include(task => task.Tags)
             .SingleOrDefaultAsync(
                 task => task.Id == taskId && task.UserId == user.UserId,

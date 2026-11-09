@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TodoList.Application.Email;
 using TodoList.Application.Persistence;
@@ -8,14 +9,19 @@ using TodoList.Application.Settings;
 using TodoList.Infrastructure.Email;
 using TodoList.Infrastructure.Identity;
 using TodoList.Infrastructure.Persistence;
+using TodoList.Infrastructure.Reminders;
 
 namespace TodoList.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
+    public static IServiceCollection AddInfrastructure(
+        this IServiceCollection services,
+        string connectionString,
+        IConfiguration configuration)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
+        ArgumentNullException.ThrowIfNull(configuration);
 
         services.AddDbContextFactory<AppDbContext>(options => options
             .UseNpgsql(
@@ -58,7 +64,21 @@ public static class DependencyInjection
         });
 
         services.AddSingleton(TimeProvider.System);
-        services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
+        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
+        services.Configure<ReminderOptions>(configuration.GetSection(ReminderOptions.SectionName));
+
+        if (string.IsNullOrWhiteSpace(configuration[$"{EmailOptions.SectionName}:Host"]))
+        {
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        }
+        else
+        {
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        }
+
+        services.AddScoped<ReminderDeliveryService>();
+        services.AddHostedService<ReminderDispatcher>();
 
         services.AddScoped<IUserSettingsStore, UserSettingsStore>();
         services.AddScoped<DemoDataSeeder>();

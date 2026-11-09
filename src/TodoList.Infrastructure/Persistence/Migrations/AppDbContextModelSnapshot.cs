@@ -428,6 +428,26 @@ namespace TodoList.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("project_id");
 
+                    b.Property<string>("Recurrence")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("recurrence");
+
+                    b.Property<DateOnly?>("RecurrenceEndDate")
+                        .HasColumnType("date")
+                        .HasColumnName("recurrence_end_date");
+
+                    b.Property<bool>("RecurrenceGenerated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("recurrence_generated");
+
+                    b.Property<int>("RecurrenceInterval")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("recurrence_interval");
+
                     b.Property<int?>("ReminderOffsetMinutes")
                         .HasColumnType("integer")
                         .HasColumnName("reminder_offset_minutes");

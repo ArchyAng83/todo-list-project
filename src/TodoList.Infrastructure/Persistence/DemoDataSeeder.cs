@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using TodoList.Domain.Projects;
+using TodoList.Domain.Reminders;
 using TodoList.Domain.Tags;
 using TodoList.Domain.Tasks;
 using TodoList.Infrastructure.Identity;
@@ -159,6 +160,20 @@ public sealed class DemoDataSeeder(
 
         AddTask(
             user.Id,
+            "Weekly planning",
+            today.AddDays(1),
+            new TimeOnly(9, 0),
+            project: work.Id,
+            priority: TaskPriority.Medium,
+            notes: "Pick the top three outcomes for the week.",
+            now: now,
+            tags: [deepWork],
+            checklist: ["Review last week", "Choose top three outcomes"],
+            recurrence: RecurrenceFrequency.Weekly,
+            recurrenceEndDate: today.AddDays(56));
+
+        AddTask(
+            user.Id,
             "Water the plants",
             today.AddDays(-2),
             null,
@@ -186,7 +201,11 @@ public sealed class DemoDataSeeder(
         DateTimeOffset now,
         Tag[] tags,
         string[] checklist,
-        TodoTaskStatus status = TodoTaskStatus.Todo)
+        TodoTaskStatus status = TodoTaskStatus.Todo,
+        RecurrenceFrequency recurrence = RecurrenceFrequency.None,
+        int recurrenceInterval = 1,
+        DateOnly? recurrenceEndDate = null,
+        int? reminderOffsetMinutes = 15)
     {
         var task = TodoTask.Create(userId, title, now);
 
@@ -197,7 +216,21 @@ public sealed class DemoDataSeeder(
 
         if (dueDate is not null)
         {
-            task.SetReminder(15, now);
+            task.SetReminder(reminderOffsetMinutes, now);
+            task.SetRecurrence(recurrence, recurrenceInterval, recurrenceEndDate, now);
+
+            if (reminderOffsetMinutes is not null && status != TodoTaskStatus.Done)
+            {
+                var dueUtc = new DateTimeOffset(
+                    dueDate.Value.ToDateTime(dueTime ?? new TimeOnly(9, 0)),
+                    TimeSpan.Zero);
+
+                db.Reminders.Add(Reminder.Create(
+                    userId,
+                    task.Id,
+                    dueUtc.AddMinutes(-reminderOffsetMinutes.Value),
+                    now));
+            }
         }
 
         foreach (var tag in tags)

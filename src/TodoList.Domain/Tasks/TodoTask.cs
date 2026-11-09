@@ -8,6 +8,7 @@ public sealed class TodoTask
     public const int TitleMaxLength = 200;
     public const int NotesMaxLength = 4000;
     public const int MaxReminderOffsetMinutes = 60 * 24 * 7;
+    public const int MaxRecurrenceInterval = 365;
 
     private readonly List<ChecklistItem> _checklistItems = [];
     private readonly List<TaskTag> _tags = [];
@@ -24,6 +25,8 @@ public sealed class TodoTask
         Title = title;
         Status = TodoTaskStatus.Todo;
         Priority = TaskPriority.None;
+        Recurrence = RecurrenceFrequency.None;
+        RecurrenceInterval = 1;
         CreatedAt = now;
         UpdatedAt = now;
     }
@@ -47,6 +50,18 @@ public sealed class TodoTask
     public TimeOnly? DueTime { get; private set; }
 
     public int? ReminderOffsetMinutes { get; private set; }
+
+    public RecurrenceFrequency Recurrence { get; private set; }
+
+    public int RecurrenceInterval { get; private set; } = 1;
+
+    public DateOnly? RecurrenceEndDate { get; private set; }
+
+    /// <summary>
+    /// Prevents a reopened and completed task from creating a second next
+    /// occurrence. Resets when the schedule itself changes.
+    /// </summary>
+    public bool RecurrenceGenerated { get; private set; }
 
     public DateTimeOffset? CompletedAt { get; private set; }
 
@@ -114,12 +129,21 @@ public sealed class TodoTask
             throw new ArgumentException("A due time requires a due date.", nameof(dueTime));
         }
 
+        if (DueDate != dueDate || DueTime != dueTime)
+        {
+            RecurrenceGenerated = false;
+        }
+
         DueDate = dueDate;
         DueTime = dueTime;
 
         if (dueDate is null)
         {
             ReminderOffsetMinutes = null;
+            Recurrence = RecurrenceFrequency.None;
+            RecurrenceInterval = 1;
+            RecurrenceEndDate = null;
+            RecurrenceGenerated = false;
         }
 
         UpdatedAt = now;
@@ -143,6 +167,130 @@ public sealed class TodoTask
         }
 
         ReminderOffsetMinutes = offsetMinutes;
+        UpdatedAt = now;
+    }
+
+    public void SetRecurrence(
+        RecurrenceFrequency frequency,
+        int interval,
+        DateOnly? endDate,
+        DateTimeOffset now)
+    {
+        if (!Enum.IsDefined(frequency))
+        {
+            throw new ArgumentOutOfRangeException(nameof(frequency), "Unknown recurrence frequency.");
+        }
+
+        if (frequency == RecurrenceFrequency.None)
+        {
+            Recurrence = RecurrenceFrequency.None;
+            RecurrenceInterval = 1;
+            RecurrenceEndDate = null;
+            RecurrenceGenerated = false;
+            UpdatedAt = now;
+            return;
+        }
+
+        if (interval < 1 || interval > MaxRecurrenceInterval)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(interval),
+                $"Recurrence interval must be between 1 and {MaxRecurrenceInterval}.");
+        }
+
+        if (DueDate is null)
+        {
+            throw new InvalidOperationException("A recurring task requires a due date.");
+        }
+
+        if (endDate is not null && endDate < DueDate)
+        {
+            throw new ArgumentException(
+                "The recurrence end date cannot be before the due date.",
+                nameof(endDate));
+        }
+
+        if (Recurrence != frequency || RecurrenceInterval != interval || RecurrenceEndDate != endDate)
+        {
+            RecurrenceGenerated = false;
+        }
+
+        Recurrence = frequency;
+        RecurrenceInterval = interval;
+        RecurrenceEndDate = endDate;
+        UpdatedAt = now;
+    }
+
+    /// <summary>
+    /// Creates the next occurrence of a recurring task, or returns <c>null</c>
+    /// when the task does not recur, has no due date, already produced a next
+    /// occurrence, or the next date would pass the recurrence end date.
+    /// </summary>
+    public TodoTask? CreateNextOccurrence(DateTimeOffset now)
+    {        if (Recurrence == RecurrenceFrequency.None || DueDate is null || RecurrenceGenerated)
+        {
+            return null;
+        }
+
+        var nextDueDate = Recurrence switch
+        {
+            RecurrenceFrequency.Daily => DueDate.Value.AddDays(RecurrenceInterval),
+            RecurrenceFrequency.Weekly => DueDate.Value.AddDays(7 * RecurrenceInterval),
+            RecurrenceFrequency.Monthly => DueDate.Value.AddMonths(RecurrenceInterval),
+            _ => DueDate.Value
+        };
+
+        if (RecurrenceEndDate is not null && nextDueDate > RecurrenceEndDate)
+        {
+            return null;
+        }
+
+        var next = new TodoTask(Guid.CreateVersion7(), UserId, Title, now)
+        {
+            Notes = Notes,
+            ProjectId = ProjectId,
+            Priority = Priority,
+            DueDate = nextDueDate,
+            DueTime = DueTime,
+            ReminderOffsetMinutes = ReminderOffsetMinutes,
+            Recurrence = Recurrence,
+            RecurrenceInterval = RecurrenceInterval,
+            RecurrenceEndDate = RecurrenceEndDate
+        };
+
+        RecurrenceGenerated = true;
+        UpdatedAt = now;
+
+        return next;
+    }
+
+    /// <summary>
+    /// Copies the tag links and checklist item titles from the previous
+    /// occurrence. Checklist items start incomplete so the new occurrence is
+    /// actionable; tag links stay attached because they describe the task.
+    /// </summary>
+    public void CopyStructureFrom(TodoTask source, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        if (source.UserId != UserId)
+        {
+            throw new InvalidOperationException("Cannot copy structure from another user's task.");
+        }
+
+        foreach (var link in source._tags)
+        {
+            if (_tags.All(existing => existing.TagId != link.TagId))
+            {
+                _tags.Add(new TaskTag(Id, link.TagId));
+            }
+        }
+
+        foreach (var item in source._checklistItems.OrderBy(x => x.SortOrder))
+        {
+            _checklistItems.Add(ChecklistItem.Create(Id, item.Title, _checklistItems.Count, now));
+        }
+
         UpdatedAt = now;
     }
 

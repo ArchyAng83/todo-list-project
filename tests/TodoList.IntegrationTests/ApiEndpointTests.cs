@@ -184,6 +184,46 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
     }
 
     [Fact]
+    public async Task MoveTask_BetweenColumns_UpdatesBoardOrder()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var first = await CreateTaskAsync(client, "First", null, null);
+        var second = await CreateTaskAsync(client, "Second", null, null);
+
+        (await client.PostAsJsonAsync(
+            $"/api/v1/tasks/{second}/move",
+            new { status = "InProgress", targetIndex = 0 }))
+            .StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await client.PostAsJsonAsync(
+            $"/api/v1/tasks/{second}/move",
+            new { status = "Todo", targetIndex = 0 }))
+            .StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        var board = await client.GetFromJsonAsync<TaskBoard>("/api/v1/tasks/board", JsonOptions);
+
+        board.ShouldNotBeNull();
+        var todo = board.Columns.Single(column => column.Status == TodoTaskStatus.Todo);
+        todo.Tasks.Select(task => task.Id).ShouldBe([second, first]);
+    }
+
+    [Fact]
+    public async Task MoveTask_CrossUser_ReturnsNotFound()
+    {
+        using var ownerClient = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+        using var intruderClient = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var taskId = await CreateTaskAsync(ownerClient, "Private", null, null);
+
+        var response = await intruderClient.PostAsJsonAsync(
+            $"/api/v1/tasks/{taskId}/move",
+            new { status = "Done", targetIndex = 0 });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task TaskViews_FilterByDueDateAndStatus()
     {
         using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);

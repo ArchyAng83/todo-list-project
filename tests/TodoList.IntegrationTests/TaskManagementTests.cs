@@ -212,6 +212,146 @@ public sealed class TaskManagementTests(TodoListAppFixture fixture)
             .Error.Code.ShouldBe("not_found");
     }
 
+    [Fact]
+    public async Task TaskService_MoveBetweenColumns_UpdatesStatusAndOrder()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var taskQueries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+        await taskService.CreateAsync(user, new CreateTaskRequest("First"));
+        var second = (await taskService.CreateAsync(user, new CreateTaskRequest("Second"))).Value;
+        var third = (await taskService.CreateAsync(user, new CreateTaskRequest("Third"))).Value;
+
+        var created = await taskQueries.BoardAsync(user);
+
+        created.Columns.Select(column => column.Status)
+            .ShouldBe([TodoTaskStatus.Todo, TodoTaskStatus.InProgress, TodoTaskStatus.Done]);
+        ColumnTitles(created, TodoTaskStatus.Todo).ShouldBe(["First", "Second", "Third"]);
+
+        (await taskService.MoveAsync(
+            user,
+            second,
+            new MoveTaskRequest(TodoTaskStatus.InProgress, 0))).IsSuccess.ShouldBeTrue();
+
+        (await taskService.MoveAsync(
+            user,
+            third,
+            new MoveTaskRequest(TodoTaskStatus.InProgress, 0))).IsSuccess.ShouldBeTrue();
+
+        var moved = await taskQueries.BoardAsync(user);
+
+        ColumnTitles(moved, TodoTaskStatus.Todo).ShouldBe(["First"]);
+        ColumnTitles(moved, TodoTaskStatus.InProgress).ShouldBe(["Third", "Second"]);
+
+        (await taskService.MoveAsync(
+            user,
+            second,
+            new MoveTaskRequest(TodoTaskStatus.Done, 0))).IsSuccess.ShouldBeTrue();
+
+        var completed = await taskQueries.BoardAsync(user);
+
+        ColumnTitles(completed, TodoTaskStatus.InProgress).ShouldBe(["Third"]);
+        ColumnTitles(completed, TodoTaskStatus.Done).ShouldBe(["Second"]);
+
+        var details = await taskQueries.GetAsync(user, second);
+        details!.CompletedAt.ShouldNotBeNull();
+
+        (await taskService.MoveAsync(
+            user,
+            second,
+            new MoveTaskRequest(TodoTaskStatus.Todo, 1))).IsSuccess.ShouldBeTrue();
+
+        var reopened = await taskQueries.BoardAsync(user);
+
+        ColumnTitles(reopened, TodoTaskStatus.Todo).ShouldBe(["First", "Second"]);
+        (await taskQueries.GetAsync(user, second))!.CompletedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task TaskService_MoveWithinColumn_ReordersCardsAndClampsTheIndex()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var taskQueries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+        var first = (await taskService.CreateAsync(user, new CreateTaskRequest("First"))).Value;
+        await taskService.CreateAsync(user, new CreateTaskRequest("Second"));
+        var third = (await taskService.CreateAsync(user, new CreateTaskRequest("Third"))).Value;
+
+        (await taskService.MoveAsync(user, third, new MoveTaskRequest(TodoTaskStatus.Todo, 0)))
+            .IsSuccess.ShouldBeTrue();
+        ColumnTitles(await taskQueries.BoardAsync(user), TodoTaskStatus.Todo)
+            .ShouldBe(["Third", "First", "Second"]);
+
+        (await taskService.MoveAsync(user, first, new MoveTaskRequest(TodoTaskStatus.Todo, 99)))
+            .IsSuccess.ShouldBeTrue();
+        ColumnTitles(await taskQueries.BoardAsync(user), TodoTaskStatus.Todo)
+            .ShouldBe(["Third", "Second", "First"]);
+
+        (await taskService.MoveAsync(user, first, new MoveTaskRequest(TodoTaskStatus.Todo, 0)))
+            .IsSuccess.ShouldBeTrue();
+        ColumnTitles(await taskQueries.BoardAsync(user), TodoTaskStatus.Todo)
+            .ShouldBe(["First", "Third", "Second"]);
+    }
+
+    [Fact]
+    public async Task TaskService_Move_CrossUserAccess_ReturnsNotFound()
+    {
+        var ownerId = await CreateUserAsync();
+        var intruderId = await CreateUserAsync();
+        var owner = new UserContext(ownerId, "UTC");
+        var intruder = new UserContext(intruderId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var taskQueries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+        var taskId = (await taskService.CreateAsync(owner, new CreateTaskRequest("Private"))).Value;
+
+        var moved = await taskService.MoveAsync(
+            intruder,
+            taskId,
+            new MoveTaskRequest(TodoTaskStatus.Done, 0));
+
+        moved.Error.Code.ShouldBe("not_found");
+        ColumnTitles(await taskQueries.BoardAsync(owner), TodoTaskStatus.Todo)
+            .ShouldBe(["Private"]);
+    }
+
+    [Fact]
+    public async Task TaskService_Move_NegativeIndex_ReturnsValidationError()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+
+        var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest("Guarded"))).Value;
+
+        var moved = await taskService.MoveAsync(
+            user,
+            taskId,
+            new MoveTaskRequest(TodoTaskStatus.Todo, -1));
+
+        moved.IsFailure.ShouldBeTrue();
+        moved.Error.Code.ShouldBe("validation");
+    }
+
+    private static string[] ColumnTitles(TaskBoard board, TodoTaskStatus status)
+        => board.Columns
+            .Single(column => column.Status == status)
+            .Tasks
+            .Select(task => task.Title)
+            .ToArray();
+
     private async Task<Guid> CreateUserAsync()
     {
         await using var scope = fixture.Factory.Services.CreateAsyncScope();

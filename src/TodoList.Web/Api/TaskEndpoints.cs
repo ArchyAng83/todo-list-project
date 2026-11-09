@@ -17,6 +17,11 @@ public static class TaskEndpoints
             .Produces<IReadOnlyList<TaskListItem>>();
 
         tasks
+            .MapGet("/board", GetBoardAsync)
+            .WithName("GetTaskBoard")
+            .Produces<TaskBoard>();
+
+        tasks
             .MapGet("/{id:guid}", GetAsync)
             .WithName("GetTask")
             .Produces<TaskDetails>()
@@ -38,6 +43,12 @@ public static class TaskEndpoints
         tasks
             .MapPost("/{id:guid}/status", SetStatusAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status404NotFound);
+
+        tasks
+            .MapPost("/{id:guid}/move", MoveAsync)
+            .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         tasks
@@ -104,6 +115,24 @@ public static class TaskEndpoints
         var result = await queries.ListAsync(user, filter, cancellationToken);
 
         return Results.Ok(result);
+    }
+
+    private static async Task<IResult> GetBoardAsync(
+        TaskQueries queries,
+        ApiUserContextFactory users,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var user = await users.GetAsync(principal);
+
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var board = await queries.BoardAsync(user, cancellationToken);
+
+        return Results.Ok(board);
     }
 
     private static async Task<IResult> GetAsync(
@@ -194,6 +223,30 @@ public static class TaskEndpoints
         }
 
         var result = await service.SetStatusAsync(user, id, body.Status, cancellationToken);
+
+        return ToNoContent(result);
+    }
+
+    private static async Task<IResult> MoveAsync(
+        Guid id,
+        MoveTaskBody body,
+        TaskService service,
+        ApiUserContextFactory users,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var user = await users.GetAsync(principal);
+
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var result = await service.MoveAsync(
+            user,
+            id,
+            new MoveTaskRequest(body.Status, body.TargetIndex),
+            cancellationToken);
 
         return ToNoContent(result);
     }

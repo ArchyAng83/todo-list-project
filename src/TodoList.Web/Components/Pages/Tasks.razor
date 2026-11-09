@@ -216,7 +216,7 @@
                 _view,
                 _sort);
 
-            _today = LocalToday(user.TimeZoneId);
+            _today = UserClock.Today(TimeProvider, user.TimeZoneId);
 
             await using var scope = ScopeFactory.CreateAsyncScope();
             var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
@@ -399,24 +399,6 @@
 
         Snackbar.Add(L["TaskDeleted"], Severity.Success);
         await LoadTasksAsync();
-    }
-
-    private DateOnly LocalToday(string timeZoneId)
-    {
-        TimeZoneInfo zone;
-
-        try
-        {
-            zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        }
-        catch (Exception exception)
-            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
-        {
-            zone = TimeZoneInfo.Utc;
-        }
-
-        return DateOnly.FromDateTime(
-            TimeZoneInfo.ConvertTime(TimeProvider.GetUtcNow(), zone).DateTime);
     }
 
     private string ViewLabel(TaskView view) => view switch

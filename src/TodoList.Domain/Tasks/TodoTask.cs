@@ -159,6 +159,11 @@ public sealed class TodoTask
             throw new ArgumentOutOfRangeException(nameof(sortOrder), "Sort order cannot be negative.");
         }
 
+        if (SortOrder == sortOrder)
+        {
+            return;
+        }
+
         SortOrder = sortOrder;
         UpdatedAt = now;
     }

@@ -1,0 +1,308 @@
+@inject IStringLocalizer<SharedResource> L
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (Error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@Error</MudAlert>
+    <MudButton OnClick="OnRetry" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else
+{
+    @if (IsRefreshing)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-2" />
+    }
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@L["BoardHint"]</MudText>
+
+    <div class="board">
+        @foreach (var column in Board.Columns)
+        {
+            var status = column.Status;
+
+            <section class="board-column @DragOverClass(status)"
+                     data-status="@status"
+                     aria-label="@StatusLabel(status)">
+                <header class="board-column-header">
+                    <MudText Typo="Typo.subtitle1" Class="board-column-title">@StatusLabel(status)</MudText>
+                    <span class="board-column-count">@column.Tasks.Count</span>
+                </header>
+
+                <div class="board-column-body"
+                     @ondragover:preventDefault
+                     @ondragover="() => OnDragOver(status)"
+                     @ondrop:preventDefault
+                     @ondrop="() => DropOnColumnAsync(column)">
+                    @if (column.Tasks.Count == 0)
+                    {
+                        <p class="board-empty">@L["BoardEmptyColumn"]</p>
+                    }
+
+                    @for (var index = 0; index < column.Tasks.Count; index++)
+                    {
+                        var task = column.Tasks[index];
+                        var currentIndex = index;
+
+                        <article class="board-card @(IsDragging(task) ? "is-dragging" : null)"
+                                 draggable="true"
+                                 data-task-id="@task.Id"
+                                 @ondragstart="() => OnDragStart(task, status, currentIndex)"
+                                 @ondragend="OnDragEnd"
+                                 @ondragover:preventDefault
+                                 @ondrop:preventDefault
+                                 @ondrop:stopPropagation
+                                 @ondrop="() => DropOnCardAsync(status, currentIndex)">
+                            <div class="board-card-top">
+                                <p class="board-card-title @(task.Status == TodoTaskStatus.Done ? "is-done" : null)">
+                                    @task.Title
+                                </p>
+
+                                <details class="board-card-menu">
+                                    <summary class="board-card-menu-trigger"
+                                             aria-label="@L["TaskActions"].Value">&#x22EE;</summary>
+                                    <div class="board-card-menu-list">
+                                        <button type="button"
+                                                class="board-card-menu-item"
+                                                disabled="@(currentIndex == 0)"
+                                                @onclick="() => MoveWithinColumnAsync(status, currentIndex, currentIndex - 1)">
+                                            @L["MoveUp"]
+                                        </button>
+                                        <button type="button"
+                                                class="board-card-menu-item"
+                                                disabled="@(currentIndex == column.Tasks.Count - 1)"
+                                                @onclick="() => MoveWithinColumnAsync(status, currentIndex, currentIndex + 1)">
+                                            @L["MoveDown"]
+                                        </button>
+
+                                        @foreach (var target in OtherStatuses(status))
+                                        {
+                                            var targetStatus = target;
+
+                                            <button type="button"
+                                                    class="board-card-menu-item"
+                                                    @onclick="() => MoveToColumnAsync(task, targetStatus)">
+                                                @MoveToLabel(targetStatus)
+                                            </button>
+                                        }
+                                    </div>
+                                </details>
+                            </div>
+
+                            <div class="task-meta board-card-meta">
+                                @if (task.ProjectName is not null)
+                                {
+                                    <span class="task-meta-item">
+                                        <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
+                                        @task.ProjectName
+                                    </span>
+                                }
+
+                                @if (task.DueDate is { } dueDate)
+                                {
+                                    <span class="task-meta-item @(IsOverdue(task) ? "is-overdue" : null)">
+                                        <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
+                                        @dueDate.ToString("d")
+                                        @if (task.DueTime is { } dueTime)
+                                        {
+                                            <text>@dueTime.ToString("t")</text>
+                                        }
+                                    </span>
+                                }
+
+                                @if (task.ChecklistTotal > 0)
+                                {
+                                    <span class="task-meta-item">
+                                        <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
+                                        @task.ChecklistCompleted/@task.ChecklistTotal
+                                    </span>
+                                }
+
+                                @if (task.Priority != TaskPriority.None)
+                                {
+                                    <MudChip T="string"
+                                             Size="Size.Small"
+                                             Color="@PriorityColor(task.Priority)"
+                                             Class="task-priority">
+                                        @PriorityLabel(task.Priority)
+                                    </MudChip>
+                                }
+
+                                @foreach (var tag in task.Tags)
+                                {
+                                    <span class="tag-chip" style="background:@tag.Color">@tag.Name</span>
+                                }
+                            </div>
+
+                            <div class="board-card-actions">
+                                <button type="button"
+                                        class="board-card-action"
+                                        aria-label="@L["Edit"].Value"
+                                        @onclick="() => OnEdit.InvokeAsync(task)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" />
+                                </button>
+                                <button type="button"
+                                        class="board-card-action"
+                                        aria-label="@L["Delete"].Value"
+                                        @onclick="() => OnDelete.InvokeAsync(task)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small" />
+                                </button>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+    </div>
+}
+
+@code {
+    private static readonly TodoTaskStatus[] Statuses = Enum.GetValues<TodoTaskStatus>();
+
+    private DragState? _drag;
+    private TodoTaskStatus? _dragOverStatus;
+
+    [Parameter]
+    public TaskBoard Board { get; set; } = new([]);
+
+    [Parameter]
+    public DateOnly Today { get; set; } = DateOnly.MaxValue;
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public bool IsRefreshing { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskMoveArgs> OnMove { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnDelete { get; set; }
+
+    private void OnDragStart(TaskListItem task, TodoTaskStatus status, int index)
+    {
+        _drag = new DragState(task.Id, status, index);
+        _dragOverStatus = status;
+    }
+
+    private void OnDragEnd()
+    {
+        _drag = null;
+        _dragOverStatus = null;
+    }
+
+    private void OnDragOver(TodoTaskStatus status) => _dragOverStatus = status;
+
+    private bool IsDragging(TaskListItem task) => _drag?.TaskId == task.Id;
+
+    private string? DragOverClass(TodoTaskStatus status)
+        => _drag is not null && _dragOverStatus == status ? "is-drag-over" : null;
+
+    private async Task DropOnCardAsync(TodoTaskStatus status, int index)
+    {
+        if (_drag is null)
+        {
+            return;
+        }
+
+        if (_drag.Status != status || _drag.Index != index)
+        {
+            await OnMove.InvokeAsync(new TaskMoveArgs(_drag.TaskId, status, index));
+        }
+
+        OnDragEnd();
+    }
+
+    private async Task DropOnColumnAsync(TaskBoardColumn column)
+    {
+        if (_drag is null)
+        {
+            return;
+        }
+
+        var targetIndex = _drag.Status == column.Status
+            ? column.Tasks.Count - 1
+            : column.Tasks.Count;
+
+        if (_drag.Status != column.Status || _drag.Index != targetIndex)
+        {
+            await OnMove.InvokeAsync(new TaskMoveArgs(_drag.TaskId, column.Status, targetIndex));
+        }
+
+        OnDragEnd();
+    }
+
+    private async Task MoveWithinColumnAsync(TodoTaskStatus status, int currentIndex, int targetIndex)
+    {
+        var column = Board.Columns.Single(candidate => candidate.Status == status);
+
+        if (targetIndex < 0 || targetIndex >= column.Tasks.Count || targetIndex == currentIndex)
+        {
+            return;
+        }
+
+        await OnMove.InvokeAsync(
+            new TaskMoveArgs(column.Tasks[currentIndex].Id, status, targetIndex));
+    }
+
+    private async Task MoveToColumnAsync(TaskListItem task, TodoTaskStatus status)
+    {
+        var target = Board.Columns.Single(candidate => candidate.Status == status);
+
+        await OnMove.InvokeAsync(new TaskMoveArgs(task.Id, status, target.Tasks.Count));
+    }
+
+    private static IEnumerable<TodoTaskStatus> OtherStatuses(TodoTaskStatus current)
+        => Statuses.Where(status => status != current);
+
+    private bool IsOverdue(TaskListItem task)
+        => task.Status != TodoTaskStatus.Done
+            && task.DueDate is { } dueDate
+            && dueDate < Today;
+
+    private string StatusLabel(TodoTaskStatus status) => status switch
+    {
+        TodoTaskStatus.InProgress => L["StatusInProgress"].Value,
+        TodoTaskStatus.Done => L["StatusDone"].Value,
+        _ => L["StatusTodo"].Value
+    };
+
+    private string MoveToLabel(TodoTaskStatus status) => status switch
+    {
+        TodoTaskStatus.InProgress => L["MoveToInProgress"].Value,
+        TodoTaskStatus.Done => L["MoveToDone"].Value,
+        _ => L["MoveToTodo"].Value
+    };
+
+    private string PriorityLabel(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => L["PriorityLow"].Value,
+        TaskPriority.Medium => L["PriorityMedium"].Value,
+        TaskPriority.High => L["PriorityHigh"].Value,
+        TaskPriority.Urgent => L["PriorityUrgent"].Value,
+        _ => L["NoPriority"].Value
+    };
+
+    private static Color PriorityColor(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Color.Info,
+        TaskPriority.Medium => Color.Warning,
+        TaskPriority.High => Color.Error,
+        TaskPriority.Urgent => Color.Error,
+        _ => Color.Default
+    };
+
+    private sealed record DragState(Guid TaskId, TodoTaskStatus Status, int Index);
+}

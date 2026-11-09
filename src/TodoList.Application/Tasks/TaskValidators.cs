@@ -40,6 +40,15 @@ public sealed class UpdateTaskRequestValidator : AbstractValidator<UpdateTaskReq
     }
 }
 
+public sealed class MoveTaskRequestValidator : AbstractValidator<MoveTaskRequest>
+{
+    public MoveTaskRequestValidator()
+    {
+        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.TargetIndex).GreaterThanOrEqualTo(0);
+    }
+}
+
 public sealed class AddChecklistItemRequestValidator : AbstractValidator<AddChecklistItemRequest>
 {
     public AddChecklistItemRequestValidator()

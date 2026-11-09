@@ -1,0 +1,196 @@
+@page "/board"
+@attribute [Authorize]
+@inject IServiceScopeFactory ScopeFactory
+@inject ICurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject TimeProvider TimeProvider
+@inject ILogger<Board> Logger
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["BoardTitle"] · @L["AppName"]</PageTitle>
+
+<div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["BoardTitle"]</MudText>
+    <MudButton Href="/tasks"
+               Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.ViewList">
+        @L["OpenTaskList"]
+    </MudButton>
+</div>
+
+<KanbanBoard Board="_board"
+             Today="_today"
+             IsLoading="_isLoading"
+             IsRefreshing="_isRefreshing"
+             Error="@_error"
+             OnRetry="LoadBoardAsync"
+             OnMove="MoveAsync"
+             OnEdit="EditAsync"
+             OnDelete="DeleteAsync" />
+
+@code {
+    private TaskBoard _board = new([]);
+    private IReadOnlyList<ProjectListItem> _projects = [];
+    private IReadOnlyList<TagListItem> _tags = [];
+
+    private DateOnly _today = DateOnly.MaxValue;
+
+    private bool _isLoading = true;
+    private bool _isRefreshing;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReferenceDataAsync();
+        await LoadBoardAsync();
+    }
+
+    private async Task LoadReferenceDataAsync()
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+
+        var projectQueries = scope.ServiceProvider.GetRequiredService<ProjectQueries>();
+        var tagQueries = scope.ServiceProvider.GetRequiredService<TagQueries>();
+
+        _projects = await projectQueries.ListAsync(user);
+        _tags = await tagQueries.ListAsync(user);
+    }
+
+    private async Task LoadBoardAsync()
+    {
+        _error = null;
+        _isRefreshing = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            _today = UserClock.Today(TimeProvider, user.TimeZoneId);
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+            _board = await queries.BoardAsync(user);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load the board for the current user.");
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+            _isRefreshing = false;
+        }
+    }
+
+    private async Task MoveAsync(TaskMoveArgs args)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+
+        var result = await service.MoveAsync(
+            user,
+            args.TaskId,
+            new MoveTaskRequest(args.Status, args.TargetIndex));
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error.Message, Severity.Error);
+        }
+
+        await LoadBoardAsync();
+    }
+
+    private async Task EditAsync(TaskListItem task)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        TaskDetails? details;
+
+        await using (var scope = ScopeFactory.CreateAsyncScope())
+        {
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+            details = await queries.GetAsync(user, task.Id);
+        }
+
+        if (details is null)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+            return;
+        }
+
+        var parameters = new DialogParameters<TaskEditDialog>
+        {
+            { dialog => dialog.Details, details },
+            { dialog => dialog.Projects, _projects },
+            { dialog => dialog.Tags, _tags }
+        };
+
+        var dialog = await DialogService.ShowAsync<TaskEditDialog>(L["EditTask"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadBoardAsync();
+        }
+    }
+
+    private async Task DeleteAsync(TaskListItem task)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync(
+            L["DeleteTask"].Value,
+            L["DeleteTaskConfirm"].Value,
+            yesText: L["Delete"].Value,
+            cancelText: L["Cancel"].Value);
+
+        if (confirmed != true)
+        {
+            return;
+        }
+
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var result = await service.DeleteAsync(user, task.Id);
+
+        if (result.IsFailure)
+        {
+            Snackbar.Add(result.Error.Message, Severity.Error);
+            return;
+        }
+
+        Snackbar.Add(L["TaskDeleted"], Severity.Success);
+        await LoadBoardAsync();
+    }
+}

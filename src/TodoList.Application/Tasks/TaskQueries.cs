@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using TodoList.Application.Common;
 using TodoList.Application.Persistence;
@@ -45,22 +46,34 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
         }
 
         return await ApplySort(query, filter.Sort)
-            .Select(task => new TaskListItem(
-                task.Id,
-                task.Title,
-                task.Status,
-                task.Priority,
-                task.DueDate,
-                task.DueTime,
-                task.ProjectId,
-                task.Project != null ? task.Project.Name : null,
-                task.Tags
-                    .OrderBy(link => link.Tag.Name)
-                    .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
-                    .ToList(),
-                task.ChecklistItems.Count,
-                task.ChecklistItems.Count(item => item.IsCompleted)))
+            .Select(ToListItem)
             .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Returns every task grouped into workflow columns, ordered by the manual
+    /// <see cref="TodoTask.SortOrder"/> so the Kanban board can render and reorder
+    /// cards predictably.
+    /// </summary>
+    public async Task<TaskBoard> BoardAsync(
+        UserContext user,
+        CancellationToken cancellationToken = default)
+    {
+        var tasks = await db.Tasks
+            .AsNoTracking()
+            .Where(task => task.UserId == user.UserId)
+            .OrderBy(task => task.SortOrder)
+            .ThenBy(task => task.CreatedAt)
+            .Select(ToListItem)
+            .ToListAsync(cancellationToken);
+
+        var columns = Enum.GetValues<TodoTaskStatus>()
+            .Select(status => new TaskBoardColumn(
+                status,
+                tasks.Where(task => task.Status == status).ToList()))
+            .ToList();
+
+        return new TaskBoard(columns);
     }
 
     public async Task<TaskDetails?> GetAsync(
@@ -109,6 +122,22 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
                 .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
                 .ToList());
     }
+
+    private static readonly Expression<Func<TodoTask, TaskListItem>> ToListItem = task => new TaskListItem(
+        task.Id,
+        task.Title,
+        task.Status,
+        task.Priority,
+        task.DueDate,
+        task.DueTime,
+        task.ProjectId,
+        task.Project != null ? task.Project.Name : null,
+        task.Tags
+            .OrderBy(link => link.Tag.Name)
+            .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
+            .ToList(),
+        task.ChecklistItems.Count,
+        task.ChecklistItems.Count(item => item.IsCompleted));
 
     private static IQueryable<TodoTask> ApplyView(
         IQueryable<TodoTask> query,

@@ -25,6 +25,8 @@ public sealed record UpdateTaskBody(
 
 public sealed record SetTaskStatusBody(TodoTaskStatus Status);
 
+public sealed record MoveTaskBody(TodoTaskStatus Status, int TargetIndex);
+
 public sealed record AddChecklistItemBody(string Title);
 
 public sealed record SetChecklistItemCompletedBody(bool IsCompleted);

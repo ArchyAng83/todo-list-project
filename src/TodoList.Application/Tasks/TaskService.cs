@@ -12,6 +12,7 @@ public sealed class TaskService(
     TimeProvider timeProvider,
     IValidator<CreateTaskRequest> createValidator,
     IValidator<UpdateTaskRequest> updateValidator,
+    IValidator<MoveTaskRequest> moveValidator,
     IValidator<AddChecklistItemRequest> checklistValidator,
     IValidator<AddTaskTagRequest> tagValidator)
 {
@@ -93,6 +94,61 @@ public sealed class TaskService(
         }
 
         task.SetStatus(status, timeProvider.GetUtcNow());
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> MoveAsync(
+        UserContext user,
+        Guid taskId,
+        MoveTaskRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var validation = await moveValidator.ValidateAsync(request, cancellationToken);
+
+        if (!validation.IsValid)
+        {
+            return Result.Failure(ValidationErrors.From(validation));
+        }
+
+        var task = await FindAsync(user, taskId, cancellationToken);
+
+        if (task is null)
+        {
+            return Result.Failure(Error.NotFound("Task was not found."));
+        }
+
+        var now = timeProvider.GetUtcNow();
+
+        // Only the source and target columns are affected. Load them in their
+        // current visual order so the new position is stable.
+        var affected = await db.Tasks
+            .Where(candidate => candidate.UserId == user.UserId
+                && (candidate.Status == task.Status || candidate.Status == request.Status))
+            .OrderBy(candidate => candidate.SortOrder)
+            .ThenBy(candidate => candidate.CreatedAt)
+            .ToListAsync(cancellationToken);
+
+        if (request.Status != task.Status)
+        {
+            Renumber(
+                affected
+                    .Where(candidate => candidate.Status == task.Status && candidate.Id != task.Id)
+                    .ToList(),
+                now);
+        }
+
+        var target = affected
+            .Where(candidate => candidate.Status == request.Status && candidate.Id != task.Id)
+            .ToList();
+
+        var targetIndex = Math.Clamp(request.TargetIndex, 0, target.Count);
+        target.Insert(targetIndex, task);
+
+        task.SetStatus(request.Status, now);
+        Renumber(target, now);
+
         await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
@@ -246,6 +302,14 @@ public sealed class TaskService(
         await db.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
+    }
+
+    private static void Renumber(IReadOnlyList<TodoTask> tasks, DateTimeOffset now)
+    {
+        for (var index = 0; index < tasks.Count; index++)
+        {
+            tasks[index].SetSortOrder(index, now);
+        }
     }
 
     private Task<TodoTask?> FindAsync(UserContext user, Guid taskId, CancellationToken cancellationToken)

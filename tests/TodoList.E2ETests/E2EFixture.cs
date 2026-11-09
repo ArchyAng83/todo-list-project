@@ -41,7 +41,11 @@ public sealed class E2EFixture : IAsyncLifetime
         => Browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = BaseUrl,
-            IgnoreHTTPSErrors = true
+            IgnoreHTTPSErrors = true,
+
+            // The default Playwright viewport is narrow enough to stack the Kanban
+            // columns vertically, which breaks drag-and-drop between columns.
+            ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
         });
 
     public async Task DisposeAsync()

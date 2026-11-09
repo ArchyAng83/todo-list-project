@@ -34,6 +34,10 @@ public sealed record TaskDetails(
     IReadOnlyList<ChecklistItemDto> ChecklistItems,
     IReadOnlyList<TagRef> Tags);
 
+public sealed record TaskBoardColumn(TodoTaskStatus Status, IReadOnlyList<TaskListItem> Tasks);
+
+public sealed record TaskBoard(IReadOnlyList<TaskBoardColumn> Columns);
+
 public sealed record TaskListFilter(
     TodoTaskStatus? Status = null,
     Guid? ProjectId = null,

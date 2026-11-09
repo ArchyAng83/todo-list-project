@@ -78,6 +78,62 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     }
 
     [Fact]
+    public async Task Board_MovesCardWithTheMenu_AndPersistsAfterReload()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+        var title = $"E2E board {Guid.NewGuid():N}";
+
+        await page.GetByPlaceholder("Add a task and press Add").FillAsync(title);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Add task" }).ClickAsync();
+        await Expect(page.GetByText(title)).ToBeVisibleAsync();
+
+        await OpenBoardAsync(page);
+
+        var card = page.Locator(".board-card").Filter(new() { HasTextString = title });
+
+        await Expect(card).ToHaveCountAsync(1);
+        await card.Locator("summary").ClickAsync();
+        await card.GetByRole(AriaRole.Button, new() { Name = "Move to \"Done\"" }).ClickAsync();
+
+        var todo = page.Locator(".board-column[data-status='Todo']");
+        var done = page.Locator(".board-column[data-status='Done']");
+
+        await Expect(done.GetByText(title)).ToBeVisibleAsync();
+        await Expect(todo.GetByText(title)).ToHaveCountAsync(0);
+
+        await page.ReloadAsync();
+
+        await Expect(page.Locator(".board-column[data-status='Done']").GetByText(title))
+            .ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Board_DragsCardToAnotherColumn_AndPersistsAfterReload()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+        const string title = "Plan the weekly review";
+
+        await OpenBoardAsync(page);
+
+        var source = page
+            .Locator(".board-column[data-status='Todo'] .board-card")
+            .Filter(new() { HasTextString = title });
+        var target = page.Locator(".board-column[data-status='InProgress'] .board-column-body");
+
+        await source.DragToAsync(target);
+
+        await Expect(page.Locator(".board-column[data-status='InProgress']").GetByText(title))
+            .ToBeVisibleAsync();
+
+        await page.ReloadAsync();
+
+        await Expect(page.Locator(".board-column[data-status='InProgress']").GetByText(title))
+            .ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task CultureSwitcher_ChangesTheUiToRussian()
     {
         await using var context = await fixture.NewContextAsync();
@@ -89,6 +145,13 @@ public sealed class UserJourneyTests(E2EFixture fixture)
         await Expect(page).ToHaveURLAsync(new Regex("/account/login$"));
         await Expect(page.Locator("html")).ToHaveAttributeAsync("lang", "ru");
         await Expect(page.Locator("h1")).ToHaveTextAsync("Войти");
+    }
+
+    private static async Task OpenBoardAsync(IPage page)
+    {
+        await page.GetByRole(AriaRole.Link, new() { Name = "Board", Exact = true }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new Regex("/board$"));
+        await Expect(page.Locator(".board-card").First).ToBeVisibleAsync();
     }
 
     private static async Task<IPage> SignInAsync(IBrowserContext context)

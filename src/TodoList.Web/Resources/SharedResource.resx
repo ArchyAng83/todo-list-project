@@ -462,4 +462,37 @@
   <data name="SortTitle" xml:space="preserve">
     <value>Title</value>
   </data>
+  <data name="Board" xml:space="preserve">
+    <value>Board</value>
+  </data>
+  <data name="BoardTitle" xml:space="preserve">
+    <value>Kanban board</value>
+  </data>
+  <data name="BoardHint" xml:space="preserve">
+    <value>Drag cards between columns, or use the card menu to move them.</value>
+  </data>
+  <data name="BoardEmptyColumn" xml:space="preserve">
+    <value>No tasks here.</value>
+  </data>
+  <data name="TaskActions" xml:space="preserve">
+    <value>Task actions</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>Move up</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>Move down</value>
+  </data>
+  <data name="MoveToTodo" xml:space="preserve">
+    <value>Move to "To do"</value>
+  </data>
+  <data name="MoveToInProgress" xml:space="preserve">
+    <value>Move to "In progress"</value>
+  </data>
+  <data name="MoveToDone" xml:space="preserve">
+    <value>Move to "Done"</value>
+  </data>
+  <data name="OpenTaskList" xml:space="preserve">
+    <value>Open task list</value>
+  </data>
 </root>

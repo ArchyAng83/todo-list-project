@@ -12,7 +12,12 @@ public sealed record ArchiveProjectBody(bool IsArchived);
 
 public sealed record TagBody(string Name, string? Color = null);
 
-public sealed record CreateTaskBody(string Title, Guid? ProjectId = null);
+public sealed record CreateTaskBody(
+    string Title,
+    Guid? ProjectId = null,
+    TaskPriority Priority = TaskPriority.None,
+    DateOnly? DueDate = null,
+    TimeOnly? DueTime = null);
 
 public sealed record UpdateTaskBody(
     string Title,

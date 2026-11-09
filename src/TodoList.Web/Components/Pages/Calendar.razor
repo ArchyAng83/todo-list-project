@@ -1,0 +1,193 @@
+@page "/calendar"
+@attribute [Authorize]
+@inject IServiceScopeFactory ScopeFactory
+@inject ICurrentUserProvider CurrentUser
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject TimeProvider TimeProvider
+@inject ILogger<Calendar> Logger
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@L["CalendarTitle"] · @L["AppName"]</PageTitle>
+
+<div class="d-flex flex-wrap align-center justify-space-between gap-2 mb-4">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@L["CalendarTitle"]</MudText>
+    <MudButton Href="/tasks"
+               Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.ViewList">
+        @L["OpenTaskList"]
+    </MudButton>
+</div>
+
+<CalendarGrid Month="_month"
+              Today="_today"
+              WeekStart="_weekStart"
+              Tasks="_tasks"
+              IsLoading="_isLoading"
+              Error="@_error"
+              OnRetry="LoadAsync"
+              OnPreviousMonth="PreviousMonthAsync"
+              OnNextMonth="NextMonthAsync"
+              OnToday="TodayAsync"
+              OnDaySelected="CreateOnDayAsync"
+              OnEditTask="EditAsync" />
+
+@code {
+    private DateOnly _today = DateOnly.MaxValue;
+    private DateOnly _month = DateOnly.MinValue;
+    private DayOfWeek _weekStart = DayOfWeek.Monday;
+
+    private IReadOnlyList<TaskListItem> _tasks = [];
+    private IReadOnlyList<ProjectListItem> _projects = [];
+
+    private bool _isLoading = true;
+    private bool _isMonthInitialized;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        _isLoading = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            _today = UserClock.Today(TimeProvider, user.TimeZoneId);
+
+            if (!_isMonthInitialized)
+            {
+                _month = new DateOnly(_today.Year, _today.Month, 1);
+                _isMonthInitialized = true;
+            }
+
+            var gridStart = GridStart(_month, _weekStart);
+            var gridEnd = gridStart.AddDays(41);
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+
+            var settingsService = scope.ServiceProvider.GetRequiredService<UserSettingsService>();
+            var settings = await settingsService.GetAsync(user);
+
+            if (settings is not null)
+            {
+                _weekStart = settings.WeekStart;
+                gridStart = GridStart(_month, _weekStart);
+                gridEnd = gridStart.AddDays(41);
+            }
+
+            var projectQueries = scope.ServiceProvider.GetRequiredService<ProjectQueries>();
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+            _projects = await projectQueries.ListAsync(user);
+            _tasks = await queries.CalendarAsync(user, gridStart, gridEnd);
+        }
+        catch (Exception exception)
+        {
+            Logger.LogError(exception, "Failed to load the calendar for the current user.");
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task PreviousMonthAsync()
+    {
+        _month = _month.AddMonths(-1);
+        await LoadAsync();
+    }
+
+    private async Task NextMonthAsync()
+    {
+        _month = _month.AddMonths(1);
+        await LoadAsync();
+    }
+
+    private async Task TodayAsync()
+    {
+        _month = new DateOnly(_today.Year, _today.Month, 1);
+        await LoadAsync();
+    }
+
+    private async Task CreateOnDayAsync(DateOnly date)
+    {
+        var parameters = new DialogParameters<TaskCreateDialog>
+        {
+            { dialog => dialog.DueDate, date },
+            { dialog => dialog.Projects, _projects }
+        };
+
+        var dialog = await DialogService.ShowAsync<TaskCreateDialog>(L["NewTask"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task EditAsync(TaskListItem task)
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        TaskDetails? details;
+
+        await using (var scope = ScopeFactory.CreateAsyncScope())
+        {
+            var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+            details = await queries.GetAsync(user, task.Id);
+        }
+
+        if (details is null)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+            return;
+        }
+
+        var tags = await LoadTagsAsync(user);
+
+        var parameters = new DialogParameters<TaskEditDialog>
+        {
+            { dialog => dialog.Details, details },
+            { dialog => dialog.Projects, _projects },
+            { dialog => dialog.Tags, tags }
+        };
+
+        var dialog = await DialogService.ShowAsync<TaskEditDialog>(L["EditTask"], parameters);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadAsync();
+        }
+    }
+
+    private async Task<IReadOnlyList<TagListItem>> LoadTagsAsync(UserContext user)
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var tagQueries = scope.ServiceProvider.GetRequiredService<TagQueries>();
+        return await tagQueries.ListAsync(user);
+    }
+
+    private static DateOnly GridStart(DateOnly month, DayOfWeek weekStart)
+    {
+        var firstOfMonth = new DateOnly(month.Year, month.Month, 1);
+        var offset = ((int)firstOfMonth.DayOfWeek - (int)weekStart + 7) % 7;
+
+        return firstOfMonth.AddDays(-offset);
+    }
+}

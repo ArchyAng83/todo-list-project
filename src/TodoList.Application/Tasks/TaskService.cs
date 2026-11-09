@@ -36,6 +36,8 @@ public sealed class TaskService(
         var now = timeProvider.GetUtcNow();
         var task = TodoTask.Create(user.UserId, request.Title, now);
         task.MoveToProject(request.ProjectId, now);
+        task.SetPriority(request.Priority, now);
+        task.SetDueDate(request.DueDate, request.DueTime, now);
 
         db.Tasks.Add(task);
         await db.SaveChangesAsync(cancellationToken);

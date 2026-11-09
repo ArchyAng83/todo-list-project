@@ -76,6 +76,36 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
         return new TaskBoard(columns);
     }
 
+    /// <summary>
+    /// Returns tasks with a due date inside the inclusive range, ordered by day,
+    /// then time, status, and priority. The UI groups them into a month grid.
+    /// </summary>
+    public async Task<IReadOnlyList<TaskListItem>> CalendarAsync(
+        UserContext user,
+        DateOnly from,
+        DateOnly to,
+        CancellationToken cancellationToken = default)
+    {
+        if (from > to)
+        {
+            return [];
+        }
+
+        return await db.Tasks
+            .AsNoTracking()
+            .Where(task => task.UserId == user.UserId
+                && task.DueDate != null
+                && task.DueDate >= from
+                && task.DueDate <= to)
+            .OrderBy(task => task.DueDate)
+            .ThenBy(task => task.DueTime.HasValue ? 0 : 1)
+            .ThenBy(task => task.DueTime)
+            .ThenBy(task => task.Status == TodoTaskStatus.Done)
+            .ThenByDescending(task => task.Priority)
+            .Select(ToListItem)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<TaskDetails?> GetAsync(
         UserContext user,
         Guid taskId,

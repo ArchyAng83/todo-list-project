@@ -134,6 +134,71 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     }
 
     [Fact]
+    public async Task Calendar_ShowsTasksOnTheirDueDates()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        await OpenCalendarAsync(page);
+
+        var today = page.Locator(".calendar-day.is-today");
+
+        await Expect(today).ToHaveCountAsync(1);
+        await Expect(today.GetByText("Buy groceries")).ToBeVisibleAsync();
+        await Expect(today.GetByText("Write portfolio case study")).ToBeVisibleAsync();
+        await Expect(page.GetByText("Read the ASP.NET Core docs")).ToBeVisibleAsync();
+    }
+
+    [Fact]
+    public async Task Calendar_NavigatesBetweenMonths()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        await OpenCalendarAsync(page);
+
+        var title = page.Locator(".calendar-month");
+        var initial = (await title.TextContentAsync())!.Trim();
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Next month" }).ClickAsync();
+        await Expect(title).Not.ToHaveTextAsync(initial);
+
+        await page.GetByRole(AriaRole.Button, new() { Name = "Previous month" }).ClickAsync();
+        await Expect(title).ToHaveTextAsync(initial);
+    }
+
+    [Fact]
+    public async Task Calendar_CreatesTaskOnClickedDay_AndPersistsAfterReload()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        await OpenCalendarAsync(page);
+
+        var title = $"E2E calendar {Guid.NewGuid():N}";
+        var day = page.Locator(".calendar-day.is-today");
+        var date = (await day.GetAttributeAsync("data-date"))!;
+
+        // Click the day number so the click cannot land on an existing task chip.
+        await day.Locator(".calendar-day-number").ClickAsync();
+
+        var dialog = page.Locator(".mud-dialog");
+
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.GetByLabel("Title").FillAsync(title);
+        await dialog.GetByRole(AriaRole.Button, new() { Name = "Add task" }).ClickAsync();
+
+        var chip = page.Locator($".calendar-day[data-date='{date}']").GetByText(title);
+
+        await Expect(chip).ToBeVisibleAsync();
+
+        await page.ReloadAsync();
+
+        await Expect(page.Locator($".calendar-day[data-date='{date}']").GetByText(title))
+            .ToBeVisibleAsync();
+    }
+
+    [Fact]
     public async Task CultureSwitcher_ChangesTheUiToRussian()
     {
         await using var context = await fixture.NewContextAsync();
@@ -152,6 +217,13 @@ public sealed class UserJourneyTests(E2EFixture fixture)
         await page.GetByRole(AriaRole.Link, new() { Name = "Board", Exact = true }).ClickAsync();
         await Expect(page).ToHaveURLAsync(new Regex("/board$"));
         await Expect(page.Locator(".board-card").First).ToBeVisibleAsync();
+    }
+
+    private static async Task OpenCalendarAsync(IPage page)
+    {
+        await page.GetByRole(AriaRole.Link, new() { Name = "Calendar", Exact = true }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new Regex("/calendar$"));
+        await Expect(page.Locator(".calendar-day").First).ToBeVisibleAsync();
     }
 
     private static async Task<IPage> SignInAsync(IBrowserContext context)

@@ -345,6 +345,66 @@ public sealed class TaskManagementTests(TodoListAppFixture fixture)
         moved.Error.Code.ShouldBe("validation");
     }
 
+    [Fact]
+    public async Task TaskQueries_Calendar_ReturnsOnlyTasksInRangeOrderedByDayAndTime()
+    {
+        var userId = await CreateUserAsync();
+        var otherUserId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+        var otherUser = new UserContext(otherUserId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var taskQueries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+        var later = (await taskService.CreateAsync(user, new CreateTaskRequest(
+            "Later",
+            null,
+            TaskPriority.High,
+            new DateOnly(2026, 12, 10),
+            new TimeOnly(15, 0)))).Value;
+
+        var earlier = (await taskService.CreateAsync(user, new CreateTaskRequest(
+            "Earlier",
+            null,
+            TaskPriority.Low,
+            new DateOnly(2026, 12, 10),
+            new TimeOnly(9, 0)))).Value;
+
+        await taskService.CreateAsync(user, new CreateTaskRequest(
+            "Next month",
+            null,
+            TaskPriority.None,
+            new DateOnly(2027, 1, 5)));
+
+        await taskService.CreateAsync(user, new CreateTaskRequest("No due date"));
+
+        var foreign = await taskService.CreateAsync(otherUser, new CreateTaskRequest(
+            "Foreign",
+            null,
+            TaskPriority.None,
+            new DateOnly(2026, 12, 10)));
+
+        var tasks = await taskQueries.CalendarAsync(
+            user,
+            new DateOnly(2026, 12, 1),
+            new DateOnly(2026, 12, 31));
+
+        tasks.Select(task => task.Id).ShouldBe([earlier, later]);
+        tasks.ShouldNotContain(task => task.Id == foreign.Value);
+
+        var details = await taskQueries.GetAsync(user, earlier);
+
+        details!.DueDate.ShouldBe(new DateOnly(2026, 12, 10));
+        details.DueTime.ShouldBe(new TimeOnly(9, 0));
+        details.Priority.ShouldBe(TaskPriority.Low);
+
+        (await taskQueries.CalendarAsync(
+            user,
+            new DateOnly(2026, 12, 31),
+            new DateOnly(2026, 12, 1))).ShouldBeEmpty();
+    }
+
     private static string[] ColumnTitles(TaskBoard board, TodoTaskStatus status)
         => board.Columns
             .Single(column => column.Status == status)

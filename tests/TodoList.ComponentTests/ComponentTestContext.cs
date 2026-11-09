@@ -14,7 +14,9 @@ public abstract class ComponentTestContext : BunitContext
 {
     protected ComponentTestContext()
     {
-        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en");
+        var culture = CultureInfo.GetCultureInfo("en");
+        CultureInfo.CurrentCulture = culture;
+        CultureInfo.CurrentUICulture = culture;
 
         Services.AddLocalization(options => options.ResourcesPath = "Resources");
         Services.AddMudServices();

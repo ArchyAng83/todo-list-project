@@ -1,0 +1,142 @@
+@inject IServiceScopeFactory ScopeFactory
+@inject ICurrentUserProvider CurrentUser
+@inject ISnackbar Snackbar
+@inject IStringLocalizer<SharedResource> L
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@L["NewTask"]</MudText>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+        }
+
+        <MudTextField @bind-Value="_title"
+                      Label="@L["TaskTitle"]"
+                      Required="true"
+                      Class="mb-4" />
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="Guid?" @bind-Value="_projectId" Label="@L["Project"]">
+                    <MudSelectItem T="Guid?" Value="@((Guid?)null)">@L["NoProject"]</MudSelectItem>
+                    @foreach (var project in Projects)
+                    {
+                        <MudSelectItem T="Guid?" Value="@project.Id">@project.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudSelect T="TaskPriority" @bind-Value="_priority" Label="@L["Priority"]">
+                    @foreach (var priority in Enum.GetValues<TaskPriority>())
+                    {
+                        <MudSelectItem T="TaskPriority" Value="@priority">@PriorityLabel(priority)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_dueDate" Label="@L["DueDate"]" Clearable="true" />
+            </MudItem>
+
+            <MudItem xs="12" sm="6">
+                <MudTimePicker @bind-Time="_dueTime" Label="@L["DueTime"]" Clearable="true" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="() => MudDialog.Cancel()">@L["Cancel"]</MudButton>
+        <MudButton OnClick="SaveAsync"
+                   Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   Disabled="_isSaving">
+            @L["AddTask"]
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public DateOnly? DueDate { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<ProjectListItem> Projects { get; set; } = [];
+
+    private string _title = string.Empty;
+    private Guid? _projectId;
+    private TaskPriority _priority;
+    private DateTime? _dueDate;
+    private TimeSpan? _dueTime;
+    private string? _error;
+    private bool _isSaving;
+
+    protected override void OnInitialized()
+    {
+        _dueDate = DueDate?.ToDateTime(TimeOnly.MinValue);
+    }
+
+    private string PriorityLabel(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => L["PriorityLow"].Value,
+        TaskPriority.Medium => L["PriorityMedium"].Value,
+        TaskPriority.High => L["PriorityHigh"].Value,
+        TaskPriority.Urgent => L["PriorityUrgent"].Value,
+        _ => L["NoPriority"].Value
+    };
+
+    private async Task SaveAsync()
+    {
+        if (_isSaving)
+        {
+            return;
+        }
+
+        _error = null;
+        _isSaving = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            var dueDate = _dueDate is { } date ? DateOnly.FromDateTime(date) : (DateOnly?)null;
+            var dueTime = _dueTime is { } time ? TimeOnly.FromTimeSpan(time) : (TimeOnly?)null;
+
+            var request = new CreateTaskRequest(
+                _title,
+                _projectId,
+                _priority,
+                dueDate,
+                dueTime);
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<TaskService>();
+            var result = await service.CreateAsync(user, request);
+
+            if (result.IsFailure)
+            {
+                _error = result.Error.Message;
+                return;
+            }
+
+            Snackbar.Add(L["TaskCreated"], Severity.Success);
+            MudDialog.Close(DialogResult.Ok(result.Value));
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

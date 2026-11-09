@@ -10,6 +10,13 @@ public sealed class CreateTaskRequestValidator : AbstractValidator<CreateTaskReq
         RuleFor(x => x.Title)
             .NotEmpty()
             .MaximumLength(TodoTask.TitleMaxLength);
+
+        RuleFor(x => x.Priority).IsInEnum();
+
+        RuleFor(x => x.DueTime)
+            .Null()
+            .When(x => x.DueDate is null)
+            .WithMessage("A due time requires a due date.");
     }
 }
 

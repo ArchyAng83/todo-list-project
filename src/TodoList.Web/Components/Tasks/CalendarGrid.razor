@@ -1,0 +1,178 @@
+@inject IStringLocalizer<SharedResource> L
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (Error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@Error</MudAlert>
+    <MudButton OnClick="OnRetry" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else
+{
+    <div class="calendar-toolbar">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft"
+                       aria-label="@L["PreviousMonth"].Value"
+                       OnClick="() => OnPreviousMonth.InvokeAsync()" />
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="calendar-month">@MonthTitle</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight"
+                       aria-label="@L["NextMonth"].Value"
+                       OnClick="() => OnNextMonth.InvokeAsync()" />
+        <MudButton Variant="Variant.Outlined"
+                   Size="Size.Small"
+                   OnClick="() => OnToday.InvokeAsync()">
+            @L["Today"]
+        </MudButton>
+    </div>
+
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@L["CalendarHint"]</MudText>
+
+    <div class="calendar-grid" role="grid" aria-label="@MonthTitle">
+        @foreach (var weekday in _weekdayHeaders)
+        {
+            <div class="calendar-weekday" role="columnheader">@weekday</div>
+        }
+
+        @foreach (var day in _days)
+        {
+            var date = day.Date;
+
+            <div class="calendar-day @(day.IsCurrentMonth ? null : "is-outside") @(day.IsToday ? "is-today" : null)"
+                 role="gridcell"
+                 tabindex="0"
+                 data-date="@date.ToString("yyyy-MM-dd")"
+                 @onclick="() => OnDaySelected.InvokeAsync(date)"
+                 @onkeydown="args => OnDayKeyDownAsync(args, date)">
+                <span class="calendar-day-number">@date.Day</span>
+
+                @foreach (var task in day.Tasks)
+                {
+                    <button type="button"
+                            class="calendar-task @(task.Status == TodoTaskStatus.Done ? "is-done" : null) @(IsOverdue(task) ? "is-overdue" : null)"
+                            title="@TaskTitle(task)"
+                            @onclick:stopPropagation="true"
+                            @onclick="() => OnEditTask.InvokeAsync(task)">
+                        @if (task.DueTime is { } dueTime)
+                        {
+                            <span class="calendar-task-time">@dueTime.ToString("t")</span>
+                        }
+                        <span class="calendar-task-title">@task.Title</span>
+                    </button>
+                }
+
+                @if (day.HiddenCount > 0)
+                {
+                    <span class="calendar-more">@L["MoreTasks", day.HiddenCount]</span>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const int MaxVisibleTasks = 3;
+
+    private IReadOnlyList<CalendarDay> _days = [];
+    private IReadOnlyList<string> _weekdayHeaders = [];
+
+    [Parameter]
+    public DateOnly Month { get; set; }
+
+    [Parameter]
+    public DateOnly Today { get; set; }
+
+    [Parameter]
+    public DayOfWeek WeekStart { get; set; } = DayOfWeek.Monday;
+
+    [Parameter]
+    public IReadOnlyList<TaskListItem> Tasks { get; set; } = [];
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [Parameter]
+    public EventCallback OnPreviousMonth { get; set; }
+
+    [Parameter]
+    public EventCallback OnNextMonth { get; set; }
+
+    [Parameter]
+    public EventCallback OnToday { get; set; }
+
+    [Parameter]
+    public EventCallback<DateOnly> OnDaySelected { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnEditTask { get; set; }
+
+    private string MonthTitle
+        => new DateTime(Month.Year, Month.Month, 1).ToString("MMMM yyyy");
+
+    private void BuildGrid()
+    {
+        var firstOfMonth = new DateOnly(Month.Year, Month.Month, 1);
+        var offset = ((int)firstOfMonth.DayOfWeek - (int)WeekStart + 7) % 7;
+        var gridStart = firstOfMonth.AddDays(-offset);
+
+        var tasksByDate = Tasks
+            .Where(task => task.DueDate is not null)
+            .ToLookup(task => task.DueDate!.Value);
+
+        _days = Enumerable.Range(0, 42)
+            .Select(index => gridStart.AddDays(index))
+            .Select(date =>
+            {
+                var tasks = tasksByDate[date].ToList();
+
+                return new CalendarDay(
+                    date,
+                    date.Month == firstOfMonth.Month,
+                    date == Today,
+                    tasks.Take(MaxVisibleTasks).ToList(),
+                    Math.Max(0, tasks.Count - MaxVisibleTasks));
+            })
+            .ToList();
+
+        var dayNames = System.Globalization.CultureInfo.CurrentCulture
+            .DateTimeFormat
+            .AbbreviatedDayNames;
+
+        _weekdayHeaders = Enumerable.Range(0, 7)
+            .Select(index => dayNames[((int)WeekStart + index) % 7])
+            .ToList();
+    }
+
+    protected override void OnParametersSet() => BuildGrid();
+
+    private async Task OnDayKeyDownAsync(KeyboardEventArgs args, DateOnly date)
+    {
+        if (args.Key is "Enter" or " " or "Spacebar")
+        {
+            await OnDaySelected.InvokeAsync(date);
+        }
+    }
+
+    private bool IsOverdue(TaskListItem task)
+        => task.Status != TodoTaskStatus.Done
+            && task.DueDate is { } dueDate
+            && dueDate < Today;
+
+    private string TaskTitle(TaskListItem task)
+        => task.DueTime is { } dueTime
+            ? $"{dueTime:t} {task.Title}"
+            : task.Title;
+
+    private sealed record CalendarDay(
+        DateOnly Date,
+        bool IsCurrentMonth,
+        bool IsToday,
+        IReadOnlyList<TaskListItem> Tasks,
+        int HiddenCount);
+}

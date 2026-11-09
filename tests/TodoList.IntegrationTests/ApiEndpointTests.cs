@@ -224,6 +224,34 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
     }
 
     [Fact]
+    public async Task TaskCalendar_ReturnsTasksInsideTheRange()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var inside = await CreateTaskOnDateAsync(client, "Inside", new DateOnly(2026, 12, 10));
+        await CreateTaskOnDateAsync(client, "Outside", new DateOnly(2027, 1, 10));
+        await CreateTaskAsync(client, "No due date", null, null);
+
+        var tasks = await client.GetFromJsonAsync<List<TaskListItem>>(
+            "/api/v1/tasks/calendar?from=2026-12-01&to=2026-12-31",
+            JsonOptions);
+
+        tasks.ShouldNotBeNull();
+        tasks.ShouldHaveSingleItem().Id.ShouldBe(inside);
+    }
+
+    [Fact]
+    public async Task TaskCalendar_InvalidRange_ReturnsBadRequest()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var response = await client.GetAsync(
+            "/api/v1/tasks/calendar?from=2026-12-31&to=2026-12-01");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task TaskViews_FilterByDueDateAndStatus()
     {
         using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
@@ -371,6 +399,23 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
     private async Task<Guid> CreateProjectAsync(HttpClient client, string name)
     {
         var create = await client.PostAsJsonAsync("/api/v1/projects", new { name });
+        create.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var created = await create.Content.ReadFromJsonAsync<CreatedResponse>(JsonOptions);
+        created.ShouldNotBeNull();
+
+        return created.Id;
+    }
+
+    private async Task<Guid> CreateTaskOnDateAsync(
+        HttpClient client,
+        string title,
+        DateOnly dueDate)
+    {
+        var create = await client.PostAsJsonAsync(
+            "/api/v1/tasks",
+            new { title, dueDate = dueDate.ToString("yyyy-MM-dd") });
+
         create.StatusCode.ShouldBe(HttpStatusCode.Created);
 
         var created = await create.Content.ReadFromJsonAsync<CreatedResponse>(JsonOptions);

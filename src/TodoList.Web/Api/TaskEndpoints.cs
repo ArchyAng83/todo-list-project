@@ -22,6 +22,12 @@ public static class TaskEndpoints
             .Produces<TaskBoard>();
 
         tasks
+            .MapGet("/calendar", GetCalendarAsync)
+            .WithName("GetTaskCalendar")
+            .Produces<IReadOnlyList<TaskListItem>>()
+            .ProducesProblem(StatusCodes.Status400BadRequest);
+
+        tasks
             .MapGet("/{id:guid}", GetAsync)
             .WithName("GetTask")
             .Produces<TaskDetails>()
@@ -117,6 +123,32 @@ public static class TaskEndpoints
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> GetCalendarAsync(
+        DateOnly from,
+        DateOnly to,
+        TaskQueries queries,
+        ApiUserContextFactory users,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        if (from > to)
+        {
+            return Results.BadRequest(
+                new ProblemResponse("The range end must be on or after the range start."));
+        }
+
+        var user = await users.GetAsync(principal);
+
+        if (user is null)
+        {
+            return Results.Unauthorized();
+        }
+
+        var tasks = await queries.CalendarAsync(user, from, to, cancellationToken);
+
+        return Results.Ok(tasks);
+    }
+
     private static async Task<IResult> GetBoardAsync(
         TaskQueries queries,
         ApiUserContextFactory users,
@@ -170,7 +202,12 @@ public static class TaskEndpoints
 
         var result = await service.CreateAsync(
             user,
-            new CreateTaskRequest(body.Title, body.ProjectId),
+            new CreateTaskRequest(
+                body.Title,
+                body.ProjectId,
+                body.Priority,
+                body.DueDate,
+                body.DueTime),
             cancellationToken);
 
         return result.IsFailure

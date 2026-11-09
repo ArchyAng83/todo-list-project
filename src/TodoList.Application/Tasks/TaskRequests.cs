@@ -2,7 +2,12 @@ using TodoList.Domain.Tasks;
 
 namespace TodoList.Application.Tasks;
 
-public sealed record CreateTaskRequest(string Title, Guid? ProjectId = null);
+public sealed record CreateTaskRequest(
+    string Title,
+    Guid? ProjectId = null,
+    TaskPriority Priority = TaskPriority.None,
+    DateOnly? DueDate = null,
+    TimeOnly? DueTime = null);
 
 public sealed record MoveTaskRequest(TodoTaskStatus Status, int TargetIndex);
 

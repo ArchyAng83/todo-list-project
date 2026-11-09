@@ -43,6 +43,18 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 - API документируется через OpenAPI по `/openapi/v1.json` и Scalar по `/scalar`.
 - Настройки пользователя (язык, тема, часовой пояс, начало недели, напоминание по умолчанию) хранятся в `ApplicationUser` и доступны через `IUserSettingsStore`, поэтому Identity не попадает в Application.
 
+## Blazor и DI-scope
+
+- Blazor Server держит один DI-scope на circuit, а layout и страница загружаются одновременно.
+- Компоненты получают сервисы Application через `IServiceScopeFactory`, а `CurrentUserProvider` резолвит `UserManager` в отдельном scope на вызов, поэтому два компонента никогда не выполняют пересекающиеся операции на одном `DbContext`.
+
+## Эксплуатация
+
+- `/health/live` проверяет процесс; `/health/ready` проверяет PostgreSQL. Liveness намеренно не зависит от базы.
+- Вне Development приложение пишет однострочный JSON в stdout, включая scopes и UTC-таймстампы.
+- Контейнерный образ собирается в Release, работает от непривилегированного пользователя и слушает порт 8080.
+- В production миграции применяются отдельным шагом деплоя; демо-сидер работает только в Development.
+
 ## Фоновая работа
 
 Напоминания пишутся в таблицу `Reminder` Application-сервисами. Hosted dispatcher забирает due-строки через `FOR UPDATE SKIP LOCKED`, отправляет email через MailKit и помечает отправленными. Повторяющиеся задачи создают следующее вхождение при завершении текущей.
@@ -51,8 +63,8 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 
 - Unit-тесты: домен и чистая логика Application.
 - Integration-тесты: `WebApplicationFactory` + Testcontainers PostgreSQL.
-- Component-тесты: bUnit.
-- E2E-тесты: Playwright против реального приложения, PostgreSQL и Mailpit.
+- Component-тесты: bUnit против презентационных компонентов с явными `EventCallback`.
+- E2E-тесты: Playwright против реального процесса приложения, PostgreSQL в Testcontainers и headless Chromium.
 - Общие test utilities — в `TodoList.Testing`.
 
 ## Решения

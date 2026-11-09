@@ -3,7 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
-[![Status](https://img.shields.io/badge/status-week%203%20complete-brightgreen)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%204%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -11,9 +11,9 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 3 complete.** Task views and sorting, persisted settings, a deterministic demo account, and the bearer-only `/api/v1` API with OpenAPI and Scalar are implemented. Component tests, E2E, and deployment are next.
+**Week 4 complete.** Task views and sorting, persisted settings, a deterministic demo account, the bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and a container image are implemented. Deployment is the remaining MVP step.
 
-See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-03.en.md](docs/progress/week-03.en.md) for the current week.
+See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-04.en.md](docs/progress/week-04.en.md) for the current week.
 
 ## Stack
 
@@ -27,7 +27,7 @@ See [docs/progress/status.en.md](docs/progress/status.en.md) for the current sta
 | API | Minimal API `/api/v1`, OpenAPI + Scalar |
 | Localization | `.resx` + `IStringLocalizer`, RU/EN |
 | Tests | xUnit, Testcontainers, bUnit, Playwright |
-| Infrastructure | Docker Compose, GitHub Actions, Serilog, OpenTelemetry |
+| Infrastructure | Docker, GitHub Actions, health checks, JSON console logging |
 
 ## Architecture
 
@@ -76,6 +76,8 @@ tests/
   TodoList.Testing/
 docs/
 docker-compose.yml
+Dockerfile
+.dockerignore
 Directory.Build.props
 Directory.Packages.props
 global.json
@@ -142,9 +144,29 @@ OpenAPI is served at `/openapi/v1.json`, and the Scalar UI at [http://localhost:
 
 ```bash
 dotnet test
+dotnet test TodoList.sln -c Release   # same as CI
 ```
 
-Unit tests cover domain rules; integration tests run against PostgreSQL via Testcontainers and require Docker. bUnit component tests and Playwright E2E tests are added in Week 4.
+The suite has 35 unit, 24 integration, 14 component (bUnit), and 6 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
+
+Install the Playwright browser once after building:
+
+```bash
+pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
+```
+
+E2E starts a real Kestrel process on a free port, waits for `/health/ready`, and drives headless Chromium.
+
+### Container
+
+```bash
+docker build -t todolist .
+docker run --rm -p 8080:8080 \
+  -e 'ConnectionStrings__Default=Host=host.docker.internal;Port=5433;Database=todolist;Username=todolist;Password=todolist_dev' \
+  todolist
+```
+
+The app listens on port 8080 as a non-root user. Health probes: `/health/live` (process) and `/health/ready` (PostgreSQL). See the [deployment guide](docs/development/deployment.en.md) for production configuration, migrations, and probes.
 
 ## Documentation
 
@@ -154,6 +176,7 @@ Documentation is bilingual: English is canonical, Russian is synced.
 - [Русский индекс](docs/README.ru.md)
 - [Project status](docs/progress/status.en.md)
 - [Testing strategy](docs/development/testing.en.md)
+- [Deployment](docs/development/deployment.en.md)
 - [Git workflow](docs/development/git-workflow.en.md)
 
 ## AI roadmap
@@ -174,11 +197,12 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 3 завершена: представления и сортировка задач, сохраняемые настройки, демо-аккаунт и REST API `/api/v1` с OpenAPI и Scalar. Дальше — тесты компонентов, E2E и деплой.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 4 завершена: представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Остался деплой MVP.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)
 - [Архитектура](docs/architecture/overview.ru.md)
+- [Деплой](docs/development/deployment.ru.md)
 - [Roadmap](docs/product/roadmap.ru.md)
 
 AI-слой добавим после v1.0: natural-language quick add, агент с tool calling, evals и трейсинг. Ядро проектируется так, чтобы это не потребовало переписывания.

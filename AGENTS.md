@@ -64,8 +64,8 @@ src/
 tests/
   TodoList.UnitTests/       domain and pure Application tests (xUnit + Shouldly)
   TodoList.IntegrationTests/ WebApplicationFactory + Testcontainers PostgreSQL
-  TodoList.ComponentTests/  bUnit (wired in Week 4)
-  TodoList.E2ETests/        Playwright .NET (wired in Week 4)
+  TodoList.ComponentTests/  bUnit component tests
+  TodoList.E2ETests/        Playwright .NET E2E tests
   TodoList.Testing/         shared fixtures, builders, fakes (not a test project)
 docs/                       bilingual docs, ADRs, progress tracking
 ```
@@ -124,6 +124,10 @@ docs/                       bilingual docs, ADRs, progress tracking
   as the `WebApplicationFactory` entry point.
 - Use MudBlazor components for the app shell and pages. Keep custom CSS in
   `wwwroot/app.css` or scoped `.razor.css` files.
+- Components resolve Application services through `IServiceScopeFactory`.
+  Blazor Server keeps one DI scope per circuit, and the layout and page load
+  concurrently, so `CurrentUserProvider` resolves `UserManager` in a per-call
+  scope. Never share one `DbContext` operation across concurrent components.
 - Every data-driven page must show loading, empty, and error states.
 - Forms use `EditForm`. `[SupplyParameterFromForm]` properties must use
   `= default!` and be initialized with `Input ??= new();` in `OnInitialized`
@@ -153,8 +157,9 @@ docs/                       bilingual docs, ADRs, progress tracking
 - Name tests `Method_State_ExpectedBehavior`.
 - No network calls in unit tests. Replace `TimeProvider` and `IEmailSender`
   with fakes where time or email matters.
-- bUnit and Playwright are wired in during Week 4; do not claim component or
-  E2E coverage before that.
+- Component tests (bUnit) target presentational components through
+  `ComponentTestContext`; E2E tests (Playwright) start the real app process on a
+  free port. Keep `[CollectionDefinition]` types in the test assemblies.
 
 ## Conventions
 
@@ -186,6 +191,12 @@ docs/                       bilingual docs, ADRs, progress tracking
 - `dotnet-ef` may print a version warning; it is harmless as long as migrations
   are generated correctly.
 - `.playwright-mcp/` and `TestResults/` are ignored artifacts; do not commit them.
+- Playwright browsers install once with
+  `pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium`.
+- E2E waits for the `_bl_*` handler marker before clicking; otherwise a click can
+  submit a form natively before the Blazor circuit starts.
+- Razor treats a bare attribute value on a `string` component parameter as
+  literal text: write `Error="@_error"`, not `Error="_error"`.
 - If a build fails only in `TodoList.Testing`, make sure it stays
   `<IsTestProject>false</IsTestProject>`.
 

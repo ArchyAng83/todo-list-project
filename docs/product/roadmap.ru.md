@@ -8,7 +8,7 @@
 | 1 | Фундамент | EF Core, Identity, auth-страницы, app shell, i18n-фундамент | ✅ |
 | 2 | Ядро | Проекты, теги, задачи, подзадачи, views, quick add | ✅ |
 | 3 | UX + API | Поиск, фильтры, настройки, demo seed, `/api/v1`, OpenAPI | ✅ |
-| 4 | MVP release | bUnit, Playwright, Dockerfile, observability, деплой | ⬜ |
+| 4 | MVP release | bUnit, Playwright, Dockerfile, health checks, сборка образа в CI | ✅ |
 | 5 | Kanban | Колонки статусов, drag-and-drop, сортировка, тесты | ⬜ |
 | 6 | Calendar | Месячный вид, задачи по датам, создание по клику | ⬜ |
 | 7 | Productivity | Recurring tasks, email reminders, dispatcher | ⬜ |

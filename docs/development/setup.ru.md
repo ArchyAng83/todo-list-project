@@ -28,6 +28,24 @@ dotnet run --project src/TodoList.Web
 
 Приложение доступно на https://localhost:7037 или http://localhost:5122.
 
+Health-пробы:
+
+| Endpoint | Проверяет |
+|---|---|
+| `/health/live` | процесс отвечает |
+| `/health/ready` | PostgreSQL доступен |
+
+## Контейнер
+
+```bash
+docker build -t todolist .
+docker run --rm -p 8080:8080 \
+  -e ConnectionStrings__Default="Host=host.docker.internal;Port=5433;Database=todolist;Username=todolist;Password=todolist_dev" \
+  todolist
+```
+
+Образ собирается в Release, запускается от непривилегированного пользователя и слушает порт 8080. Подробнее — в [deployment](deployment.ru.md).
+
 ## База данных
 
 EF Core migrations и `AppDbContext` уже есть. Применить их можно так:

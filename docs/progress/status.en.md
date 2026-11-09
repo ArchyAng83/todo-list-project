@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-09
 
-- **Current phase:** Week 3 - UX polish and REST API (code complete)
-- **Overall:** Foundation, task management, settings, demo data, and the bearer API are complete; MVP in progress.
+- **Current phase:** Week 4 - testing, containers, and observability (code complete)
+- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, and the container image are complete; MVP in progress.
 
 ## Done
 
@@ -34,20 +34,27 @@ Last updated: 2026-11-09
 - Command/query Application services with FluentValidation and `Result<T>`.
 - Unit tests for domain rules and user settings (35 passing).
 - Testcontainers-based integration tests for auth, persistence, task management, and the REST API (24 passing).
+- bUnit component tests for the task list, layout, and culture switcher (14 passing).
+- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (6 passing).
+- `/health/live` and `/health/ready` endpoints with a database readiness check.
+- JSON console logging outside Development for container platforms.
+- Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
+- CI that runs every test suite, installs Playwright browsers, and builds the container image.
 
 ## In progress
 
 - First CI run (pending publication of the GitHub repository).
+- Deployment target selection for the MVP.
 
 ## Next
 
-- Week 4: bUnit component tests, Playwright E2E, Dockerfile, observability, and the first deployment.
+- Week 5: Kanban board with status columns, drag-and-drop, ordering, and tests.
 
 ## Blockers and risks
 
 - Docker Desktop must be running for PostgreSQL, Mailpit, integration tests, and E2E.
 - GitHub CLI is not installed; pushing to the public repository is pending.
-- The production SMTP provider will be chosen before the MVP deployment.
+- The production SMTP provider and hosting target will be chosen before the MVP deployment.
 
 ## Quality gates
 
@@ -56,7 +63,8 @@ Last updated: 2026-11-09
 | Build | ✅ 0 warnings, 0 errors |
 | Unit tests | ✅ 35 passing |
 | Integration tests | ✅ 24 passing (Testcontainers) |
-| Component tests | ⬜ scaffold only (Week 4) |
-| E2E tests | ⬜ scaffold only (Week 4) |
+| Component tests | ✅ 14 passing (bUnit) |
+| E2E tests | ✅ 6 passing (Playwright) |
+| Container image | ✅ builds; health probes respond |
 | CI | ⬜ workflow added, first run pending |
 | Deployed | ⬜ |

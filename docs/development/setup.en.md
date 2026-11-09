@@ -28,6 +28,24 @@ dotnet run --project src/TodoList.Web
 
 The app is available at https://localhost:7037 or http://localhost:5122.
 
+Health probes:
+
+| Endpoint | Checks |
+|---|---|
+| `/health/live` | the process responds |
+| `/health/ready` | PostgreSQL is reachable |
+
+## Container
+
+```bash
+docker build -t todolist .
+docker run --rm -p 8080:8080 \
+  -e ConnectionStrings__Default="Host=host.docker.internal;Port=5433;Database=todolist;Username=todolist;Password=todolist_dev" \
+  todolist
+```
+
+The image publishes in Release, runs as a non-root user, and listens on port 8080. See [deployment](deployment.en.md) for the production checklist.
+
 ## Database
 
 EF Core migrations and the `AppDbContext` are in place. Apply them with:

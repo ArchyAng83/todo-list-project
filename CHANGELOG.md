@@ -35,9 +35,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minimal REST API `/api/v1` with bearer-only authentication, custom login and refresh endpoints, and tasks, projects, tags, and settings endpoints.
 - OpenAPI document and Scalar UI.
 - Integration tests for bearer login, cookie-only rejection, API scoping, task views, priority sorting, and settings persistence.
+- `TaskList` presentational component with loading, refreshing, empty, filtered-empty, error, and retry states.
+- `ICurrentUserProvider` seam so components can be tested without the Identity stack.
+- 14 bUnit component tests for the task list, main layout, and culture switcher.
+- Playwright E2E fixture that starts PostgreSQL, a real Kestrel process, and headless Chromium, plus 6 user journeys.
+- `/health/live` and `/health/ready` endpoints with a PostgreSQL readiness check.
+- JSON console logging outside Development, with scopes and UTC timestamps.
+- Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
+- CI installs Playwright browsers and builds the container image.
+- Deployment guide covering configuration, migrations, probes, and Blazor Server constraints.
 
 ### Changed
 
 - EF Core now uses `QuerySplittingBehavior.SplitQuery` to keep task collection queries efficient.
 - Checklist items and task-tag links are added to the context explicitly after being created through the `TodoTask` aggregate.
 - Priority sorting uses a translatable `CASE` expression instead of a CLR helper method.
+- Pages and dialogs inject `ICurrentUserProvider` instead of the concrete `CurrentUserProvider`.
+- `CurrentUserProvider` resolves `UserManager` in a per-call scope because Blazor Server shares one scope per circuit.
+
+### Fixed
+
+- The task list no longer passes the literal string `_error` as its error message; Razor treats bare attribute text on `string` parameters as literal text, so the page always rendered its error state.
+- Concurrent layout and page loads no longer share a `DbContext` operation and terminate the Blazor circuit.

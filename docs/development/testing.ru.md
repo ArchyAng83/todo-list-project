@@ -4,35 +4,51 @@
 
 | Уровень | Инструменты | Что покрывает | Когда |
 |---|---|---|---|
-| Unit | xUnit, Shouldly, NSubstitute | Доменные правила, валидация, timezone и recurrence расчёты, чистая логика Application | Каждый коммит |
-| Integration | WebApplicationFactory, Testcontainers PostgreSQL, Respawn | EF Core mappings/migrations, Application-сервисы, Identity, API, изоляция данных, конкурентность | Каждый PR |
-| Component | bUnit | Ключевые Blazor-компоненты, формы, фильтрация, локализация | Каждый PR |
-| E2E | Playwright .NET | Auth, CRUD, фильтры, RU/EN, Kanban, календарь, recurring, напоминания через Mailpit, import/export | Smoke на PR; полный на main/nightly |
+| Unit | xUnit, Shouldly, NSubstitute | Доменные правила, валидация, расчёты часовых поясов, чистая логика Application | Каждый коммит |
+| Integration | WebApplicationFactory, Testcontainers PostgreSQL | EF Core mappings/migrations, Application-сервисы, Identity, API, изоляция данных, конкурентность | Каждый PR |
+| Component | bUnit, NSubstitute | Презентационные Blazor-компоненты: загрузка, пустота, ошибка, колбэки, локализация, layout | Каждый PR |
+| E2E | Playwright .NET | Static SSR вход, SignalR-circuit, быстрый ввод, поиск, представления, RU/EN, реальные cookie и статические файлы | Каждый PR |
 
 ## Команды
 
 ```bash
-dotnet test
+dotnet test                                       # все наборы
+dotnet test TodoList.sln -c Release               # как в CI
 dotnet test tests/TodoList.UnitTests
 dotnet test tests/TodoList.IntegrationTests
 dotnet test tests/TodoList.ComponentTests
 dotnet test tests/TodoList.E2ETests
 ```
 
-Integration и E2E тесты требуют Docker. Браузеры Playwright ставятся один раз через Playwright CLI.
+Integration- и E2E-тестам нужен Docker. Браузер Playwright ставится один раз после сборки:
+
+```bash
+pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
+```
+
+В Linux CI добавьте `--with-deps`, чтобы вместе с Chromium установились системные библиотеки.
+
+## Как запускаются наборы
+
+- Unit-тесты не требуют инфраструктуры.
+- Integration-тесты поднимают один контейнер PostgreSQL на коллекцию и создают изолированную базу на каждую фабрику.
+- Component-тесты рендерят компоненты изолированно с сервисами локализации и MudBlazor; база данных им не нужна.
+- E2E поднимает контейнер PostgreSQL, запускает реальное веб-приложение на свободном порту, ждёт `/health/ready` и управляет headless Chromium.
+- E2E ждёт, пока Blazor навесит обработчики событий, прежде чем кликать, чтобы клик не уходил в нативную отправку формы.
 
 ## Test data и fakes
 
-- Builders вроде `TaskBuilder` и `UserBuilder` живут в `TodoList.Testing`.
-- `TimeProvider` заменяется fake'ом в time-sensitive тестах.
-- Отправка email использует fake `IEmailSender` в integration-тестах; E2E проверяет письма через Mailpit API.
-- Respawn очищает базу между integration-тестами.
+- Общие фикстуры живут в `TodoList.Testing`; типы `[CollectionDefinition]` — в тестовых сборках, которые их используют.
+- Unit-тесты Application используют небольшие ручные fake'и, например in-memory `IUserSettingsStore`.
+- `TimeProvider` внедряется везде, чтобы time-sensitive функции можно было тестировать детерминированно.
+- Отправка email будет использовать fake `IEmailSender` в integration-тестах, когда появятся напоминания.
 
 ## CI
 
-- PR: build + unit + integration + component + E2E smoke.
-- `main`: полный E2E.
-- Nightly: полный E2E и coverage artifact.
+- Каждый push и pull request запускает build, unit-, integration-, component- и E2E-тесты.
+- CI ставит браузер Chromium для Playwright перед запуском набора.
+- Вторая job собирает контейнерный образ из `Dockerfile`.
+- Nightly-запуски и артефакты coverage появятся после публикации репозитория.
 
 ## Coverage и flakiness
 

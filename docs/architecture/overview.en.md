@@ -43,6 +43,18 @@ Every aggregate root carries `UserId`; child entities are verified through their
 - The API is documented with OpenAPI at `/openapi/v1.json` and exposed through Scalar at `/scalar`.
 - User settings (language, theme, timezone, week start, default reminder) live on `ApplicationUser` and are accessed through `IUserSettingsStore`, keeping Identity out of Application.
 
+## Blazor and DI scopes
+
+- Blazor Server keeps one service scope per circuit, and the layout and page components load concurrently.
+- Components resolve Application services through `IServiceScopeFactory`, and `CurrentUserProvider` resolves `UserManager` in a per-call scope, so two components never issue overlapping operations on one `DbContext`.
+
+## Operations
+
+- `/health/live` checks the process; `/health/ready` checks PostgreSQL. Liveness deliberately ignores the database.
+- Outside Development the app writes single-line JSON to stdout with scopes and UTC timestamps.
+- The container image publishes in Release, runs as a non-root user, and listens on port 8080.
+- Production applies migrations as a separate deploy step; the demo seeder only runs in Development.
+
 ## Background work
 
 Reminders are written to the `Reminder` table by Application services. A hosted dispatcher claims due rows with `FOR UPDATE SKIP LOCKED`, sends email through MailKit, and marks them sent. Recurring tasks generate their next occurrence when the current one is completed.
@@ -51,8 +63,8 @@ Reminders are written to the `Reminder` table by Application services. A hosted 
 
 - Unit tests: domain and pure Application logic.
 - Integration tests: `WebApplicationFactory` + Testcontainers PostgreSQL.
-- Component tests: bUnit.
-- E2E tests: Playwright against a real app, PostgreSQL, and Mailpit.
+- Component tests: bUnit against presentational components with explicit `EventCallback` parameters.
+- E2E tests: Playwright against the real app process, Testcontainers PostgreSQL, and headless Chromium.
 - Shared test utilities live in `TodoList.Testing`.
 
 ## Decisions

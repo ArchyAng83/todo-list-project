@@ -33,7 +33,7 @@
 - OpenAPI-документ по `/openapi/v1.json` и Scalar UI по `/scalar`.
 - Сервисы Application с разделением команд и запросов, FluentValidation и `Result<T>`.
 - Unit-тесты доменных правил и настроек пользователя (35 проходят).
-- Integration-тесты на Testcontainers для аутентификации, персистентности, работы с задачами и REST API (22 проходят).
+- Integration-тесты на Testcontainers для аутентификации, персистентности, работы с задачами и REST API (24 проходят).
 
 ## В работе
 
@@ -55,7 +55,7 @@
 |---|---|
 | Build | ✅ 0 предупреждений, 0 ошибок |
 | Unit tests | ✅ 35 проходят |
-| Integration tests | ✅ 22 проходят (Testcontainers) |
+| Integration tests | ✅ 24 проходят (Testcontainers) |
 | Component tests | ⬜ только scaffold (неделя 4) |
 | E2E tests | ⬜ только scaffold (неделя 4) |
 | CI | ⬜ workflow добавлен, первый запуск впереди |

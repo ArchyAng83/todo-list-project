@@ -4,6 +4,8 @@ namespace TodoList.Web.Api;
 
 public sealed record LoginBody(string Email, string Password);
 
+public sealed record RefreshBody(string RefreshToken);
+
 public sealed record ProjectBody(string Name, string? Color = null);
 
 public sealed record ArchiveProjectBody(bool IsArchived);

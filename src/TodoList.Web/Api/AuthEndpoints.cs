@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using TodoList.Infrastructure.Identity;
 
 namespace TodoList.Web.Api;
@@ -18,6 +19,11 @@ public static class AuthEndpoints
             .Produces<AccessTokenResponse>()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status423Locked);
+
+        group
+            .MapPost("/refresh", RefreshAsync)
+            .Produces<AccessTokenResponse>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized);
 
         return app;
     }
@@ -54,4 +60,38 @@ public static class AuthEndpoints
         // The bearer handler writes the access and refresh tokens as the response body.
         return Results.Empty;
     }
+
+    private static async Task<IResult> RefreshAsync(
+        RefreshBody body,
+        IOptionsMonitor<BearerTokenOptions> optionsMonitor,
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager)
+    {
+        var options = optionsMonitor.Get(IdentityConstants.BearerScheme);
+        var ticket = options.RefreshTokenProtector.Unprotect(body.RefreshToken);
+
+        if (ticket?.Principal is null
+            || ticket.Properties.ExpiresUtc is not { } expiresUtc
+            || DateTimeOffset.UtcNow >= expiresUtc)
+        {
+            return Unauthorized();
+        }
+
+        var user = await userManager.GetUserAsync(ticket.Principal);
+
+        if (user is null || await signInManager.ValidateSecurityStampAsync(ticket.Principal) is null)
+        {
+            return Unauthorized();
+        }
+
+        signInManager.AuthenticationScheme = IdentityConstants.BearerScheme;
+        await signInManager.SignInAsync(user, isPersistent: false);
+
+        return Results.Empty;
+    }
+
+    private static IResult Unauthorized()
+        => Results.Problem(
+            "Invalid or expired refresh token.",
+            statusCode: StatusCodes.Status401Unauthorized);
 }

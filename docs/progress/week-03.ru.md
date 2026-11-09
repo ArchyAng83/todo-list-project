@@ -22,7 +22,7 @@
 - Страница настроек редактирует имя, язык, тему, часовой пояс (с поиском), начало недели и напоминание по умолчанию; есть состояния загрузки, ошибки и валидации.
 - `ThemePreference` синхронизирует тему MudBlazor; layout следует системной теме через небольшой помощник `theme.js`.
 - `DemoDataSeeder` создаёт `demo@todolist.local` с тремя проектами, тремя тегами, восемью задачами и чек-листами; управляется `Seed:Demo`.
-- Собственный endpoint входа `POST /api/v1/auth/login`, выдающий access- и refresh-токены.
+- Собственный endpoint входа `POST /api/v1/auth/login` и обновления токена `POST /api/v1/auth/refresh`.
 - Группа `/api/v1` только для bearer-токенов: задачи, проекты, теги и `/me/settings`.
 - OpenAPI-документ по `/openapi/v1.json` и Scalar UI по `/scalar`.
 - Строковые enum в JSON; `DateOnly`/`TimeOnly` используют стандартное ISO-представление.
@@ -41,7 +41,7 @@
 ## Метрики
 
 - Build: проходит с 0 предупреждений и 0 ошибок в Debug и Release.
-- Тесты: 35 unit-тестов и 22 integration-теста проходят.
+- Тесты: 35 unit-тестов и 24 integration-теста проходят.
 - Проверки: вход по bearer, авторизованные вызовы API, 401 для анонимных и cookie-запросов, `/tasks`, `/settings`, `/openapi/v1.json` и `/scalar` отвечают корректно.
 
 ## Далее

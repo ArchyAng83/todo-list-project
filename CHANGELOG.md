@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Persisted user settings with `IUserSettingsStore`: display name, language, theme, timezone, week start, and default reminder.
 - Live theme switching with system-preference detection.
 - Deterministic demo account with projects, tags, tasks, and checklists, controlled by `Seed:Demo`.
-- Minimal REST API `/api/v1` with bearer-only authentication, custom login endpoint, and tasks, projects, tags, and settings endpoints.
+- Minimal REST API `/api/v1` with bearer-only authentication, custom login and refresh endpoints, and tasks, projects, tags, and settings endpoints.
 - OpenAPI document and Scalar UI.
 - Integration tests for bearer login, cookie-only rejection, API scoping, task views, priority sorting, and settings persistence.
 

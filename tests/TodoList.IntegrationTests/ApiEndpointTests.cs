@@ -59,6 +59,49 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
     }
 
     [Fact]
+    public async Task Refresh_ValidToken_IssuesNewAccessToken()
+    {
+        var (_, email, _) = await CreateUserAsync();
+        using var client = fixture.CreateClient();
+
+        var login = await client.PostAsJsonAsync(
+            "/api/v1/auth/login",
+            new { email, password = Password });
+
+        var tokens = await login.Content.ReadFromJsonAsync<TokenResponse>(JsonOptions);
+        tokens.ShouldNotBeNull();
+
+        var refresh = await client.PostAsJsonAsync(
+            "/api/v1/auth/refresh",
+            new { refreshToken = tokens.RefreshToken });
+
+        refresh.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var refreshed = await refresh.Content.ReadFromJsonAsync<TokenResponse>(JsonOptions);
+        refreshed.ShouldNotBeNull();
+        refreshed.TokenType.ShouldBe("Bearer");
+        refreshed.AccessToken.ShouldNotBeNullOrWhiteSpace();
+
+        using var api = fixture.CreateClient();
+        api.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", refreshed.AccessToken);
+
+        (await api.GetAsync("/api/v1/me/settings")).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Refresh_InvalidToken_ReturnsUnauthorized()
+    {
+        using var client = fixture.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/v1/auth/refresh",
+            new { refreshToken = "not-a-token" });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
     public async Task Tasks_AnonymousRequest_ReturnsUnauthorized()
     {
         using var client = fixture.CreateClient();

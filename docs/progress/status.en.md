@@ -33,7 +33,7 @@ Last updated: 2026-11-09
 - OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
 - Command/query Application services with FluentValidation and `Result<T>`.
 - Unit tests for domain rules and user settings (35 passing).
-- Testcontainers-based integration tests for auth, persistence, task management, and the REST API (22 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, and the REST API (24 passing).
 
 ## In progress
 
@@ -55,7 +55,7 @@ Last updated: 2026-11-09
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
 | Unit tests | ✅ 35 passing |
-| Integration tests | ✅ 22 passing (Testcontainers) |
+| Integration tests | ✅ 24 passing (Testcontainers) |
 | Component tests | ⬜ scaffold only (Week 4) |
 | E2E tests | ⬜ scaffold only (Week 4) |
 | CI | ⬜ workflow added, first run pending |

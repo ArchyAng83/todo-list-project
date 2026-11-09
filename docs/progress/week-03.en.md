@@ -22,7 +22,7 @@ Status: Code complete; API and page smoke checks passed
 - Settings page edits display name, language, theme, timezone (searchable), week start, and the default reminder, with loading, error, and validation states.
 - `ThemePreference` keeps the MudBlazor theme in sync; the layout follows the system preference through a small `theme.js` helper.
 - `DemoDataSeeder` creates `demo@todolist.local` with three projects, three tags, eight tasks, and checklists; controlled by `Seed:Demo`.
-- Custom bearer login endpoint `POST /api/v1/auth/login` issuing access and refresh tokens.
+- Custom bearer login endpoint `POST /api/v1/auth/login` and token refresh endpoint `POST /api/v1/auth/refresh`.
 - Bearer-only `/api/v1` group with tasks, projects, tags, and `/me/settings` endpoints.
 - OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
 - JSON string enums for the API; `DateOnly`/`TimeOnly` use the standard ISO representation.
@@ -41,7 +41,7 @@ Status: Code complete; API and page smoke checks passed
 ## Metrics
 
 - Build: passing with 0 warnings and 0 errors in Debug and Release.
-- Tests: 35 unit tests and 22 integration tests passing.
+- Tests: 35 unit tests and 24 integration tests passing.
 - Smoke checks: bearer login, authenticated API calls, 401 for anonymous and cookie-only requests, `/tasks`, `/settings`, `/openapi/v1.json`, and `/scalar` respond correctly.
 
 ## Next

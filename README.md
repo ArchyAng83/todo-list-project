@@ -129,6 +129,11 @@ curl -X POST http://localhost:5122/api/v1/auth/login \
 
 curl http://localhost:5122/api/v1/tasks \
   -H "Authorization: Bearer <accessToken>"
+
+# Access tokens last 7 days; refresh with the returned refreshToken.
+curl -X POST http://localhost:5122/api/v1/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{"refreshToken":"<refreshToken>"}'
 ```
 
 OpenAPI is served at `/openapi/v1.json`, and the Scalar UI at [http://localhost:5122/scalar](http://localhost:5122/scalar).

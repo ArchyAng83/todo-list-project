@@ -1,10 +1,11 @@
 @page "/tasks"
 @attribute [Authorize]
 @inject IServiceScopeFactory ScopeFactory
-@inject CurrentUserProvider CurrentUser
+@inject ICurrentUserProvider CurrentUser
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject TimeProvider TimeProvider
+@inject ILogger<Tasks> Logger
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Tasks"] · @L["AppName"]</PageTitle>
@@ -127,124 +128,16 @@
     }
 </MudPaper>
 
-@if (_isInitialLoading)
-{
-    <MudProgressLinear Indeterminate="true" />
-}
-else if (_error is not null)
-{
-    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
-    <MudButton OnClick="LoadTasksAsync" Variant="Variant.Outlined">@L["Retry"]</MudButton>
-}
-else
-{
-    @if (_isRefreshing)
-    {
-        <MudProgressLinear Indeterminate="true" Class="mb-2" />
-    }
-
-    @if (_tasks.Count == 0)
-    {
-        <MudPaper Elevation="0"
-                  Class="pa-10 d-flex flex-column align-center"
-                  Style="border: 1px dashed var(--mud-palette-lines-default);">
-            <MudIcon Icon="@Icons.Material.Outlined.Checklist" Size="Size.Large" Color="Color.Primary" />
-            <MudText Typo="Typo.h5" Class="mt-4">
-                @(HasActiveFilters ? L["NoTasksForFilter"] : L["EmptyTasksTitle"])
-            </MudText>
-            @if (!HasActiveFilters)
-            {
-                <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
-                    @L["EmptyTasksMessage"]
-                </MudText>
-            }
-        </MudPaper>
-    }
-    else
-    {
-        <MudPaper Elevation="0"
-                  Class="pa-0 task-list"
-                  Style="border: 1px solid var(--mud-palette-lines-default);">
-            @foreach (var task in _tasks)
-            {
-                <div class="task-row @(task.Status == TodoTaskStatus.Done ? "is-done" : null)">
-                    <MudCheckBox T="bool"
-                                 Value="@(task.Status == TodoTaskStatus.Done)"
-                                 ValueChanged="@(value => ToggleDoneAsync(task, value))"
-                                 Color="Color.Primary"
-                                 Dense="true"
-                                 aria-label="@(task.Status == TodoTaskStatus.Done ? L["Reopen"].Value : L["MarkDone"].Value)" />
-
-                    <div class="task-row-main">
-                        <MudText Typo="Typo.subtitle1" Class="task-title">@task.Title</MudText>
-
-                        <div class="task-meta">
-                            @if (task.ProjectName is not null)
-                            {
-                                <span class="task-meta-item">
-                                    <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
-                                    @task.ProjectName
-                                </span>
-                            }
-
-                            @if (task.DueDate is { } dueDate)
-                            {
-                                <span class="task-meta-item @(IsOverdue(task) ? "is-overdue" : null)">
-                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
-                                    @dueDate.ToString("d")
-                                    @if (task.DueTime is { } dueTime)
-                                    {
-                                        <text>@dueTime.ToString("t")</text>
-                                    }
-                                </span>
-                            }
-
-                            @if (task.ChecklistTotal > 0)
-                            {
-                                <span class="task-meta-item">
-                                    <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
-                                    @task.ChecklistCompleted/@task.ChecklistTotal
-                                </span>
-                            }
-
-                            @if (task.Priority != TaskPriority.None)
-                            {
-                                <MudChip T="string"
-                                         Size="Size.Small"
-                                         Color="@PriorityColor(task.Priority)"
-                                         Class="task-priority">
-                                    @PriorityLabel(task.Priority)
-                                </MudChip>
-                            }
-
-                            @foreach (var tag in task.Tags)
-                            {
-                                <span class="tag-chip" style="background:@tag.Color">@tag.Name</span>
-                            }
-
-                            @if (task.Status == TodoTaskStatus.InProgress)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="task-priority">
-                                    @L["StatusInProgress"]
-                                </MudChip>
-                            }
-                        </div>
-                    </div>
-
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                   Color="Color.Default"
-                                   aria-label="@L["Edit"].Value"
-                                   OnClick="@(() => EditAsync(task))" />
-
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                   Color="Color.Default"
-                                   aria-label="@L["Delete"].Value"
-                                   OnClick="@(() => DeleteAsync(task))" />
-                </div>
-            }
-        </MudPaper>
-    }
-}
+<TaskList Tasks="_tasks"
+          Today="_today"
+          IsLoading="_isInitialLoading"
+          IsRefreshing="_isRefreshing"
+          Error="@_error"
+          HasActiveFilters="HasActiveFilters"
+          OnRetry="LoadTasksAsync"
+          OnToggleDone="ToggleDoneAsync"
+          OnEdit="EditAsync"
+          OnDelete="DeleteAsync" />
 
 @code {
     private IReadOnlyList<TaskListItem> _tasks = [];
@@ -329,8 +222,9 @@ else
             var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
             _tasks = await queries.ListAsync(user, filter);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
+            Logger.LogError(exception, "Failed to load tasks for the current user.");
             _error = L["GenericError"];
         }
         finally
@@ -408,7 +302,7 @@ else
         }
     }
 
-    private async Task ToggleDoneAsync(TaskListItem task, bool isDone)
+    private async Task ToggleDoneAsync(TaskListItem task)
     {
         var user = await CurrentUser.GetAsync();
 
@@ -420,7 +314,9 @@ else
         await using var scope = ScopeFactory.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<TaskService>();
 
-        var status = isDone ? TodoTaskStatus.Done : TodoTaskStatus.Todo;
+        var status = task.Status == TodoTaskStatus.Done
+            ? TodoTaskStatus.Todo
+            : TodoTaskStatus.Done;
         var result = await service.SetStatusAsync(user, task.Id, status);
 
         if (result.IsFailure)
@@ -505,11 +401,6 @@ else
         await LoadTasksAsync();
     }
 
-    private bool IsOverdue(TaskListItem task)
-        => task.Status != TodoTaskStatus.Done
-            && task.DueDate is { } dueDate
-            && dueDate < _today;
-
     private DateOnly LocalToday(string timeZoneId)
     {
         TimeZoneInfo zone;
@@ -551,23 +442,5 @@ else
         TodoTaskStatus.InProgress => L["StatusInProgress"].Value,
         TodoTaskStatus.Done => L["StatusDone"].Value,
         _ => L["StatusTodo"].Value
-    };
-
-    private string PriorityLabel(TaskPriority priority) => priority switch
-    {
-        TaskPriority.Low => L["PriorityLow"].Value,
-        TaskPriority.Medium => L["PriorityMedium"].Value,
-        TaskPriority.High => L["PriorityHigh"].Value,
-        TaskPriority.Urgent => L["PriorityUrgent"].Value,
-        _ => L["NoPriority"].Value
-    };
-
-    private static Color PriorityColor(TaskPriority priority) => priority switch
-    {
-        TaskPriority.Low => Color.Info,
-        TaskPriority.Medium => Color.Warning,
-        TaskPriority.High => Color.Error,
-        TaskPriority.Urgent => Color.Error,
-        _ => Color.Default
     };
 }

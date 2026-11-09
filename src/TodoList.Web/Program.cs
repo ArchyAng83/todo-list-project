@@ -1,7 +1,9 @@
 using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using MudBlazor.Services;
@@ -15,6 +17,18 @@ using TodoList.Web.Components;
 using TodoList.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ";
+        options.UseUtcTimestamp = true;
+        options.JsonWriterOptions = new JsonWriterOptions { Indented = false };
+    });
+}
 
 builder.Services
     .AddRazorComponents()
@@ -34,9 +48,13 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApplication();
-builder.Services.AddScoped<CurrentUserProvider>();
+builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
 builder.Services.AddScoped<ThemePreference>();
 builder.Services.AddScoped<ApiUserContextFactory>();
+
+builder.Services
+    .AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 builder.Services.AddAuthentication()
     .AddBearerToken(IdentityConstants.BearerScheme);
@@ -76,6 +94,12 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+});
 
 app.MapOpenApi();
 app.MapScalarApiReference("/scalar");

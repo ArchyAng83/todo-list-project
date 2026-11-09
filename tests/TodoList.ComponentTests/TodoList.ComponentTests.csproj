@@ -19,6 +19,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="bunit" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Shouldly" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\TodoList.Web\TodoList.Web.csproj" />
   </ItemGroup>
 

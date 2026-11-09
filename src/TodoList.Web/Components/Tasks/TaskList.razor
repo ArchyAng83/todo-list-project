@@ -1,0 +1,175 @@
+@inject IStringLocalizer<SharedResource> L
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (Error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@Error</MudAlert>
+    <MudButton OnClick="OnRetry" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else
+{
+    @if (IsRefreshing)
+    {
+        <MudProgressLinear Indeterminate="true" Class="mb-2" />
+    }
+
+    @if (Tasks.Count == 0)
+    {
+        <MudPaper Elevation="0"
+                  Class="pa-10 d-flex flex-column align-center"
+                  Style="border: 1px dashed var(--mud-palette-lines-default);">
+            <MudIcon Icon="@Icons.Material.Outlined.Checklist" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h5" Class="mt-4">
+                @(HasActiveFilters ? L["NoTasksForFilter"] : L["EmptyTasksTitle"])
+            </MudText>
+            @if (!HasActiveFilters)
+            {
+                <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center" Class="mt-2">
+                    @L["EmptyTasksMessage"]
+                </MudText>
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudPaper Elevation="0"
+                  Class="pa-0 task-list"
+                  Style="border: 1px solid var(--mud-palette-lines-default);">
+            @foreach (var task in Tasks)
+            {
+                <div class="task-row @(task.Status == TodoTaskStatus.Done ? "is-done" : null)">
+                    <MudCheckBox T="bool"
+                                 Value="@(task.Status == TodoTaskStatus.Done)"
+                                 ValueChanged="@(_ => OnToggleDone.InvokeAsync(task))"
+                                 Color="Color.Primary"
+                                 Dense="true"
+                                 aria-label="@(task.Status == TodoTaskStatus.Done ? L["Reopen"].Value : L["MarkDone"].Value)" />
+
+                    <div class="task-row-main">
+                        <MudText Typo="Typo.subtitle1" Class="task-title">@task.Title</MudText>
+
+                        <div class="task-meta">
+                            @if (task.ProjectName is not null)
+                            {
+                                <span class="task-meta-item">
+                                    <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" />
+                                    @task.ProjectName
+                                </span>
+                            }
+
+                            @if (task.DueDate is { } dueDate)
+                            {
+                                <span class="task-meta-item @(IsOverdue(task) ? "is-overdue" : null)">
+                                    <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
+                                    @dueDate.ToString("d")
+                                    @if (task.DueTime is { } dueTime)
+                                    {
+                                        <text>@dueTime.ToString("t")</text>
+                                    }
+                                </span>
+                            }
+
+                            @if (task.ChecklistTotal > 0)
+                            {
+                                <span class="task-meta-item">
+                                    <MudIcon Icon="@Icons.Material.Filled.Checklist" Size="Size.Small" />
+                                    @task.ChecklistCompleted/@task.ChecklistTotal
+                                </span>
+                            }
+
+                            @if (task.Priority != TaskPriority.None)
+                            {
+                                <MudChip T="string"
+                                         Size="Size.Small"
+                                         Color="@PriorityColor(task.Priority)"
+                                         Class="task-priority">
+                                    @PriorityLabel(task.Priority)
+                                </MudChip>
+                            }
+
+                            @foreach (var tag in task.Tags)
+                            {
+                                <span class="tag-chip" style="background:@tag.Color">@tag.Name</span>
+                            }
+
+                            @if (task.Status == TodoTaskStatus.InProgress)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="task-priority">
+                                    @L["StatusInProgress"]
+                                </MudChip>
+                            }
+                        </div>
+                    </div>
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                   Color="Color.Default"
+                                   aria-label="@L["Edit"].Value"
+                                   OnClick="@(() => OnEdit.InvokeAsync(task))" />
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                   Color="Color.Default"
+                                   aria-label="@L["Delete"].Value"
+                                   OnClick="@(() => OnDelete.InvokeAsync(task))" />
+                </div>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<TaskListItem> Tasks { get; set; } = [];
+
+    [Parameter]
+    public DateOnly Today { get; set; } = DateOnly.MaxValue;
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public bool IsRefreshing { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public bool HasActiveFilters { get; set; }
+
+    [Parameter]
+    public EventCallback OnRetry { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnToggleDone { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnEdit { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskListItem> OnDelete { get; set; }
+
+    private bool IsOverdue(TaskListItem task)
+        => task.Status != TodoTaskStatus.Done
+            && task.DueDate is { } dueDate
+            && dueDate < Today;
+
+    private string PriorityLabel(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => L["PriorityLow"].Value,
+        TaskPriority.Medium => L["PriorityMedium"].Value,
+        TaskPriority.High => L["PriorityHigh"].Value,
+        TaskPriority.Urgent => L["PriorityUrgent"].Value,
+        _ => L["NoPriority"].Value
+    };
+
+    private static Color PriorityColor(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Low => Color.Info,
+        TaskPriority.Medium => Color.Warning,
+        TaskPriority.High => Color.Error,
+        TaskPriority.Urgent => Color.Error,
+        _ => Color.Default
+    };
+}

@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/TestResults/
+**/.playwright-mcp/
+.git/
+.github/
+.vs/
+.vscode/
+docs/
+tests/
+*.user
+*.suo
+Dockerfile
+docker-compose.yml
+README.md

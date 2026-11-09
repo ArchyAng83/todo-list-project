@@ -34,6 +34,9 @@ jobs:
       - name: Build
         run: dotnet build TodoList.sln --no-restore --configuration Release
 
+      - name: Install Playwright browsers
+        run: pwsh tests/TodoList.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
       - name: Test
         run: dotnet test TodoList.sln --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
 
@@ -44,3 +47,13 @@ jobs:
           name: test-results
           path: "**/TestResults/*.trx"
           if-no-files-found: ignore
+
+  container:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --tag todolist:${{ github.sha }} .

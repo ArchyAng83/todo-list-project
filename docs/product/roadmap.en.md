@@ -7,7 +7,7 @@
 | 0 | Bootstrap | Solution, docs, tests, Docker Compose, CI skeleton | ✅ |
 | 1 | Foundation | EF Core, Identity, auth pages, app shell, i18n foundation | ✅ |
 | 2 | Core domain | Projects, tags, tasks, subtasks, views, quick add | ✅ |
-| 3 | UX + API | Search, filters, settings, demo seed, `/api/v1`, OpenAPI | ⬜ |
+| 3 | UX + API | Search, filters, settings, demo seed, `/api/v1`, OpenAPI | ✅ |
 | 4 | MVP release | bUnit, Playwright, Dockerfile, observability, deploy | ⬜ |
 | 5 | Kanban | Status columns, drag-and-drop, ordering, tests | ⬜ |
 | 6 | Calendar | Month view, due-date placement, create-on-click | ⬜ |

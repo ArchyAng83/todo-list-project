@@ -39,7 +39,9 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 - Blazor использует **cookie-аутентификацию** через ASP.NET Core Identity.
 - Auth-страницы — **static SSR**, чтобы cookie ставилась в HTTP-ответе, а не внутри SignalR-circuit.
 - `/api/v1` использует **только bearer-токены** и переиспользует Application-сервисы. Blazor не вызывает API — это убирает CSRF и смешивание cookie/bearer.
-- API документируется через OpenAPI и Scalar.
+- `POST /api/v1/auth/login` выдаёт access- и refresh-токены; API покрывает задачи, проекты, теги и `/me/settings`.
+- API документируется через OpenAPI по `/openapi/v1.json` и Scalar по `/scalar`.
+- Настройки пользователя (язык, тема, часовой пояс, начало недели, напоминание по умолчанию) хранятся в `ApplicationUser` и доступны через `IUserSettingsStore`, поэтому Identity не попадает в Application.
 
 ## Фоновая работа
 

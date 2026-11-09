@@ -11,5 +11,6 @@ public sealed class TodoListWebApplicationFactory(string connectionString)
         // Development enables automatic migration at startup.
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Default", connectionString);
+        builder.UseSetting("Seed:Demo", "false");
     }
 }

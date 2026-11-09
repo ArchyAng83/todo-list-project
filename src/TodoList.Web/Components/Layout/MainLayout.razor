@@ -1,7 +1,12 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @inject IStringLocalizer<SharedResource> L
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject ThemePreference ThemePreference
+@inject IJSRuntime JS
 
-<MudThemeProvider />
+<MudThemeProvider @bind-IsDarkMode="_isDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -79,4 +84,74 @@
 
 @code {
     private bool _drawerOpen = true;
+    private bool _isDarkMode;
+    private bool _systemDarkMode;
+
+    protected override async Task OnInitializedAsync()
+    {
+        ThemePreference.Changed += OnThemeChanged;
+        await LoadThemeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            _systemDarkMode = await JS.InvokeAsync<bool>("todoListTheme.prefersDark");
+            ApplyTheme();
+            StateHasChanged();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is already gone; nothing to apply.
+        }
+        catch (InvalidOperationException)
+        {
+            // Prerendering has no JavaScript runtime.
+        }
+    }
+
+    private async Task LoadThemeAsync()
+    {
+        var user = await CurrentUser.GetAsync();
+
+        if (user is null)
+        {
+            return;
+        }
+
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<UserSettingsService>();
+        var settings = await service.GetAsync(user);
+
+        if (settings is not null)
+        {
+            ThemePreference.Set(settings.Theme);
+        }
+
+        ApplyTheme();
+    }
+
+    private void OnThemeChanged()
+    {
+        ApplyTheme();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void ApplyTheme()
+    {
+        _isDarkMode = ThemePreference.Theme switch
+        {
+            "dark" => true,
+            "light" => false,
+            _ => _systemDarkMode
+        };
+    }
+
+    public void Dispose() => ThemePreference.Changed -= OnThemeChanged;
 }

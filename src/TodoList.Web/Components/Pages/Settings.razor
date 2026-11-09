@@ -1,47 +1,295 @@
 @page "/settings"
 @attribute [Authorize]
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject UserManager<ApplicationUser> UserManager
+@inject IServiceScopeFactory ScopeFactory
+@inject CurrentUserProvider CurrentUser
+@inject ThemePreference ThemePreference
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 @inject IStringLocalizer<SharedResource> L
 
 <PageTitle>@L["Settings"] · @L["AppName"]</PageTitle>
 
 <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-6">@L["Settings"]</MudText>
 
-@if (_user is null)
+@if (_isLoading)
 {
     <MudProgressLinear Indeterminate="true" />
 }
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+    <MudButton OnClick="LoadAsync" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
 else
 {
-    <MudPaper Elevation="0" Class="pa-6" Style="border: 1px solid var(--mud-palette-lines-default);">
-        <MudText Typo="Typo.h6" Class="mb-4">@L["Profile"]</MudText>
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="7">
+            <MudPaper Elevation="0"
+                      Class="pa-6"
+                      Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudText Typo="Typo.h6" Class="mb-4">@L["Preferences"]</MudText>
 
-        <dl class="profile-list">
-            <dt>@L["DisplayName"]</dt>
-            <dd>@_user.DisplayName</dd>
+                <EditForm Model="_model" OnValidSubmit="SaveAsync">
+                    <DataAnnotationsValidator />
 
-            <dt>@L["Email"]</dt>
-            <dd>@_user.Email</dd>
+                    <MudGrid Spacing="3">
+                        <MudItem xs="12">
+                            <MudTextField T="string"
+                                          @bind-Value="_model.DisplayName"
+                                          For="@(() => _model.DisplayName)"
+                                          Label="@L["DisplayName"]"
+                                          Variant="Variant.Outlined"
+                                          Margin="Margin.Dense"
+                                          MaxLength="@UserSettingsConstraints.DisplayNameMaxLength" />
+                        </MudItem>
 
-            <dt>@L["TimeZone"]</dt>
-            <dd>@_user.TimeZoneId</dd>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                                       @bind-Value="_model.Culture"
+                                       For="@(() => _model.Culture)"
+                                       Label="@L["Language"]"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense">
+                                <MudSelectItem T="string" Value="@("en")">@L["LanguageEnglish"]</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("ru")">@L["LanguageRussian"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
 
-            <dt>@L["MemberSince"]</dt>
-            <dd>@_user.CreatedAt.ToLocalTime().ToString("d")</dd>
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="string"
+                                       @bind-Value="_model.Theme"
+                                       For="@(() => _model.Theme)"
+                                       Label="@L["Theme"]"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense">
+                                <MudSelectItem T="string" Value="@("system")">@L["ThemeSystem"]</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("light")">@L["ThemeLight"]</MudSelectItem>
+                                <MudSelectItem T="string" Value="@("dark")">@L["ThemeDark"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
 
-            <dt>@L["Language"]</dt>
-            <dd><CultureSwitcher /></dd>
-        </dl>
-    </MudPaper>
+                        <MudItem xs="12">
+                            <MudAutocomplete T="string"
+                                             @bind-Value="_model.TimeZoneId"
+                                             For="@(() => _model.TimeZoneId)"
+                                             Label="@L["TimeZone"]"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             SearchFunc="SearchTimeZonesAsync"
+                                             MaxItems="50"
+                                             ResetValueOnEmptyText="false"
+                                             CoerceValue="false" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["TimeZoneHint"]</MudText>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudSelect T="DayOfWeek"
+                                       @bind-Value="_model.WeekStart"
+                                       For="@(() => _model.WeekStart)"
+                                       Label="@L["WeekStart"]"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense">
+                                <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Monday">@L["WeekStartMonday"]</MudSelectItem>
+                                <MudSelectItem T="DayOfWeek" Value="DayOfWeek.Sunday">@L["WeekStartSunday"]</MudSelectItem>
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" sm="6">
+                            <MudNumericField T="int"
+                                             @bind-Value="_model.DefaultReminderMinutes"
+                                             For="@(() => _model.DefaultReminderMinutes)"
+                                             Label="@L["DefaultReminder"]"
+                                             Variant="Variant.Outlined"
+                                             Margin="Margin.Dense"
+                                             Min="@UserSettingsConstraints.DefaultReminderMinMinutes"
+                                             Max="@UserSettingsConstraints.DefaultReminderMaxMinutes" />
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@L["DefaultReminderHint"]</MudText>
+                        </MudItem>
+
+                        <MudItem xs="12">
+                            <MudButton ButtonType="ButtonType.Submit"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Disabled="_isSaving"
+                                       StartIcon="@Icons.Material.Filled.Save">
+                                @L["SaveSettings"]
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </EditForm>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Elevation="0"
+                      Class="pa-6"
+                      Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudText Typo="Typo.h6" Class="mb-4">@L["Account"]</MudText>
+
+                <dl class="profile-list">
+                    <dt>@L["Email"]</dt>
+                    <dd>@_account?.Email</dd>
+
+                    <dt>@L["MemberSince"]</dt>
+                    <dd>@(_account?.CreatedAt.ToLocalTime().ToString("d"))</dd>
+                </dl>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 }
 
 @code {
-    private ApplicationUser? _user;
+    private static readonly IReadOnlyList<TimeZoneInfo> TimeZones = TimeZoneInfo.GetSystemTimeZones();
 
-    protected override async Task OnInitializedAsync()
+    private SettingsModel _model = new();
+    private ApplicationUser? _account;
+    private string _originalCulture = "en";
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
     {
-        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _user = await UserManager.GetUserAsync(state.User);
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<UserSettingsService>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+
+            var settings = await service.GetAsync(user);
+            _account = await userManager.FindByIdAsync(user.UserId.ToString());
+
+            if (settings is null)
+            {
+                _error = L["GenericError"];
+                return;
+            }
+
+            _model = new SettingsModel
+            {
+                DisplayName = settings.DisplayName,
+                Culture = settings.Culture,
+                TimeZoneId = settings.TimeZoneId,
+                Theme = settings.Theme,
+                WeekStart = settings.WeekStart,
+                DefaultReminderMinutes = settings.DefaultReminderMinutes
+            };
+
+            _originalCulture = settings.Culture;
+            ThemePreference.Set(settings.Theme);
+        }
+        catch (Exception)
+        {
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _isSaving = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            var request = new UpdateUserSettingsRequest(
+                _model.DisplayName,
+                _model.Culture,
+                _model.TimeZoneId,
+                _model.Theme,
+                _model.WeekStart,
+                _model.DefaultReminderMinutes);
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<UserSettingsService>();
+            var result = await service.UpdateAsync(user, request);
+
+            if (result.IsFailure)
+            {
+                Snackbar.Add(result.Error.Message, Severity.Error);
+                return;
+            }
+
+            _model.DisplayName = result.Value.DisplayName;
+            ThemePreference.Set(result.Value.Theme);
+
+            if (!string.Equals(result.Value.Culture, _originalCulture, StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo(
+                    $"/culture/set?culture={result.Value.Culture}&redirect=%2Fsettings",
+                    forceLoad: true);
+                return;
+            }
+
+            Snackbar.Add(L["SettingsSaved"], Severity.Success);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private static Task<IEnumerable<string>> SearchTimeZonesAsync(
+        string value,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var matches = string.IsNullOrWhiteSpace(value)
+            ? TimeZones.Select(zone => zone.Id)
+            : TimeZones
+                .Where(zone => zone.Id.Contains(value, StringComparison.OrdinalIgnoreCase)
+                    || zone.DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase))
+                .Select(zone => zone.Id);
+
+        return Task.FromResult(matches.Take(50).AsEnumerable());
+    }
+
+    private sealed class SettingsModel
+    {
+        [Required]
+        [MaxLength(UserSettingsConstraints.DisplayNameMaxLength)]
+        public string DisplayName { get; set; } = string.Empty;
+
+        [Required]
+        public string Culture { get; set; } = "en";
+
+        [Required]
+        public string TimeZoneId { get; set; } = "UTC";
+
+        [Required]
+        public string Theme { get; set; } = "system";
+
+        public DayOfWeek WeekStart { get; set; } = DayOfWeek.Monday;
+
+        [Range(
+            UserSettingsConstraints.DefaultReminderMinMinutes,
+            UserSettingsConstraints.DefaultReminderMaxMinutes)]
+        public int DefaultReminderMinutes { get; set; } = 15;
     }
 }

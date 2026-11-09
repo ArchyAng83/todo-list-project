@@ -3,7 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
-[![Status](https://img.shields.io/badge/status-week%202%20complete-brightgreen)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%203%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -11,9 +11,9 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 2 complete.** Projects, tags, tasks, subtasks, filtering, and quick add are implemented on top of the foundation. Search polish, settings, the REST API, and deployment are next.
+**Week 3 complete.** Task views and sorting, persisted settings, a deterministic demo account, and the bearer-only `/api/v1` API with OpenAPI and Scalar are implemented. Component tests, E2E, and deployment are next.
 
-See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-02.en.md](docs/progress/week-02.en.md) for the current week.
+See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-03.en.md](docs/progress/week-03.en.md) for the current week.
 
 ## Stack
 
@@ -111,6 +111,28 @@ dotnet run --project src/TodoList.Web
 
 Open [https://localhost:7037](https://localhost:7037) or [http://localhost:5122](http://localhost:5122).
 
+In Development the app applies migrations and seeds a demo account:
+
+- Email: `demo@todolist.local`
+- Password: `DemoPass123`
+
+Set `Seed:Demo=false` to disable demo data.
+
+### API
+
+The minimal API is bearer-only; Blazor uses cookies and calls Application services directly.
+
+```bash
+curl -X POST http://localhost:5122/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@todolist.local","password":"DemoPass123"}'
+
+curl http://localhost:5122/api/v1/tasks \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+OpenAPI is served at `/openapi/v1.json`, and the Scalar UI at [http://localhost:5122/scalar](http://localhost:5122/scalar).
+
 ### Test
 
 ```bash
@@ -147,7 +169,7 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 2 завершена: проекты, теги, задачи, подзадачи, фильтры и быстрый ввод поверх готового фундамента. Дальше — поиск, настройки, API и деплой.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 3 завершена: представления и сортировка задач, сохраняемые настройки, демо-аккаунт и REST API `/api/v1` с OpenAPI и Scalar. Дальше — тесты компонентов, E2E и деплой.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)

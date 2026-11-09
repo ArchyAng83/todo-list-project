@@ -381,4 +381,85 @@
   <data name="ChecklistEmpty" xml:space="preserve">
     <value>Пунктов пока нет.</value>
   </data>
+  <data name="Preferences" xml:space="preserve">
+    <value>Предпочтения</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Тема</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>Системная</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Светлая</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Тёмная</value>
+  </data>
+  <data name="WeekStart" xml:space="preserve">
+    <value>Неделя начинается с</value>
+  </data>
+  <data name="WeekStartMonday" xml:space="preserve">
+    <value>Понедельника</value>
+  </data>
+  <data name="WeekStartSunday" xml:space="preserve">
+    <value>Воскресенья</value>
+  </data>
+  <data name="DefaultReminder" xml:space="preserve">
+    <value>Напоминание по умолчанию</value>
+  </data>
+  <data name="DefaultReminderHint" xml:space="preserve">
+    <value>Минут до срока (0-10080).</value>
+  </data>
+  <data name="TimeZoneHint" xml:space="preserve">
+    <value>Используется для представлений «Сегодня» и «Предстоящие».</value>
+  </data>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Сохранить настройки</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Настройки сохранены</value>
+  </data>
+  <data name="Account" xml:space="preserve">
+    <value>Аккаунт</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>Английский</value>
+  </data>
+  <data name="LanguageRussian" xml:space="preserve">
+    <value>Русский</value>
+  </data>
+  <data name="ViewAll" xml:space="preserve">
+    <value>Все</value>
+  </data>
+  <data name="ViewInbox" xml:space="preserve">
+    <value>Входящие</value>
+  </data>
+  <data name="ViewToday" xml:space="preserve">
+    <value>Сегодня</value>
+  </data>
+  <data name="ViewUpcoming" xml:space="preserve">
+    <value>Предстоящие</value>
+  </data>
+  <data name="ViewCompleted" xml:space="preserve">
+    <value>Выполненные</value>
+  </data>
+  <data name="Sort" xml:space="preserve">
+    <value>Сортировка</value>
+  </data>
+  <data name="SortDefault" xml:space="preserve">
+    <value>По умолчанию</value>
+  </data>
+  <data name="SortDueDate" xml:space="preserve">
+    <value>По сроку</value>
+  </data>
+  <data name="SortPriority" xml:space="preserve">
+    <value>По приоритету</value>
+  </data>
+  <data name="SortCreated" xml:space="preserve">
+    <value>Сначала новые</value>
+  </data>
+  <data name="SortTitle" xml:space="preserve">
+    <value>По названию</value>
+  </data>
 </root>

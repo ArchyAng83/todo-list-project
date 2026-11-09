@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using TodoList.Application.Projects;
+using TodoList.Application.Settings;
 using TodoList.Application.Tags;
 using TodoList.Application.Tasks;
 
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<TagQueries>();
         services.AddScoped<TaskService>();
         services.AddScoped<TaskQueries>();
+        services.AddScoped<UserSettingsService>();
 
         return services;
     }

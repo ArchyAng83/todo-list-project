@@ -6,7 +6,7 @@ using TodoList.Domain.Tasks;
 
 namespace TodoList.Application.Tasks;
 
-public sealed class TaskQueries(IAppDbContext db)
+public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
 {
     public async Task<IReadOnlyList<TaskListItem>> ListAsync(
         UserContext user,
@@ -18,6 +18,8 @@ public sealed class TaskQueries(IAppDbContext db)
         var query = db.Tasks
             .AsNoTracking()
             .Where(task => task.UserId == user.UserId);
+
+        query = ApplyView(query, filter.View, LocalToday(user));
 
         if (filter.Status is { } status)
         {
@@ -42,11 +44,7 @@ public sealed class TaskQueries(IAppDbContext db)
                 || (task.Notes != null && task.Notes.ToLower().Contains(term)));
         }
 
-        return await query
-            .OrderBy(task => task.Status == TodoTaskStatus.Done)
-            .ThenBy(task => task.DueDate.HasValue ? 0 : 1)
-            .ThenBy(task => task.DueDate)
-            .ThenByDescending(task => task.CreatedAt)
+        return await ApplySort(query, filter.Sort)
             .Select(task => new TaskListItem(
                 task.Id,
                 task.Title,
@@ -110,5 +108,75 @@ public sealed class TaskQueries(IAppDbContext db)
                 .OrderBy(link => link.Tag.Name)
                 .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
                 .ToList());
+    }
+
+    private static IQueryable<TodoTask> ApplyView(
+        IQueryable<TodoTask> query,
+        TaskView view,
+        DateOnly today) => view switch
+        {
+            TaskView.Inbox => query.Where(task =>
+                task.ProjectId == null && task.Status != TodoTaskStatus.Done),
+            TaskView.Today => query.Where(task =>
+                task.Status != TodoTaskStatus.Done && task.DueDate == today),
+            TaskView.Upcoming => query.Where(task =>
+                task.Status != TodoTaskStatus.Done
+                && task.DueDate != null
+                && task.DueDate > today),
+            TaskView.Completed => query.Where(task => task.Status == TodoTaskStatus.Done),
+            _ => query
+        };
+
+    private static IOrderedQueryable<TodoTask> ApplySort(
+        IQueryable<TodoTask> query,
+        TaskSort sort) => sort switch
+        {
+            TaskSort.DueDate => query
+                .OrderBy(task => task.Status == TodoTaskStatus.Done)
+                .ThenBy(task => task.DueDate.HasValue ? 0 : 1)
+                .ThenBy(task => task.DueDate)
+                .ThenByDescending(task => task.CreatedAt),
+            TaskSort.Priority => query
+                .OrderBy(task => task.Status == TodoTaskStatus.Done)
+                .ThenByDescending(task =>
+                    task.Priority == TaskPriority.Urgent ? 4
+                    : task.Priority == TaskPriority.High ? 3
+                    : task.Priority == TaskPriority.Medium ? 2
+                    : task.Priority == TaskPriority.Low ? 1
+                    : 0)
+                .ThenBy(task => task.DueDate.HasValue ? 0 : 1)
+                .ThenBy(task => task.DueDate)
+                .ThenByDescending(task => task.CreatedAt),
+            TaskSort.Created => query
+                .OrderByDescending(task => task.CreatedAt),
+            TaskSort.Title => query
+                .OrderBy(task => task.Status == TodoTaskStatus.Done)
+                .ThenBy(task => task.Title),
+            _ => query
+                .OrderBy(task => task.Status == TodoTaskStatus.Done)
+                .ThenBy(task => task.DueDate.HasValue ? 0 : 1)
+                .ThenBy(task => task.DueDate)
+                .ThenByDescending(task => task.CreatedAt)
+        };
+
+    private DateOnly LocalToday(UserContext user)
+    {
+        var now = timeProvider.GetUtcNow();
+        var zone = ResolveTimeZone(user.TimeZoneId);
+
+        return DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
+    }
+
+    private static TimeZoneInfo ResolveTimeZone(string timeZoneId)
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch (Exception exception)
+            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.Utc;
+        }
     }
 }

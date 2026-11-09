@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-09
 
-- **Current phase:** Week 2 - Core domain (code complete)
-- **Overall:** Foundation and core task management complete; MVP in progress.
+- **Current phase:** Week 3 - UX polish and REST API (code complete)
+- **Overall:** Foundation, task management, settings, demo data, and the bearer API are complete; MVP in progress.
 
 ## Done
 
@@ -24,18 +24,24 @@ Last updated: 2026-11-09
 - Tags: create, edit, delete, usage counts, color preview.
 - Tasks: quick add, edit dialog with status, priority, project, due date/time, reminder, tags, and checklist.
 - Task list: debounced search, filters by status, project, and tag, status toggle, delete.
+- Task views: Inbox, Today, Upcoming, All, and Completed, plus sorting by due date, priority, creation date, and title.
+- Timezone-aware "today" and overdue highlighting based on the user timezone.
+- Settings page persisted through `IUserSettingsStore`: display name, language, theme, timezone, week start, and default reminder.
+- Live theme switching with system-preference detection and a small `theme.js` helper.
+- Deterministic demo account (`demo@todolist.local` / `DemoPass123`) with projects, tags, tasks, and checklists, controlled by `Seed:Demo`.
+- Minimal REST API `/api/v1` with bearer-only authentication, custom login endpoint, and tasks, projects, tags, and settings endpoints.
+- OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
 - Command/query Application services with FluentValidation and `Result<T>`.
-- Unit tests for domain rules (32 passing).
-- Testcontainers-based integration tests for auth, persistence, and task management (13 passing).
+- Unit tests for domain rules and user settings (35 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, and the REST API (22 passing).
 
 ## In progress
 
 - First CI run (pending publication of the GitHub repository).
-- Week 3: search and filter polish, settings, demo seed, `/api/v1`, OpenAPI.
 
 ## Next
 
-- Week 3: search and filter polish, settings, demo seed, `/api/v1`, OpenAPI.
+- Week 4: bUnit component tests, Playwright E2E, Dockerfile, observability, and the first deployment.
 
 ## Blockers and risks
 
@@ -48,8 +54,8 @@ Last updated: 2026-11-09
 | Gate | Status |
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
-| Unit tests | ✅ 32 passing |
-| Integration tests | ✅ 13 passing (Testcontainers) |
+| Unit tests | ✅ 35 passing |
+| Integration tests | ✅ 22 passing (Testcontainers) |
 | Component tests | ⬜ scaffold only (Week 4) |
 | E2E tests | ⬜ scaffold only (Week 4) |
 | CI | ⬜ workflow added, first run pending |

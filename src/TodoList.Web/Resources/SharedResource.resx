@@ -381,4 +381,85 @@
   <data name="ChecklistEmpty" xml:space="preserve">
     <value>No checklist items yet.</value>
   </data>
+  <data name="Preferences" xml:space="preserve">
+    <value>Preferences</value>
+  </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="WeekStart" xml:space="preserve">
+    <value>Week starts on</value>
+  </data>
+  <data name="WeekStartMonday" xml:space="preserve">
+    <value>Monday</value>
+  </data>
+  <data name="WeekStartSunday" xml:space="preserve">
+    <value>Sunday</value>
+  </data>
+  <data name="DefaultReminder" xml:space="preserve">
+    <value>Default reminder</value>
+  </data>
+  <data name="DefaultReminderHint" xml:space="preserve">
+    <value>Minutes before the due time (0-10080).</value>
+  </data>
+  <data name="TimeZoneHint" xml:space="preserve">
+    <value>Used for the Today and Upcoming views.</value>
+  </data>
+  <data name="SaveSettings" xml:space="preserve">
+    <value>Save settings</value>
+  </data>
+  <data name="SettingsSaved" xml:space="preserve">
+    <value>Settings saved</value>
+  </data>
+  <data name="Account" xml:space="preserve">
+    <value>Account</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguageRussian" xml:space="preserve">
+    <value>Russian</value>
+  </data>
+  <data name="ViewAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="ViewInbox" xml:space="preserve">
+    <value>Inbox</value>
+  </data>
+  <data name="ViewToday" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="ViewUpcoming" xml:space="preserve">
+    <value>Upcoming</value>
+  </data>
+  <data name="ViewCompleted" xml:space="preserve">
+    <value>Completed</value>
+  </data>
+  <data name="Sort" xml:space="preserve">
+    <value>Sort</value>
+  </data>
+  <data name="SortDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="SortDueDate" xml:space="preserve">
+    <value>Due date</value>
+  </data>
+  <data name="SortPriority" xml:space="preserve">
+    <value>Priority</value>
+  </data>
+  <data name="SortCreated" xml:space="preserve">
+    <value>Newest</value>
+  </data>
+  <data name="SortTitle" xml:space="preserve">
+    <value>Title</value>
+  </data>
 </root>

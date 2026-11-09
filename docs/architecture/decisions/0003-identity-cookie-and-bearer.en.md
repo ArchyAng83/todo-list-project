@@ -12,7 +12,7 @@ The Blazor UI needs cookie authentication. External API clients need tokens. Mix
 Use **ASP.NET Core Identity** with two separate access paths:
 
 - Blazor uses the **application cookie**.
-- `/api/v1` accepts **bearer tokens only**, issued by the Identity API endpoints.
+- `/api/v1` accepts **bearer tokens only**, issued by the custom `/api/v1/auth/login` endpoint.
 - Blazor calls Application services directly and never calls `/api/v1`.
 
 ## Consequences

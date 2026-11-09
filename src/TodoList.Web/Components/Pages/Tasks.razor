@@ -11,6 +11,19 @@
 
 <MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-6">@L["Tasks"]</MudText>
 
+<div class="d-flex flex-wrap align-center gap-2 mb-4">
+    @foreach (var view in Views)
+    {
+        <MudButton Variant="@(_view == view ? Variant.Filled : Variant.Outlined)"
+                   Color="@(_view == view ? Color.Primary : Color.Default)"
+                   Size="Size.Small"
+                   DropShadow="false"
+                   OnClick="@(() => SetViewAsync(view))">
+            @ViewLabel(view)
+        </MudButton>
+    }
+</div>
+
 <form class="quick-add mb-6" @onsubmit="QuickAddAsync" @onsubmit:preventDefault>
     <MudTextField T="string"
                   @bind-Value="_newTaskTitle"
@@ -32,7 +45,7 @@
           Class="pa-4 mb-4"
           Style="border: 1px solid var(--mud-palette-lines-default);">
     <MudGrid Spacing="2">
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="3">
             <MudTextField T="string"
                           @bind-Value="_search"
                           @bind-Value:after="LoadTasksAsync"
@@ -59,7 +72,7 @@
             </MudSelect>
         </MudItem>
 
-        <MudItem xs="12" sm="4" md="3">
+        <MudItem xs="12" sm="4" md="2">
             <MudSelect T="Guid?"
                        @bind-Value="_projectFilter"
                        @bind-Value:after="LoadTasksAsync"
@@ -73,7 +86,7 @@
             </MudSelect>
         </MudItem>
 
-        <MudItem xs="12" sm="4" md="3">
+        <MudItem xs="12" sm="4" md="2">
             <MudSelect T="Guid?"
                        @bind-Value="_tagFilter"
                        @bind-Value:after="LoadTasksAsync"
@@ -83,6 +96,19 @@
                 @foreach (var tag in _tags)
                 {
                     <MudSelectItem T="Guid?" Value="@tag.Id">@tag.Name</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+
+        <MudItem xs="12" sm="4" md="3">
+            <MudSelect T="TaskSort"
+                       @bind-Value="_sort"
+                       @bind-Value:after="LoadTasksAsync"
+                       Label="@L["Sort"]"
+                       Margin="Margin.Dense">
+                @foreach (var sort in Sorts)
+                {
+                    <MudSelectItem T="TaskSort" Value="@sort">@SortLabel(sort)</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
@@ -230,6 +256,13 @@ else
     private TodoTaskStatus? _statusFilter;
     private Guid? _projectFilter;
     private Guid? _tagFilter;
+    private TaskView _view = TaskView.All;
+    private TaskSort _sort = TaskSort.Default;
+
+    private DateOnly _today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+    private static readonly TaskView[] Views = Enum.GetValues<TaskView>();
+    private static readonly TaskSort[] Sorts = Enum.GetValues<TaskSort>();
 
     private bool _isInitialLoading = true;
     private bool _isRefreshing;
@@ -240,7 +273,9 @@ else
         => !string.IsNullOrWhiteSpace(_search)
             || _statusFilter is not null
             || _projectFilter is not null
-            || _tagFilter is not null;
+            || _tagFilter is not null
+            || _view != TaskView.All
+            || _sort != TaskSort.Default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -284,7 +319,11 @@ else
                 _statusFilter,
                 _projectFilter,
                 _tagFilter,
-                string.IsNullOrWhiteSpace(_search) ? null : _search);
+                string.IsNullOrWhiteSpace(_search) ? null : _search,
+                _view,
+                _sort);
+
+            _today = LocalToday(user.TimeZoneId);
 
             await using var scope = ScopeFactory.CreateAsyncScope();
             var queries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
@@ -307,7 +346,20 @@ else
         _statusFilter = null;
         _projectFilter = null;
         _tagFilter = null;
+        _view = TaskView.All;
+        _sort = TaskSort.Default;
 
+        await LoadTasksAsync();
+    }
+
+    private async Task SetViewAsync(TaskView view)
+    {
+        if (_view == view)
+        {
+            return;
+        }
+
+        _view = view;
         await LoadTasksAsync();
     }
 
@@ -456,7 +508,43 @@ else
     private bool IsOverdue(TaskListItem task)
         => task.Status != TodoTaskStatus.Done
             && task.DueDate is { } dueDate
-            && dueDate < DateOnly.FromDateTime(TimeProvider.GetLocalNow().DateTime);
+            && dueDate < _today;
+
+    private DateOnly LocalToday(string timeZoneId)
+    {
+        TimeZoneInfo zone;
+
+        try
+        {
+            zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        }
+        catch (Exception exception)
+            when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            zone = TimeZoneInfo.Utc;
+        }
+
+        return DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(TimeProvider.GetUtcNow(), zone).DateTime);
+    }
+
+    private string ViewLabel(TaskView view) => view switch
+    {
+        TaskView.Inbox => L["ViewInbox"].Value,
+        TaskView.Today => L["ViewToday"].Value,
+        TaskView.Upcoming => L["ViewUpcoming"].Value,
+        TaskView.Completed => L["ViewCompleted"].Value,
+        _ => L["ViewAll"].Value
+    };
+
+    private string SortLabel(TaskSort sort) => sort switch
+    {
+        TaskSort.DueDate => L["SortDueDate"].Value,
+        TaskSort.Priority => L["SortPriority"].Value,
+        TaskSort.Created => L["SortCreated"].Value,
+        TaskSort.Title => L["SortTitle"].Value,
+        _ => L["SortDefault"].Value
+    };
 
     private string StatusLabel(TodoTaskStatus status) => status switch
     {

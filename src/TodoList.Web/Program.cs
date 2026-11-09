@@ -1,9 +1,16 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using MudBlazor.Services;
+using Scalar.AspNetCore;
 using TodoList.Application;
 using TodoList.Infrastructure;
+using TodoList.Infrastructure.Identity;
 using TodoList.Infrastructure.Persistence;
+using TodoList.Web.Api;
 using TodoList.Web.Components;
 using TodoList.Web.Services;
 
@@ -18,12 +25,27 @@ builder.Services.AddAuthorization();
 builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
+builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("The 'Default' connection string is not configured.");
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddApplication();
 builder.Services.AddScoped<CurrentUserProvider>();
+builder.Services.AddScoped<ThemePreference>();
+builder.Services.AddScoped<ApiUserContextFactory>();
+
+builder.Services.AddAuthentication()
+    .AddBearerToken(IdentityConstants.BearerScheme);
+
+builder.Services.Configure<BearerTokenOptions>(IdentityConstants.BearerScheme, options =>
+{
+    options.BearerTokenExpiration = TimeSpan.FromDays(7);
+    options.RefreshTokenExpiration = TimeSpan.FromDays(30);
+});
 
 var app = builder.Build();
 
@@ -55,6 +77,20 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapOpenApi();
+app.MapScalarApiReference("/scalar");
+
+app.MapAuthEndpoints();
+
+var api = app
+    .MapGroup("/api/v1")
+    .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = IdentityConstants.BearerScheme });
+
+api.MapTaskEndpoints()
+    .MapProjectEndpoints()
+    .MapTagEndpoints()
+    .MapMeEndpoints();
+
 app.MapGet("/culture/set", (string culture, string? redirect, HttpContext httpContext) =>
 {
     var selected = supportedCultures.FirstOrDefault(x => x.Name == culture)?.Name ?? "en";
@@ -75,6 +111,12 @@ app.MapGet("/culture/set", (string culture, string? redirect, HttpContext httpCo
 if (app.Environment.IsDevelopment())
 {
     await app.Services.MigrateDatabaseAsync();
+
+    if (app.Configuration.GetValue("Seed:Demo", true))
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<DemoDataSeeder>().SeedAsync();
+    }
 }
 
 app.Run();

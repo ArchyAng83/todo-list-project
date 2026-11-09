@@ -38,4 +38,6 @@ public sealed record TaskListFilter(
     TodoTaskStatus? Status = null,
     Guid? ProjectId = null,
     Guid? TagId = null,
-    string? Search = null);
+    string? Search = null,
+    TaskView View = TaskView.All,
+    TaskSort Sort = TaskSort.Default);

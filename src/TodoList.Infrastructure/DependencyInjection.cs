@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TodoList.Application.Email;
 using TodoList.Application.Persistence;
+using TodoList.Application.Settings;
 using TodoList.Infrastructure.Email;
 using TodoList.Infrastructure.Identity;
 using TodoList.Infrastructure.Persistence;
@@ -58,6 +59,9 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IEmailSender, LoggingEmailSender>();
+
+        services.AddScoped<IUserSettingsStore, UserSettingsStore>();
+        services.AddScoped<DemoDataSeeder>();
 
         return services;
     }

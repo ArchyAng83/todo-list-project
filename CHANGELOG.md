@@ -27,8 +27,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Task edit dialog with title, notes, status, project, priority, due date/time, reminder, tags, and checklist items.
 - Integration tests for project scoping, task filters, checklist and tag persistence, duplicate tag conflicts, and cross-user access.
 - `CurrentUserProvider` and per-operation DI scopes for Blazor pages and dialogs.
+- Task views (Inbox, Today, Upcoming, All, Completed) and sorting by due date, priority, creation date, and title.
+- Timezone-aware "today" and overdue highlighting based on the user timezone.
+- Persisted user settings with `IUserSettingsStore`: display name, language, theme, timezone, week start, and default reminder.
+- Live theme switching with system-preference detection.
+- Deterministic demo account with projects, tags, tasks, and checklists, controlled by `Seed:Demo`.
+- Minimal REST API `/api/v1` with bearer-only authentication, custom login endpoint, and tasks, projects, tags, and settings endpoints.
+- OpenAPI document and Scalar UI.
+- Integration tests for bearer login, cookie-only rejection, API scoping, task views, priority sorting, and settings persistence.
 
 ### Changed
 
 - EF Core now uses `QuerySplittingBehavior.SplitQuery` to keep task collection queries efficient.
 - Checklist items and task-tag links are added to the context explicitly after being created through the `TodoTask` aggregate.
+- Priority sorting uses a translatable `CASE` expression instead of a CLR helper method.

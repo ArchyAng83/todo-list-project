@@ -12,7 +12,7 @@ Blazor UI нужна cookie-аутентификация. Внешним API-к�
 Используем **ASP.NET Core Identity** с двумя раздельными путями доступа:
 
 - Blazor использует **application cookie**.
-- `/api/v1` принимает **только bearer-токены**, которые выдают Identity API endpoints.
+- `/api/v1` принимает **только bearer-токены**, которые выдаёт собственный endpoint `/api/v1/auth/login`.
 - Blazor вызывает Application-сервисы напрямую и никогда не ходит в `/api/v1`.
 
 ## Последствия

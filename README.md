@@ -3,7 +3,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10-512BD4)](https://dotnet.microsoft.com/)
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
-[![Status](https://img.shields.io/badge/status-week%205%20complete-brightgreen)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%206%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -11,9 +11,9 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 5 complete.** The Kanban board at `/board` groups tasks into `Todo`, `In progress`, and `Done` columns with drag-and-drop, a keyboard-friendly card menu, and persisted manual ordering. It builds on the task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. Deployment is the remaining MVP step.
+**Week 6 complete.** The month calendar at `/calendar` places tasks on their due date, follows the saved week start, and lets you create a task by clicking a day. It builds on the Kanban board, task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. Deployment is the remaining MVP step.
 
-See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-05.en.md](docs/progress/week-05.en.md) for the current week.
+See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-06.en.md](docs/progress/week-06.en.md) for the current week.
 
 ## Stack
 
@@ -140,7 +140,7 @@ curl -X POST http://localhost:5122/api/v1/auth/refresh \
 
 OpenAPI is served at `/openapi/v1.json`, and the Scalar UI at [http://localhost:5122/scalar](http://localhost:5122/scalar).
 
-The board order is available to API clients through `GET /api/v1/tasks/board` and `POST /api/v1/tasks/{id}/move`.
+The board order is available to API clients through `GET /api/v1/tasks/board` and `POST /api/v1/tasks/{id}/move`. Calendar ranges are available through `GET /api/v1/tasks/calendar?from=2026-11-01&to=2026-11-30`, and `POST /api/v1/tasks` accepts `priority`, `dueDate`, and `dueTime`.
 
 ### Test
 
@@ -149,7 +149,7 @@ dotnet test
 dotnet test TodoList.sln -c Release   # same as CI
 ```
 
-The suite has 35 unit, 30 integration, 22 component (bUnit), and 8 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
+The suite has 35 unit, 33 integration, 31 component (bUnit), and 11 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
 
 Install the Playwright browser once after building:
 
@@ -199,7 +199,7 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 5 завершена: Kanban-доска по `/board` с колонками `Todo`, `In progress` и `Done`, drag-and-drop, меню карточки для клавиатуры и сохраняемый ручной порядок. До этого — представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Остался деплой MVP.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 6 завершена: календарь на месяц по `/calendar` ставит задачи на их срок, следует сохранённому началу недели и позволяет создать задачу кликом по дню. До этого — Kanban-доска, представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Остался деплой MVP.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)

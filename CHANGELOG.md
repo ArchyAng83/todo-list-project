@@ -52,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Board navigation entry and English/Russian resource keys.
 - `GET /api/v1/tasks/board` returns the ordered columns, and `POST /api/v1/tasks/{id}/move` moves a card for API clients.
 - 6 integration tests for board ordering, index clamping, cross-user moves, and validation; 8 bUnit tests for the board; 2 Playwright journeys for menu and drag moves.
+- Month calendar at `/calendar` with a 42-day grid, tasks placed on their due date, done and overdue styling, month navigation, and a "today" shortcut.
+- The calendar grid follows the persisted `WeekStart` setting and shows the adjacent days that complete the week rows.
+- Create-on-click: selecting a day opens a dialog prefilled with that date, plus project, priority, due date, and due time.
+- `TaskQueries.CalendarAsync` and `GET /api/v1/tasks/calendar?from=&to=` return an inclusive due-date range ordered by day and time, with an inverted range rejected as `400`.
+- 3 integration tests, 9 bUnit tests, and 3 Playwright journeys for calendar placement, navigation, and creation.
 
 ### Changed
 
@@ -62,6 +67,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CurrentUserProvider` resolves `UserManager` in a per-call scope because Blazor Server shares one scope per circuit.
 - `TodoTask.SetSortOrder` ignores a call that would write the current value, so board renumbering does not mark every card as modified.
 - E2E browser contexts use a 1280x800 viewport so the Kanban columns stay side by side during drag-and-drop.
+- `CreateTaskRequest` and `CreateTaskBody` accept optional priority, due date, and due time at the end, so existing callers and API clients stay valid.
+- `ListAsync`, `BoardAsync`, and `CalendarAsync` share one `ToListItem` projection, so the task shape cannot drift between views.
+- Component test contexts pin both `CurrentCulture` and `CurrentUICulture` to English, because the calendar formats month and weekday names from `CurrentCulture`.
 
 ### Fixed
 

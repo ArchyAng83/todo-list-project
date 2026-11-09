@@ -57,6 +57,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create-on-click: selecting a day opens a dialog prefilled with that date, plus project, priority, due date, and due time.
 - `TaskQueries.CalendarAsync` and `GET /api/v1/tasks/calendar?from=&to=` return an inclusive due-date range ordered by day and time, with an inverted range rejected as `400`.
 - 3 integration tests, 9 bUnit tests, and 3 Playwright journeys for calendar placement, navigation, and creation.
+- Recurring tasks with daily, weekly, and monthly frequencies, a 1-365 interval, and an optional end date, configured in the task dialog and marked with a repeat icon in the list.
+- `TodoTask.SetRecurrence`, `CreateNextOccurrence`, and `CopyStructureFrom`, plus a `RecurrenceGenerated` guard so reopening and re-completing does not duplicate occurrences; a due-date change re-arms generation.
+- The next occurrence copies content, project, priority, reminder, tags, and checklist titles, and resets checklist progress.
+- Database-backed reminder outbox with `TaskReminderScheduler`: one pending reminder per task, rescheduled on edit, cancelled on completion, and created for each next occurrence.
+- `ReminderDeliveryService` and `ReminderDispatcher` deliver due reminders, localize the email by the recipient's culture, and mark messages `Sent` or `Failed` with the error text.
+- Reminder email templates in English and Russian, plus `EmailOptions`, `Email`/`Reminders` configuration, and the `AddTaskRecurrence` migration.
+- SMTP transport through Mailpit in Development, with a logging sender when `Email:Host` is empty.
+- `UserTime` centralizes timezone-aware "today" and local-to-UTC conversion for reminders.
+- Recurrence fields on `CreateTaskRequest`/`UpdateTaskRequest`, the API bodies, and the task endpoints as optional append-only values.
+- 12 unit tests for recurrence and copying, 9 integration and 3 API tests for generation, rescheduling, cancellation, and delivery, 1 bUnit test for the repeat indicator, and 1 Playwright journey for completing a recurring task.
 
 ### Changed
 
@@ -70,6 +80,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CreateTaskRequest` and `CreateTaskBody` accept optional priority, due date, and due time at the end, so existing callers and API clients stay valid.
 - `ListAsync`, `BoardAsync`, and `CalendarAsync` share one `ToListItem` projection, so the task shape cannot drift between views.
 - Component test contexts pin both `CurrentCulture` and `CurrentUICulture` to English, because the calendar formats month and weekday names from `CurrentCulture`.
+- Reminder email templates are read through a `ResourceManager` over the embedded `.resx`, because `IStringLocalizer` did not resolve the Infrastructure assembly's resources.
+- Reminder times convert the user's local due date/time to UTC and default date-only tasks to 09:00 local.
+- Task edits reconcile the reminder outbox in the same `SaveChangesAsync`, and the demo seed persists reminders and a recurring "Weekly planning" task.
+- Integration and E2E tests set `Reminders:Enabled=false` so background delivery stays deterministic.
 
 ### Fixed
 

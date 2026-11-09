@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-09
 
-- **Current phase:** Week 6 - Calendar month view (code complete)
-- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, and the month calendar are complete; MVP in progress.
+- **Current phase:** Week 7 - Recurring tasks and email reminders (code complete)
+- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, and the reminder outbox are complete; MVP in progress.
 
 ## Done
 
@@ -32,10 +32,10 @@ Last updated: 2026-11-09
 - Minimal REST API `/api/v1` with bearer-only authentication, custom login endpoint, and tasks, projects, tags, and settings endpoints.
 - OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
 - Command/query Application services with FluentValidation and `Result<T>`.
-- Unit tests for domain rules and user settings (35 passing).
-- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, and the REST API (33 passing).
-- bUnit component tests for the task list, Kanban board, calendar grid, layout, and culture switcher (31 passing).
-- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (11 passing).
+- Unit tests for domain rules, recurrence, and user settings (47 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, and the REST API (45 passing).
+- bUnit component tests for the task list, Kanban board, calendar grid, layout, and culture switcher (32 passing).
+- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (12 passing).
 - `/health/live` and `/health/ready` endpoints with a database readiness check.
 - JSON console logging outside Development for container platforms.
 - Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
@@ -47,6 +47,11 @@ Last updated: 2026-11-09
 - The grid follows the persisted `WeekStart` setting and shows the adjacent days that complete the week rows.
 - Create-on-click: selecting a day opens a dialog prefilled with that date, and editing a task never creates a new one.
 - `TaskQueries.CalendarAsync` returns an inclusive due-date range in day/time/priority order, and `GET /api/v1/tasks/calendar` exposes it to API clients.
+- Recurring tasks with daily, weekly, and monthly frequencies, a 1-365 interval, and an optional end date, configured in the task dialog and shown with a repeat icon.
+- Completing a recurring task creates the next occurrence once, copying content, tags, reminder, and checklist titles while resetting checklist progress; a due-date change re-arms generation.
+- Database-backed reminder outbox driven by `TaskReminderScheduler`: at most one pending reminder per task, rescheduled on edit, cancelled on completion.
+- `ReminderDeliveryService` and `ReminderDispatcher` deliver due reminders, localize the email by the recipient's culture, and mark each message sent or failed.
+- SMTP transport with a Mailpit default in Development and a logging fallback, plus `Email` and `Reminders` configuration sections.
 
 ## In progress
 
@@ -55,7 +60,7 @@ Last updated: 2026-11-09
 
 ## Next
 
-- Week 7: recurring tasks and email reminders with a database-backed outbox and dispatcher.
+- Week 8: import/export, the full E2E pass, accessibility review, and the v1.0 release.
 
 ## Blockers and risks
 
@@ -68,10 +73,10 @@ Last updated: 2026-11-09
 | Gate | Status |
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
-| Unit tests | ✅ 35 passing |
-| Integration tests | ✅ 33 passing (Testcontainers) |
-| Component tests | ✅ 31 passing (bUnit) |
-| E2E tests | ✅ 11 passing (Playwright) |
+| Unit tests | ✅ 47 passing |
+| Integration tests | ✅ 45 passing (Testcontainers) |
+| Component tests | ✅ 32 passing (bUnit) |
+| E2E tests | ✅ 12 passing (Playwright) |
 | Container image | ✅ builds; health probes respond |
 | CI | ⬜ workflow added, first run pending |
 | Deployed | ⬜ |

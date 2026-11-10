@@ -36,6 +36,53 @@ h1:focus {
     outline: none;
 }
 
+:focus-visible {
+    outline: 2px solid var(--app-primary);
+    outline-offset: 2px;
+}
+
+.skip-link {
+    position: absolute;
+    top: -4rem;
+    left: 1rem;
+    z-index: 2000;
+    padding: 0.65rem 1rem;
+    color: #ffffff;
+    background: var(--app-primary);
+    border-radius: 0 0 0.5rem 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: top 0.15s ease-in-out;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+#main-content:focus {
+    outline: none;
+}
+
+.data-file-input {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    color: var(--mud-palette-text-primary);
+    background: var(--mud-palette-background);
+    border: 1px dashed var(--mud-palette-lines-default);
+    border-radius: 0.5rem;
+}
+
+.data-file-input::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.45rem 0.8rem;
+    color: var(--mud-palette-primary-text);
+    background: var(--mud-palette-primary);
+    border: none;
+    border-radius: 0.35rem;
+    cursor: pointer;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }

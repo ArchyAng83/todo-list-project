@@ -540,4 +540,58 @@
   <data name="RecurrenceEndDate" xml:space="preserve">
     <value>Repeat until</value>
   </data>
+  <data name="Data" xml:space="preserve">
+    <value>Data</value>
+  </data>
+  <data name="DataDescription" xml:space="preserve">
+    <value>Download a portable backup of your projects, tags, and tasks, or restore one from a JSON file.</value>
+  </data>
+  <data name="ExportData" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="ExportDataHint" xml:space="preserve">
+    <value>The JSON file keeps projects, tags, tasks, checklists, reminders, and recurrence. The CSV file is a flat list for spreadsheets.</value>
+  </data>
+  <data name="ExportJson" xml:space="preserve">
+    <value>Download JSON</value>
+  </data>
+  <data name="ExportCsv" xml:space="preserve">
+    <value>Download CSV</value>
+  </data>
+  <data name="ImportData" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ImportDataHint" xml:space="preserve">
+    <value>Import a JSON export. Existing projects and tags with the same name are reused; every task in the file is added as a new task.</value>
+  </data>
+  <data name="ImportFile" xml:space="preserve">
+    <value>Choose a JSON export file</value>
+  </data>
+  <data name="ImportInvalidFile" xml:space="preserve">
+    <value>The selected file is not a valid TodoList export.</value>
+  </data>
+  <data name="ImportCompleted" xml:space="preserve">
+    <value>Import completed.</value>
+  </data>
+  <data name="ImportSummary" xml:space="preserve">
+    <value>Imported {0} tasks, {1} projects, {2} tags, and {3} checklist items.</value>
+  </data>
+  <data name="ImportSummaryReused" xml:space="preserve">
+    <value>Reused {0} existing projects and {1} existing tags.</value>
+  </data>
+  <data name="DataSummary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="NoDataToExport" xml:space="preserve">
+    <value>There is nothing to export yet. Add a task or project first.</value>
+  </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Skip to main content</value>
+  </data>
+  <data name="OpenMenu" xml:space="preserve">
+    <value>Open menu</value>
+  </data>
+  <data name="MainNavigation" xml:space="preserve">
+    <value>Main navigation</value>
+  </data>
 </root>

@@ -113,7 +113,8 @@ var api = app
 api.MapTaskEndpoints()
     .MapProjectEndpoints()
     .MapTagEndpoints()
-    .MapMeEndpoints();
+    .MapMeEndpoints()
+    .MapDataEndpoints();
 
 app.MapGet("/culture/set", (string culture, string? redirect, HttpContext httpContext) =>
 {

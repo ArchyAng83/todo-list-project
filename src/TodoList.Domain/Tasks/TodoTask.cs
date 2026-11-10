@@ -227,7 +227,8 @@ public sealed class TodoTask
     /// occurrence, or the next date would pass the recurrence end date.
     /// </summary>
     public TodoTask? CreateNextOccurrence(DateTimeOffset now)
-    {        if (Recurrence == RecurrenceFrequency.None || DueDate is null || RecurrenceGenerated)
+    {
+        if (Recurrence == RecurrenceFrequency.None || DueDate is null || RecurrenceGenerated)
         {
             return null;
         }

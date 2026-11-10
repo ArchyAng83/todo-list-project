@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
@@ -232,6 +234,108 @@ public sealed class UserJourneyTests(E2EFixture fixture)
             .ToBeVisibleAsync();
     }
 
+    [Fact]
+    public async Task DataPage_ExportsJsonAndCsv()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        await OpenDataAsync(page);
+
+        var jsonDownload = await page.RunAndWaitForDownloadAsync(
+            () => page.GetByRole(AriaRole.Button, new() { Name = "Download JSON" }).ClickAsync());
+
+        Assert.EndsWith(".json", jsonDownload.SuggestedFilename);
+
+        var jsonPath = (await jsonDownload.PathAsync())!;
+        var json = await File.ReadAllTextAsync(jsonPath);
+
+        using var document = JsonDocument.Parse(json);
+
+        Assert.Equal(1, document.RootElement.GetProperty("version").GetInt32());
+        Assert.True(document.RootElement.GetProperty("tasks").GetArrayLength() > 0);
+
+        var csvDownload = await page.RunAndWaitForDownloadAsync(
+            () => page.GetByRole(AriaRole.Button, new() { Name = "Download CSV" }).ClickAsync());
+
+        Assert.EndsWith(".csv", csvDownload.SuggestedFilename);
+
+        var csvPath = (await csvDownload.PathAsync())!;
+        var bytes = await File.ReadAllBytesAsync(csvPath);
+
+        Assert.Equal([0xEF, 0xBB, 0xBF], bytes.Take(3).ToArray());
+
+        var csv = Encoding.UTF8.GetString(bytes);
+        Assert.Contains("\"Title\"", csv);
+    }
+
+    [Fact]
+    public async Task DataPage_ImportsJsonAndShowsTheTask()
+    {
+        await using var context = await fixture.NewContextAsync();
+        var page = await SignInAsync(context);
+
+        await OpenDataAsync(page);
+
+        var title = $"E2E import {Guid.NewGuid():N}";
+        var importPath = Path.Combine(
+            Path.GetTempPath(),
+            $"todolist-import-{Guid.NewGuid():N}.json");
+
+        var json = $$"""
+            {
+              "version": 1,
+              "exportedAt": "2026-11-09T00:00:00Z",
+              "projects": [],
+              "tags": [],
+              "tasks": [
+                {
+                  "id": "00000000-0000-0000-0000-000000000000",
+                  "title": "{{title}}",
+                  "status": "Todo",
+                  "priority": "Medium",
+                  "recurrence": "None",
+                  "recurrenceInterval": 1,
+                  "sortOrder": 0,
+                  "createdAt": "2026-11-09T00:00:00Z",
+                  "tagIds": [],
+                  "checklistItems": []
+                }
+              ]
+            }
+            """;
+
+        try
+        {
+            await File.WriteAllTextAsync(importPath, json);
+
+            await page.Locator("input[type=file]").SetInputFilesAsync(importPath);
+
+            await Expect(page.GetByText("Import completed."))
+                .ToBeVisibleAsync(new() { Timeout = 30_000 });
+            await Expect(page.GetByText("Imported 1 tasks"))
+                .ToBeVisibleAsync(new() { Timeout = 30_000 });
+
+            await page.GetByRole(AriaRole.Link, new() { Name = "Tasks", Exact = true }).ClickAsync();
+            await Expect(page).ToHaveURLAsync(new Regex("/tasks$"));
+            await Expect(page.GetByText(title))
+                .ToBeVisibleAsync(new() { Timeout = 30_000 });
+        }
+        finally
+        {
+            File.Delete(importPath);
+        }
+    }
+
+    private static async Task OpenDataAsync(IPage page)
+    {
+        await page.GetByRole(AriaRole.Link, new() { Name = "Data", Exact = true }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new Regex("/data$"));
+        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Data" }))
+            .ToBeVisibleAsync();
+        await WaitForBlazorAsync(page);
+    }
+
     private static async Task OpenBoardAsync(IPage page)
     {
         await page.GetByRole(AriaRole.Link, new() { Name = "Board", Exact = true }).ClickAsync();
@@ -261,12 +365,15 @@ public sealed class UserJourneyTests(E2EFixture fixture)
         // takes over, and a click in that window submits the quick-add form
         // natively. Blazor marks elements with event handlers using `_bl_*`
         // attributes, so wait for the quick-add button to become interactive.
-        await page.WaitForFunctionAsync(
-            "() => [...document.querySelectorAll('button[type=submit]')]"
-            + ".some(button => [...button.attributes].some(attribute => attribute.name.startsWith('_bl_')))",
-            null,
-            new PageWaitForFunctionOptions { Timeout = 30_000 });
+        await WaitForBlazorAsync(page);
 
         return page;
     }
+
+    private static Task WaitForBlazorAsync(IPage page)
+        => page.WaitForFunctionAsync(
+            "() => [...document.querySelectorAll('button')]"
+            + ".some(button => [...button.attributes].some(attribute => attribute.name.startsWith('_bl_')))",
+            null,
+            new PageWaitForFunctionOptions { Timeout = 30_000 });
 }

@@ -12,13 +12,14 @@
 <MudSnackbarProvider />
 
 <MudLayout>
+    <a href="#main-content" class="skip-link">@L["SkipToContent"]</a>
     <MudAppBar Elevation="1" Dense="true">
         <AuthorizeView>
             <Authorized>
                 <MudIconButton Icon="@Icons.Material.Filled.Menu"
                                Color="Color.Inherit"
                                Edge="Edge.Start"
-                               aria-label="Menu"
+                               aria-label="@L["OpenMenu"]"
                                OnClick="@(() => _drawerOpen = !_drawerOpen)" />
             </Authorized>
         </AuthorizeView>
@@ -51,7 +52,7 @@
                        Elevation="1"
                        Breakpoint="Breakpoint.Sm"
                        ClipMode="DrawerClipMode.Always">
-                <MudNavMenu Class="mt-2">
+                <MudNavMenu Class="mt-2" aria-label="@L["MainNavigation"]">
                     <MudNavLink Href="/tasks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Checklist">
                         @L["Tasks"]
                     </MudNavLink>
@@ -67,6 +68,9 @@
                     <MudNavLink Href="/tags" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Label">
                         @L["Tags"]
                     </MudNavLink>
+                    <MudNavLink Href="/data" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Storage">
+                        @L["Data"]
+                    </MudNavLink>
                     <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
                         @L["Settings"]
                     </MudNavLink>
@@ -77,7 +81,9 @@
 
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.Large" Class="py-6">
-            @Body
+            <div id="main-content" tabindex="-1">
+                @Body
+            </div>
         </MudContainer>
     </MudMainContent>
 </MudLayout>

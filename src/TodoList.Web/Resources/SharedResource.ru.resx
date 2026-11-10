@@ -540,4 +540,58 @@
   <data name="RecurrenceEndDate" xml:space="preserve">
     <value>Повторять до</value>
   </data>
+  <data name="Data" xml:space="preserve">
+    <value>Данные</value>
+  </data>
+  <data name="DataDescription" xml:space="preserve">
+    <value>Скачайте переносимую резервную копию проектов, тегов и задач или восстановите её из JSON-файла.</value>
+  </data>
+  <data name="ExportData" xml:space="preserve">
+    <value>Экспорт</value>
+  </data>
+  <data name="ExportDataHint" xml:space="preserve">
+    <value>JSON-файл сохраняет проекты, теги, задачи, чек-листы, напоминания и повторения. CSV-файл — плоский список для таблиц.</value>
+  </data>
+  <data name="ExportJson" xml:space="preserve">
+    <value>Скачать JSON</value>
+  </data>
+  <data name="ExportCsv" xml:space="preserve">
+    <value>Скачать CSV</value>
+  </data>
+  <data name="ImportData" xml:space="preserve">
+    <value>Импорт</value>
+  </data>
+  <data name="ImportDataHint" xml:space="preserve">
+    <value>Импортируйте JSON-экспорт. Существующие проекты и теги с тем же именем будут переиспользованы, а все задачи из файла добавятся как новые.</value>
+  </data>
+  <data name="ImportFile" xml:space="preserve">
+    <value>Выберите JSON-файл экспорта</value>
+  </data>
+  <data name="ImportInvalidFile" xml:space="preserve">
+    <value>Выбранный файл не является корректным экспортом TodoList.</value>
+  </data>
+  <data name="ImportCompleted" xml:space="preserve">
+    <value>Импорт завершён.</value>
+  </data>
+  <data name="ImportSummary" xml:space="preserve">
+    <value>Импортировано задач: {0}, проектов: {1}, тегов: {2}, пунктов чек-листа: {3}.</value>
+  </data>
+  <data name="ImportSummaryReused" xml:space="preserve">
+    <value>Переиспользовано существующих проектов: {0}, тегов: {1}.</value>
+  </data>
+  <data name="DataSummary" xml:space="preserve">
+    <value>Сводка</value>
+  </data>
+  <data name="NoDataToExport" xml:space="preserve">
+    <value>Пока нечего экспортировать. Сначала добавьте задачу или проект.</value>
+  </data>
+  <data name="SkipToContent" xml:space="preserve">
+    <value>Перейти к содержимому</value>
+  </data>
+  <data name="OpenMenu" xml:space="preserve">
+    <value>Открыть меню</value>
+  </data>
+  <data name="MainNavigation" xml:space="preserve">
+    <value>Основная навигация</value>
+  </data>
 </root>

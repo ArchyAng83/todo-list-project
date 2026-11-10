@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using TodoList.Application.DataTransfer;
 using TodoList.Application.Projects;
 using TodoList.Application.Settings;
 using TodoList.Application.Tags;
@@ -15,6 +16,7 @@ public static class DependencyInjection
 
         services.AddScoped<ProjectService>();
         services.AddScoped<ProjectQueries>();
+        services.AddScoped<DataTransferService>();
         services.AddScoped<TagService>();
         services.AddScoped<TagQueries>();
         services.AddScoped<TaskService>();

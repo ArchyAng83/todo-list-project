@@ -1,0 +1,296 @@
+@page "/data"
+@attribute [Authorize]
+@using System.Text.Json
+@using TodoList.Application.DataTransfer
+@inject IServiceScopeFactory ScopeFactory
+@inject ICurrentUserProvider CurrentUser
+@inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject TimeProvider Clock
+
+<PageTitle>@L["Data"] · @L["AppName"]</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-2">@L["Data"]</MudText>
+<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">@L["DataDescription"]</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+    <MudButton OnClick="LoadAsync" Variant="Variant.Outlined">@L["Retry"]</MudButton>
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0"
+                      Class="pa-6"
+                      Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudText Typo="Typo.h6" Class="mb-2">@L["ExportData"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    @L["ExportDataHint"]
+                </MudText>
+
+                <MudStack Row="true" Spacing="2" Class="flex-wrap">
+                    <MudButton OnClick="ExportJsonAsync"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               Disabled="_isExporting"
+                               StartIcon="@Icons.Material.Filled.Download">
+                        @L["ExportJson"]
+                    </MudButton>
+                    <MudButton OnClick="ExportCsvAsync"
+                               Variant="Variant.Outlined"
+                               Disabled="_isExporting"
+                               StartIcon="@Icons.Material.Filled.TableChart">
+                        @L["ExportCsv"]
+                    </MudButton>
+                </MudStack>
+
+                @if (_isExporting)
+                {
+                    <MudProgressLinear Indeterminate="true" Class="mt-4" />
+                }
+
+                <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2">@L["DataSummary"]</MudText>
+                <dl class="profile-list">
+                    <dt>@L["Projects"]</dt>
+                    <dd>@_summary.Projects</dd>
+
+                    <dt>@L["Tags"]</dt>
+                    <dd>@_summary.Tags</dd>
+
+                    <dt>@L["Tasks"]</dt>
+                    <dd>@_summary.Tasks</dd>
+                </dl>
+
+                @if (_summary.Projects == 0 && _summary.Tags == 0 && _summary.Tasks == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                        @L["NoDataToExport"]
+                    </MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0"
+                      Class="pa-6"
+                      Style="border: 1px solid var(--mud-palette-lines-default);">
+                <MudText Typo="Typo.h6" Class="mb-2">@L["ImportData"]</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                    @L["ImportDataHint"]
+                </MudText>
+
+                <InputFile OnChange="ImportAsync"
+                           accept=".json,application/json"
+                           class="data-file-input"
+                           aria-label="@L["ImportFile"]" />
+
+                @if (_isImporting)
+                {
+                    <MudProgressLinear Indeterminate="true" Class="mt-4" />
+                }
+
+                <div aria-live="polite" class="mt-4">
+                    @if (_importSummary is { } summary)
+                    {
+                        <MudAlert Severity="Severity.Success">
+                            <MudText Typo="Typo.body2">
+                                @L["ImportSummary", summary.TasksCreated, summary.ProjectsCreated, summary.TagsCreated, summary.ChecklistItemsCreated]
+                            </MudText>
+                            <MudText Typo="Typo.caption">
+                                @L["ImportSummaryReused", summary.ProjectsReused, summary.TagsReused]
+                            </MudText>
+                        </MudAlert>
+                    }
+
+                    @if (_importError is not null)
+                    {
+                        <MudAlert Severity="Severity.Error">@_importError</MudAlert>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private DataTransferSummary _summary = new(0, 0, 0);
+    private ImportSummary? _importSummary;
+    private bool _isLoading = true;
+    private bool _isExporting;
+    private bool _isImporting;
+    private string? _error;
+    private string? _importError;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _error = null;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await LoadSummaryAsync(user);
+        }
+        catch (Exception)
+        {
+            _error = L["GenericError"];
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task LoadSummaryAsync(UserContext user)
+    {
+        await using var scope = ScopeFactory.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+        _summary = await service.GetSummaryAsync(user);
+    }
+
+    private async Task ExportJsonAsync()
+    {
+        _isExporting = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+            var document = await service.ExportAsync(user);
+            var json = JsonSerializer.Serialize(document, DataTransferJson.Options);
+            var fileName = $"todolist-export-{Clock.GetUtcNow():yyyyMMdd}.json";
+
+            await JS.InvokeVoidAsync("todoListData.downloadText", fileName, "application/json", json);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private async Task ExportCsvAsync()
+    {
+        _isExporting = true;
+
+        try
+        {
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+            var csv = await service.ExportTasksCsvAsync(user);
+            var fileName = $"{TaskCsvExport.FileNamePrefix}-{Clock.GetUtcNow():yyyyMMdd}.csv";
+
+            await JS.InvokeVoidAsync("todoListData.downloadText", fileName, "text/csv", csv);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add(L["GenericError"], Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
+        }
+    }
+
+    private async Task ImportAsync(InputFileChangeEventArgs args)
+    {
+        _importError = null;
+        _importSummary = null;
+
+        if (args.FileCount == 0)
+        {
+            return;
+        }
+
+        _isImporting = true;
+
+        try
+        {
+            var file = args.File;
+
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+
+            ExportDocument? document;
+
+            try
+            {
+                document = JsonSerializer.Deserialize<ExportDocument>(json, DataTransferJson.Options);
+            }
+            catch (JsonException)
+            {
+                _importError = L["ImportInvalidFile"];
+                return;
+            }
+
+            if (document is null)
+            {
+                _importError = L["ImportInvalidFile"];
+                return;
+            }
+
+            var user = await CurrentUser.GetAsync();
+
+            if (user is null)
+            {
+                _importError = L["GenericError"];
+                return;
+            }
+
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+            var result = await service.ImportAsync(user, document);
+
+            if (result.IsFailure)
+            {
+                _importError = result.Error.Message;
+                return;
+            }
+
+            _importSummary = result.Value;
+            await LoadSummaryAsync(user);
+            Snackbar.Add(L["ImportCompleted"], Severity.Success);
+        }
+        catch (Exception)
+        {
+            _importError = L["GenericError"];
+        }
+        finally
+        {
+            _isImporting = false;
+        }
+    }
+}

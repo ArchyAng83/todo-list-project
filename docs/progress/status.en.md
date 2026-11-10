@@ -2,8 +2,8 @@
 
 Last updated: 2026-11-09
 
-- **Current phase:** Week 7 - Recurring tasks and email reminders (code complete)
-- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, and the reminder outbox are complete; MVP in progress.
+- **Current phase:** Week 8 - Import/export, accessibility, and v1.0 release (code complete)
+- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, the reminder outbox, import/export, and accessibility are complete; MVP ready for production deployment.
 
 ## Done
 
@@ -53,14 +53,15 @@ Last updated: 2026-11-09
 - Database-backed reminder outbox driven by `TaskReminderScheduler`: at most one pending reminder per task, rescheduled on edit, cancelled on completion.
 - `ReminderDeliveryService` and `ReminderDispatcher` deliver due reminders, localize the email by the recipient's culture, and mark each message sent or failed.
 - SMTP transport with a Mailpit default in Development and a logging fallback, plus `Email` and `Reminders` configuration sections.
+- JSON import/export (`/data` page and `/api/v1/data`) with a versioned schema, reuse-by-name for projects and tags, and `ImportSummary`.
+- CSV export with UTF-8 BOM, quoted fields, and CRLF line endings.
+- `/data` page with JSON/CSV export, a JSON file picker, and an `aria-live` import result; a skip link, main landmark, localized nav labels, and `:focus-visible` styles improve accessibility.
 
 ## In progress
 
-- Deployment target selection for the MVP.
-
 ## Next
 
-- Week 8: import/export, the full E2E pass, accessibility review, and the v1.0 release.
+- Deploy the v1.0 release to a chosen hosting target with a production SMTP provider.
 
 ## Blockers and risks
 
@@ -72,10 +73,17 @@ Last updated: 2026-11-09
 | Gate | Status |
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
-| Unit tests | ✅ 47 passing |
-| Integration tests | ✅ 45 passing (Testcontainers) |
+| Unit tests | ✅ 52 passing |
+| Integration tests | ✅ 57 passing (Testcontainers) |
 | Component tests | ✅ 32 passing (bUnit) |
-| E2E tests | ✅ 12 passing (Playwright) |
+| E2E tests | ✅ 14 passing (Playwright) |
 | Container image | ✅ builds; health probes respond |
-| CI | ✅ first run passed on GitHub Actions |
-| Deployed | ⬜ |
+| CI | ✅ all recent runs passed on GitHub Actions |
+| Deployed | ⬜ production deployment pending hosting/SMTP selection |
+
+## Deployment notes
+
+- The app runs on Kestrel in a container on port 8080 and expects a PostgreSQL database (`Default` connection string) plus an SMTP host for reminders (`Email:Host`).
+- Production migrations should be applied as a separate deploy step (`dotnet ef database update`); they are applied on startup only in Development.
+- Migration `AddTaskRecurrence` was hand-edited to set `recurrence` default to `none` (PostgreSQL string) and must not be regenerated.
+- Demo credentials (`demo@todolist.local` / `DemoPass123`) are for local evaluation only and must be removed or rotated in production.

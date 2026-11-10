@@ -252,6 +252,112 @@ public sealed class ApiEndpointTests(TodoListAppFixture fixture)
     }
 
     [Fact]
+    public async Task SetStatus_InvalidEnum_ReturnsBadRequest()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var taskId = await CreateTaskAsync(client, "Status test", null, null);
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/v1/tasks/{taskId}/status",
+            new { status = 99 });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetTask_ReturnsETagHeader()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var taskId = await CreateTaskAsync(client, "ETag test", null, null);
+
+        var response = await client.GetAsync($"/api/v1/tasks/{taskId}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.ETag.ShouldNotBeNull();
+        response.Headers.ETag.Tag.ShouldNotBeNullOrWhiteSpace();
+    }
+
+    [Fact]
+    public async Task UpdateTask_StaleIfMatch_ReturnsConflict()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var taskId = await CreateTaskAsync(client, "Conflict test", null, null);
+
+        // First update bumps the version.
+        (await client.PutAsJsonAsync(
+            $"/api/v1/tasks/{taskId}",
+            new
+            {
+                title = "First update",
+                notes = (string?)null,
+                projectId = (Guid?)null,
+                priority = "None",
+                dueDate = (string?)null,
+                dueTime = (string?)null,
+                reminderOffsetMinutes = (int?)null
+            })).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        // Read the fresh ETag.
+        var get = await client.GetAsync($"/api/v1/tasks/{taskId}");
+        var etag = get.Headers.ETag!.Tag;
+
+        // Stale update with the old ETag (simulate: read version 1, someone else updates, then we try with version 1).
+        // We can't easily get the old ETag, so instead use a made-up stale version.
+        client.DefaultRequestHeaders.Remove("If-Match");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", "\"0\"");
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/v1/tasks/{taskId}",
+            new
+            {
+                title = "Stale update",
+                notes = (string?)null,
+                projectId = (Guid?)null,
+                priority = "None",
+                dueDate = (string?)null,
+                dueTime = (string?)null,
+                reminderOffsetMinutes = (int?)null
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+
+        client.DefaultRequestHeaders.Remove("If-Match");
+    }
+
+    [Fact]
+    public async Task UpdateTask_MatchingIfMatch_ReturnsNoContent()
+    {
+        using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);
+
+        var taskId = await CreateTaskAsync(client, "Match test", null, null);
+
+        var get = await client.GetAsync($"/api/v1/tasks/{taskId}");
+        var etag = get.Headers.ETag!.Tag;
+
+        client.DefaultRequestHeaders.TryAddWithoutValidation("If-Match", etag);
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/v1/tasks/{taskId}",
+            new
+            {
+                title = "Updated title",
+                notes = (string?)null,
+                projectId = (Guid?)null,
+                priority = "None",
+                dueDate = (string?)null,
+                dueTime = (string?)null,
+                reminderOffsetMinutes = (int?)null
+            });
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        client.DefaultRequestHeaders.Remove("If-Match");
+    }
+
+    [Fact]
     public async Task TaskViews_FilterByDueDateAndStatus()
     {
         using var client = await CreateBearerClientAsync((await CreateUserAsync()).Email);

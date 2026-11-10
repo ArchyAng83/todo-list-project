@@ -44,11 +44,13 @@ public static class TaskEndpoints
             .MapPut("/{id:guid}", UpdateAsync)
             .Produces(StatusCodes.Status204NoContent)
             .ProducesProblem(StatusCodes.Status400BadRequest)
-            .ProducesProblem(StatusCodes.Status404NotFound);
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict);
 
         tasks
             .MapPost("/{id:guid}/status", SetStatusAsync)
             .Produces(StatusCodes.Status204NoContent)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound);
 
         tasks
@@ -169,6 +171,7 @@ public static class TaskEndpoints
 
     private static async Task<IResult> GetAsync(
         Guid id,
+        HttpContext context,
         TaskQueries queries,
         ApiUserContextFactory users,
         ClaimsPrincipal principal,
@@ -183,7 +186,14 @@ public static class TaskEndpoints
 
         var task = await queries.GetAsync(user, id, cancellationToken);
 
-        return task is null ? Results.NotFound() : Results.Ok(task);
+        if (task is null)
+        {
+            return Results.NotFound();
+        }
+
+        context.Response.Headers.Append("ETag", $"\"{task.Version}\"");
+
+        return Results.Ok(task);
     }
 
     private static async Task<IResult> CreateAsync(
@@ -222,6 +232,7 @@ public static class TaskEndpoints
     private static async Task<IResult> UpdateAsync(
         Guid id,
         UpdateTaskBody body,
+        HttpContext context,
         TaskService service,
         ApiUserContextFactory users,
         ClaimsPrincipal principal,
@@ -234,6 +245,17 @@ public static class TaskEndpoints
             return Results.Unauthorized();
         }
 
+        // If-Match takes precedence over the body's Version so clients that
+        // participate in optimistic concurrency always send the token they
+        // received via ETag. Clients that omit the header fall back to body.Version.
+        var version = body.Version;
+
+        if (context.Request.Headers.TryGetValue("If-Match", out var ifMatch)
+            && uint.TryParse(ifMatch.ToString().Trim('"'), out var etagVersion))
+        {
+            version = etagVersion;
+        }
+
         var request = new UpdateTaskRequest(
             body.Title,
             body.Notes,
@@ -244,7 +266,8 @@ public static class TaskEndpoints
             body.ReminderOffsetMinutes,
             body.Recurrence,
             body.RecurrenceInterval,
-            body.RecurrenceEndDate);
+            body.RecurrenceEndDate,
+            version);
 
         var result = await service.UpdateAsync(user, id, request, cancellationToken);
 

@@ -1,6 +1,6 @@
 # Follow-up Backlog — Post-Review Items
 
-Branch: `main` | Created: 2026-11-11 | Status: Open
+Branch: `main` | Created: 2026-11-11 | Status: In Progress — 1 of 4 done
 
 ## Context
 
@@ -12,12 +12,12 @@ needs to be written down.
 
 English is canonical; `backlog.ru.md` is the paired translation.
 
-| ID | Title | Priority | Area |
-|----|-------|----------|------|
-| B1 | Rate limiting for authentication endpoints | P2 | Security |
-| B2 | Isolate E2E tests from shared demo state | P2 | Testing |
-| B3 | Deterministic time in reminder tests | P3 | Testing |
-| B4 | Record the shared integration-database decision | P3 | Testing / docs |
+| ID | Title | Priority | Area | Status |
+|----|-------|----------|------|--------|
+| B1 | Rate limiting for authentication endpoints | P2 | Security | ✅ Done |
+| B2 | Isolate E2E tests from shared demo state | P2 | Testing | ⬜ Open |
+| B3 | Deterministic time in reminder tests | P3 | Testing | ⬜ Open |
+| B4 | Record the shared integration-database decision | P3 | Testing / docs | ⬜ Open |
 
 ## B1 — Rate limiting for authentication endpoints
 
@@ -45,7 +45,7 @@ forms have no request throttling at all. The review flagged
 - Integration tests cover the `429` path and the header.
 
 **Status:** ✅ Done
-**Commit:** `_pending_`
+**Commit:** `5326569` — `feat: rate limit authentication endpoints`
 
 **Implementation.** `Auth:RateLimit` (`PermitLimit` 10, `WindowSeconds` 60 by
 default) drives a fixed window over the three auth POSTs, mounted with

@@ -1,6 +1,6 @@
 # Fix Tracker — Production Readiness (P1/P2/P3)
 
-Branch: `main` | Created: 2026-11-11 | Status: In Progress
+Branch: `main` | Created: 2026-11-11 | Status: Completed
 
 ## Summary
 
@@ -81,38 +81,18 @@ tests proving the retry path.
 
 ### P2.6–7 — Localize error messages and remaining hardcoded strings
 
-**Problem:** FluentValidation messages and `Error.Message` are shown as-is in Russian UI.
-Hardcoded English in `Error.razor`, `MainLayout.razor:93` (Reload),
-`ReconnectModal.razor`, `CultureSwitcher.razor:3` (aria-label).
-
-**Plan:**
-- Map `Error.Code` / validation codes → localized resource keys in `ErrorLocalizer`
-  (already partially done; extend to all codes).
-- Replace literal strings in UI pages with `L[...]` lookups; add keys to both `.resx` files.
-
-**Status:** ⬜ Not started
+**Status:** ✅ Done
+**Commit:** `70d5195` — `fix: localize error messages and remove hardcoded English strings`
 
 ### P2.8 — TimeProvider instead of DateTime.UtcNow/Now
 
-**Problem:** 5 direct calls: `Tasks.razor:155`, `AuthEndpoints.cs:75`, `Program.cs:128`,
-`AuthLayout.razor:15`, `ApplicationUser.cs:19`. `ApplicationUser.CreatedAt` uses
-`DateTimeOffset.UtcNow` directly (Domain/Infrastructure rule violation).
-
-**Plan:** Inject `TimeProvider` into `ApplicationUser` (or set `CreatedAt` from caller)
-and replace remaining `DateTime.UtcNow`/`DateTime.Now` calls.
-
-**Status:** ⬜ Not started
+**Status:** ✅ Done
+**Commit:** `0101dac` — `fix: remove DateTimeOffset.UtcNow default from ApplicationUser`
 
 ### P2.9 — Remove committed secrets
 
-**Problem:** `appsettings.json:3` contains `Password=todolist_dev`;
-`DemoDataSeeder.Password = "DemoPass123"` hardcoded.
-
-**Plan:**
-- Move connection string password to user-secrets / environment variable.
-- Move demo password to configuration (`Seed:DemoPassword`).
-
-**Status:** ⬜ Not started
+**Status:** ✅ Done
+**Commit:** `bc70119` — `fix: remove committed secrets`
 
 ### P2.10 — Single source of truth for reminder scheduled time in seeder
 
@@ -122,7 +102,9 @@ TZ change.
 
 **Plan:** Use `UserTime.ToUtc` in `DemoDataSeeder.AddTask`.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done — every `AddTask` call passes `user.TimeZoneId`, and the seeder
+now assigns a distinct `SortOrder` so the demo board order is deterministic.
+**Commit:** `fbea7e4` — `fix: use user time zone and deterministic order in demo seeder`
 
 ### P2.11 — Stronger migration test
 
@@ -131,7 +113,8 @@ Should also assert `GetPendingMigrationsAsync().ShouldBeEmpty()`.
 
 **Plan:** Add pending-migrations check to `DatabaseTests`.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done — `GetPendingMigrationsAsync().ShouldBeEmpty()`.
+**Commit:** `20198b8` — `test: assert no pending migrations are applied`
 
 ### P2.12 — OpenAPI/Scalar only in Development
 
@@ -140,7 +123,9 @@ extra attack surface in production.
 
 **Plan:** Wrap both in `if (app.Environment.IsDevelopment())`.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done — both `AddOpenApi()` registration and endpoint mapping are
+Development-only.
+**Commit:** `cebeb86` — `fix: expose OpenAPI and Scalar only in Development`
 
 ## P3 — Hygiene
 
@@ -151,7 +136,8 @@ extra attack surface in production.
 
 **Plan:** Remove from both `.resx` files (verify no Razor references first).
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done
+**Commit:** `4543344` — `chore: remove unused resource keys and dead packages`
 
 ### P3.2 — Remove dead NuGet packages
 
@@ -160,16 +146,19 @@ extra attack surface in production.
 
 **Plan:** Remove from `Directory.Packages.props`.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done — also removed the stale `Respawn` mention from ADR 0005.
+**Commit:** `4543344` — `chore: remove unused resource keys and dead packages`
 
 ### P3.3 — Fix docs/progress/status.en.md contradiction
 
 **Problem:** Lines 36–39 say "47 unit / 45 integration / 32 component / 12 E2E",
-but the summary table (lines 76–79) says "52 / 57 / 32 / 14". Actual: 52 / 57 / 32 / 14.
+but the summary table (lines 76–79) says "52 / 57 / 32 / 14".
 
 **Plan:** Align the text numbers with the table (and reality). Update paired `.ru.md`.
 
-**Status:** ⬜ Not started
+**Status:** ✅ Done — both files now report 54 unit / 70 integration / 32 component /
+14 E2E, matching the actual run after the P1 test additions.
+**Commit:** `docs: align test counts and complete fix tracker`
 
 ## Completed commits
 
@@ -177,12 +166,22 @@ but the summary table (lines 76–79) says "52 / 57 / 32 / 14". Actual: 52 / 57 
 |--------|---------|-------|
 | `aaf258e` | fix: validate task status enum and add ETag/If-Match for optimistic concurrency | P1.1, P1.2 |
 | `19c97ee` | test: cover atomic task-details update and reminder retries | P1.3, P1.4 |
+| `23e91ff` | fix: validate import document up front and return 400 instead of 500 | P2.5 |
+| `70d5195` | fix: localize error messages and remove hardcoded English strings | P2.6–7 |
+| `0101dac` | fix: remove DateTimeOffset.UtcNow default from ApplicationUser | P2.8 |
+| `bc70119` | fix: remove committed secrets | P2.9 |
+| `fbea7e4` | fix: use user time zone and deterministic order in demo seeder | P2.10 |
+| `20198b8` | test: assert no pending migrations are applied | P2.11 |
+| `cebeb86` | fix: expose OpenAPI and Scalar only in Development | P2.12 |
+| `f6353c1` | fix: map every validation code to 400 and stabilize reminder tests | follow-up |
+| `4543344` | chore: remove unused resource keys and dead packages | P3.1, P3.2 |
+| _this commit_ | docs: align test counts and complete fix tracker | P3.3 |
 
 ## Notes
 
 - Integration tests require Docker (Testcontainers PostgreSQL on port 5433).
 - Run: `dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj`
 - Unit tests: `dotnet test tests/TodoList.UnitTests/TodoList.UnitTests.csproj`
-- 5 pre-existing integration test failures unrelated to this work (error codes
-  `validation` vs `target_index_invalid`/`import_invalid`, and 500s on recurrence
-  / timezone endpoints).
+- The earlier failures where specific validation codes answered `500` are fixed:
+  `ApiResults` now maps every validator code to `400`, and import document errors
+  use `import_invalid`. Current run: 54 unit / 70 integration / 32 component pass.

@@ -31,12 +31,12 @@ Last updated: 2026-11-09
 - Live theme switching with system-preference detection and a small `theme.js` helper.
 - Deterministic demo account (`demo@todolist.local` / `DemoPass123`) with projects, tags, tasks, and checklists, controlled by `Seed:Demo`.
 - Minimal REST API `/api/v1` with bearer-only authentication, custom login endpoint, and tasks, projects, tags, and settings endpoints.
-- OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar`.
+- OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar` in Development only.
 - Command/query Application services with FluentValidation and `Result<T>`.
-- Unit tests for domain rules, recurrence, and user settings (47 passing).
-- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, and the REST API (45 passing).
+- Unit tests for domain rules, recurrence, and user settings (54 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, and the REST API (70 passing).
 - bUnit component tests for the task list, Kanban board, calendar grid, layout, and culture switcher (32 passing).
-- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (12 passing).
+- Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (14 passing).
 - `/health/live` and `/health/ready` endpoints with a database readiness check.
 - JSON console logging outside Development for container platforms.
 - Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.
@@ -73,8 +73,8 @@ Last updated: 2026-11-09
 | Gate | Status |
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
-| Unit tests | ✅ 52 passing |
-| Integration tests | ✅ 57 passing (Testcontainers) |
+| Unit tests | ✅ 54 passing |
+| Integration tests | ✅ 70 passing (Testcontainers) |
 | Component tests | ✅ 32 passing (bUnit) |
 | E2E tests | ✅ 14 passing (Playwright) |
 | Container image | ✅ builds; health probes respond |

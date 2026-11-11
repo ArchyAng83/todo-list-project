@@ -1,6 +1,6 @@
 # Трекер исправлений — готовность к продакшену (P1/P2/P3)
 
-Ветка: `main` | Создан: 2026-11-11 | Статус: В работе
+Ветка: `main` | Создан: 2026-11-11 | Статус: Завершено
 
 ## Сводка
 
@@ -85,7 +85,8 @@
 - Расширить catch в `ImportAsync` (сопоставить с `Error.Validation(ImportInvalid)` → 400).
 - Добавить проверку hex в `Project.SetColor` (как в `Tag.SetColor`).
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово
+**Коммит:** `23e91ff` — `fix: validate import document up front and return 400 instead of 500`
 
 ### P2.6–7 — Локализация сообщений об ошибках и оставшихся хардкод-строк
 
@@ -98,7 +99,8 @@
   (частично уже сделано; расширить на все коды).
 - Заменить буквальные строки в страницах на `L[...]`; добавить ключи в оба `.resx` файла.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово
+**Коммит:** `70d5195` — `fix: localize error messages and remove hardcoded English strings`
 
 ### P2.8 — TimeProvider вместо DateTime.UtcNow/Now
 
@@ -109,7 +111,8 @@
 **План:** Инжектировать `TimeProvider` в `ApplicationUser` (или задавать `CreatedAt` из вызывающего кода)
 и заменить оставшиеся вызовы `DateTime.UtcNow`/`DateTime.Now`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово
+**Коммит:** `0101dac` — `fix: remove DateTimeOffset.UtcNow default from ApplicationUser`
 
 ### P2.9 — Удалить закоммиченные секреты
 
@@ -120,7 +123,8 @@
 - Перенести пароль connection string в user-secrets / переменную окружения.
 - Перенести пароль демо в конфигурацию (`Seed:DemoPassword`).
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово
+**Коммит:** `bc70119` — `fix: remove committed secrets`
 
 ### P2.10 — Единый источник правды для времени напоминания в сидере
 
@@ -130,7 +134,9 @@
 
 **План:** Использовать `UserTime.ToUtc` в `DemoDataSeeder.AddTask`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово — все вызовы `AddTask` передают `user.TimeZoneId`, а сидер
+теперь назначает уникальный `SortOrder`, чтобы порядок демо-доски был детерминированным.
+**Коммит:** `fbea7e4` — `fix: use user time zone and deterministic order in demo seeder`
 
 ### P2.11 — Более строгий тест миграций
 
@@ -139,7 +145,8 @@
 
 **План:** Добавить проверку ожидающих миграций в `DatabaseTests`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово — `GetPendingMigrationsAsync().ShouldBeEmpty()`.
+**Коммит:** `20198b8` — `test: assert no pending migrations are applied`
 
 ### P2.12 — OpenAPI/Scalar только в Development
 
@@ -148,7 +155,9 @@
 
 **План:** Обернуть оба вызова в `if (app.Environment.IsDevelopment())`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово — и регистрация `AddOpenApi()`, и маппинг endpoint-ов
+доступны только в Development.
+**Коммит:** `cebeb86` — `fix: expose OpenAPI and Scalar only in Development`
 
 ## P3 — гигиена
 
@@ -159,7 +168,8 @@
 
 **План:** Удалить из обоих `.resx` файлов (проверить отсутствие ссылок в Razor сначала).
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово
+**Коммит:** `4543344` — `chore: remove unused resource keys and dead packages`
 
 ### P3.2 — Удалить мёртвые пакеты NuGet
 
@@ -168,7 +178,8 @@
 
 **План:** Удалить из `Directory.Packages.props`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово — также убрано устаревшее упоминание `Respawn` из ADR 0005.
+**Коммит:** `4543344` — `chore: remove unused resource keys and dead packages`
 
 ### P3.3 — Исправить противоречие в docs/progress/status.en.md
 
@@ -177,7 +188,9 @@
 
 **План:** Привести числа в тексте к таблице (и к реальности). Обновить парный `.ru.md`.
 
-**Статус:** ⬜ Не начато
+**Статус:** ✅ Готово — оба файла теперь показывают 54 unit / 70 integration /
+32 component / 14 E2E, как в фактическом прогоне после добавления тестов P1.
+**Коммит:** `docs: align test counts and complete fix tracker`
 
 ## Завершённые коммиты
 
@@ -185,12 +198,23 @@
 |--------|-----------|--------|
 | `aaf258e` | fix: validate task status enum and add ETag/If-Match for optimistic concurrency | P1.1, P1.2 |
 | `19c97ee` | test: cover atomic task-details update and reminder retries | P1.3, P1.4 |
+| `23e91ff` | fix: validate import document up front and return 400 instead of 500 | P2.5 |
+| `70d5195` | fix: localize error messages and remove hardcoded English strings | P2.6–7 |
+| `0101dac` | fix: remove DateTimeOffset.UtcNow default from ApplicationUser | P2.8 |
+| `bc70119` | fix: remove committed secrets | P2.9 |
+| `fbea7e4` | fix: use user time zone and deterministic order in demo seeder | P2.10 |
+| `20198b8` | test: assert no pending migrations are applied | P2.11 |
+| `cebeb86` | fix: expose OpenAPI and Scalar only in Development | P2.12 |
+| `f6353c1` | fix: map every validation code to 400 and stabilize reminder tests | follow-up |
+| `4543344` | chore: remove unused resource keys and dead packages | P3.1, P3.2 |
+| _этот коммит_ | docs: align test counts and complete fix tracker | P3.3 |
 
 ## Примечания
 
 - Интеграционные тесты требуют Docker (Testcontainers PostgreSQL на порту 5433).
 - Запуск: `dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj`
 - Юнит-тесты: `dotnet test tests/TodoList.UnitTests/TodoList.UnitTests.csproj`
-- 5 преду-existing сбоя интеграционных тестов не связаны с этой работой (коды ошибок
-  `validation` вместо `target_index_invalid`/`import_invalid`, и 500 на конечных точках
-  повторения / часового пояса).
+- Прежние сбои, когда специфичные коды валидации давали `500`, исправлены:
+  `ApiResults` теперь отдаёт `400` для любого кода валидатора, а ошибки документа
+  импорта используют `import_invalid`. Текущий прогон: 54 unit / 70 integration /
+  32 component проходят.

@@ -1,0 +1,117 @@
+# Follow-up Backlog — Post-Review Items
+
+Branch: `main` | Created: 2026-11-11 | Status: Open
+
+## Context
+
+The P1/P2/P3 items from the pre-production code review are closed in
+`docs/progress/fix-tracker.en.md`. This backlog holds the remaining review
+observations that were deliberately left out of that pass: they are either
+hardening work, test-infrastructure work, or an explicit MVP trade-off that
+needs to be written down.
+
+English is canonical; `backlog.ru.md` is the paired translation.
+
+| ID | Title | Priority | Area |
+|----|-------|----------|------|
+| B1 | Rate limiting for authentication endpoints | P2 | Security |
+| B2 | Isolate E2E tests from shared demo state | P2 | Testing |
+| B3 | Deterministic time in reminder tests | P3 | Testing |
+| B4 | Record the shared integration-database decision | P3 | Testing / docs |
+
+## B1 — Rate limiting for authentication endpoints
+
+**Problem.** IIS/ASP.NET Core Identity lockout is configured correctly (5 failed
+attempts, 15 minutes), but it only protects a single account. Nothing limits a
+distributed password-spray across many accounts, and the login/registration
+forms have no request throttling at all. The review flagged
+`POST /api/v1/auth/login` and the registration flow.
+
+**Plan.**
+- Add the built-in ASP.NET Core rate limiter (`builder.Services.AddRateLimiter`)
+  with a sliding-window or fixed-window policy partitioned by client IP.
+- Apply a stricter policy to `POST /api/v1/auth/login` (for example 5 attempts
+  per minute per IP) and to the Blazor login/registration POST endpoints.
+- Return `429 Too Many Requests` with `Retry-After`; keep lockout as the
+  per-account protection.
+- Read the client IP from `ForwardedHeaders`/`X-Forwarded-For` only when the app
+  runs behind a trusted proxy, and document the proxy configuration.
+
+**Acceptance criteria.**
+- Repeated login attempts from one IP return `429` after the configured limit.
+- A successful login is still possible from another IP.
+- Limit values live in configuration, not in code.
+- Integration tests cover the `429` path and the header.
+
+**Notes.** Keep the policy conservative enough that normal users are not
+throttled by a shared NAT; verify the limits with the deployment target before
+tightening them.
+
+## B2 — Isolate E2E tests from shared demo state
+
+**Problem.** `UserJourneyTests` drives one seeded demo user
+(`demo@todolist.local`) and shares its tasks between tests. The suite therefore
+depends on execution order and cannot be parallelised safely.
+
+**Plan.**
+- Give every test its own user: register a unique account through the existing
+  registration flow (or a small API/helper) with a `Guid`-based email suffix.
+- Seed only the data the test needs; do not depend on demo tasks.
+- Keep the demo account for manual evaluation, not for automated assertions.
+- If registration through the UI is too slow, add a test-only endpoint guarded
+  by `IsEnvironment("Testing")`/`IsDevelopment()`.
+
+**Acceptance criteria.**
+- Each E2E test creates and owns its user and data.
+- Tests pass in any order and with xUnit parallelisation enabled per collection.
+- No test asserts on data created by another test.
+
+## B3 — Deterministic time in reminder tests
+
+**Problem.** Reminder integration tests use `TimeProvider.System` and compute
+`scheduledAtUtc` with `DateTimeOffset.UtcNow.AddMinutes(...)`. On a slow CI
+agent a reminder can become due earlier than the assertion expects, which makes
+the tests timing-sensitive and occasionally flaky.
+
+**Plan.**
+- Reintroduce `Microsoft.Extensions.TimeProvider.Testing` in
+  `Directory.Packages.props` and register a `FakeTimeProvider` in the
+  integration host for reminder tests.
+- Advance time explicitly (`provider.Advance(...)`) instead of adding real
+  offsets; assert on exact `ScheduledAtUtc` values.
+- Optionally expose a shared `FakeTimeProvider` helper from `TodoList.Testing`
+  so unit and integration tests use the same approach.
+
+**Acceptance criteria.**
+- No reminder test depends on wall-clock delays.
+- Back-off schedule is asserted exactly (1, 2, 4, 8 minutes, capped at 60).
+- Tests remain green when the machine is under load.
+
+## B4 — Record the shared integration-database decision
+
+**Problem.** All integration tests in one collection share a single
+Testcontainers PostgreSQL database. Data is not reset between tests; unique
+emails keep them from colliding, but rows accumulate linearly and a few tests
+need manual cleanup (for example pending reminders). The review called this
+acceptable for the MVP but asked for it to be an explicit decision rather than
+an accident.
+
+**Plan.**
+- Document the trade-off in `docs/development/testing.en.md` (and the Russian
+  pair): one container per collection, no per-test reset, unique identities,
+  targeted cleanup where ordering matters.
+- Link the decision from ADR 0005 so future contributors know it is intentional.
+- Record when to revisit: when the suite becomes slow or a test needs
+  cross-test isolation, switch to a per-test transaction/schema or Respawn-style
+  reset.
+
+**Acceptance criteria.**
+- The testing guide and ADR describe the current approach and its limits.
+- The note names the trigger for revisiting the decision.
+
+## Out of scope
+
+- Load and performance testing under real traffic.
+- Delivery behaviour against a real SMTP provider (Mailpit covers the happy
+  path; production SMTP is verified during deployment).
+- Coverage measurement; the review inferred gaps by reading tests.

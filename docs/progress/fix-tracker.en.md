@@ -179,6 +179,7 @@ but the summary table (lines 76–79) says "52 / 57 / 32 / 14".
 
 ## Notes
 
+- Follow-up items outside this pass live in `docs/progress/backlog.en.md`.
 - Integration tests require Docker (Testcontainers PostgreSQL on port 5433).
 - Run: `dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj`
 - Unit tests: `dotnet test tests/TodoList.UnitTests/TodoList.UnitTests.csproj`

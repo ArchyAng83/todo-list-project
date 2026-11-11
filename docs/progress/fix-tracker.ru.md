@@ -211,6 +211,7 @@
 
 ## Примечания
 
+- Пункты вне этого прохода собраны в `docs/progress/backlog.ru.md`.
 - Интеграционные тесты требуют Docker (Testcontainers PostgreSQL на порту 5433).
 - Запуск: `dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj`
 - Юнит-тесты: `dotnet test tests/TodoList.UnitTests/TodoList.UnitTests.csproj`

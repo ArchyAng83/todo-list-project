@@ -16,7 +16,7 @@ Use a four-level test pyramid:
 - **Component** (bUnit): key Blazor components, forms, filtering, localization.
 - **E2E** (Playwright .NET): real browser against the app, PostgreSQL, and Mailpit.
 
-Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider` so tests are deterministic. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
+Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
 
 ## Consequences
 

@@ -43,8 +43,8 @@ On Linux CI add `--with-deps` so the Chromium system libraries are installed too
 
 - Shared fixtures live in `TodoList.Testing`; `[CollectionDefinition]` types live in the test assemblies that use them.
 - Application unit tests use small hand-written fakes, such as an in-memory `IUserSettingsStore`.
-- `TimeProvider` is injected everywhere so time-sensitive features can be tested deterministically.
-- Email sending will use a fake `IEmailSender` in integration tests once reminders ship.
+- `TimeProvider` is injected everywhere, and reminder delivery tests pass a `FakeTimeProvider` so back-off timing is exact instead of dependent on wall time.
+- Email sending uses fake `IEmailSender` implementations in integration tests.
 
 ## CI
 

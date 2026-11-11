@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Shouldly;
 using TodoList.Application.Common;
 using TodoList.Application.Email;
@@ -20,6 +21,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
 {
     private static readonly DateOnly DueDate = new(2026, 11, 20);
     private static readonly TimeOnly DueTime = new(9, 0);
+    private static readonly DateTimeOffset ClockStart = new(2026, 11, 20, 8, 0, 0, TimeSpan.Zero);
 
     [Fact]
     public async Task TaskService_CompleteRecurringTask_CreatesNextOccurrenceWithTagsAndChecklist()
@@ -236,15 +238,14 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             DueDate,
             DueTime))).Value;
 
-        var now = DateTimeOffset.UtcNow;
+        var clock = CreateClock();
+        var now = clock.GetUtcNow();
         var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync();
 
         var sender = new CapturingEmailSender();
-        var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-            scope.ServiceProvider,
-            sender);
+        var delivery = CreateDelivery(scope.ServiceProvider, sender, clock);
 
         var sent = await delivery.DispatchDueAsync();
 
@@ -256,7 +257,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             .SingleAsync(candidate => candidate.Id == reminder.Id);
 
         stored.Status.ShouldBe(ReminderStatus.Sent);
-        stored.SentAtUtc.ShouldNotBeNull();
+        stored.SentAtUtc.ShouldBe(now);
 
         (await delivery.DispatchDueAsync()).ShouldBe(0);
         sender.Messages.Count.ShouldBe(1);
@@ -280,14 +281,13 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             DueDate,
             DueTime))).Value;
 
-        var now = DateTimeOffset.UtcNow;
+        var clock = CreateClock();
+        var now = clock.GetUtcNow();
         db.Reminders.Add(Reminder.Create(userId, taskId, now.AddMinutes(-1), now));
         await db.SaveChangesAsync();
 
         var sender = new CapturingEmailSender();
-        var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-            scope.ServiceProvider,
-            sender);
+        var delivery = CreateDelivery(scope.ServiceProvider, sender, clock);
 
         (await delivery.DispatchDueAsync()).ShouldBe(1);
 
@@ -314,7 +314,8 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             DueDate,
             DueTime))).Value;
 
-        var now = DateTimeOffset.UtcNow;
+        var clock = CreateClock();
+        var now = clock.GetUtcNow();
         var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync();
@@ -322,9 +323,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await taskService.SetStatusAsync(user, taskId, TodoTaskStatus.Done);
 
         var sender = new CapturingEmailSender();
-        var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-            scope.ServiceProvider,
-            sender);
+        var delivery = CreateDelivery(scope.ServiceProvider, sender, clock);
 
         (await delivery.DispatchDueAsync()).ShouldBe(0);
         sender.Messages.ShouldBeEmpty();
@@ -354,19 +353,17 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             DueDate,
             DueTime))).Value;
 
-        var now = DateTimeOffset.UtcNow;
+        var clock = CreateClock();
+        var now = clock.GetUtcNow();
         var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync();
 
         var sender = new FailingEmailSender(failFirst: true);
-        var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-            scope.ServiceProvider,
-            sender);
+        var delivery = CreateDelivery(scope.ServiceProvider, sender, clock);
 
         // First attempt: delivery fails, reminder returns to Pending with back-off.
-        var sent = await delivery.DispatchDueAsync();
-        sent.ShouldBe(0);
+        (await delivery.DispatchDueAsync()).ShouldBe(0);
 
         var stored = await db.Reminders
             .AsNoTracking()
@@ -374,30 +371,26 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         stored.Status.ShouldBe(ReminderStatus.Pending);
         stored.Attempts.ShouldBe(1);
         stored.LastError.ShouldNotBeNull();
-        stored.ScheduledAtUtc.ShouldBeGreaterThan(now);
+        stored.ScheduledAtUtc.ShouldBe(now.AddMinutes(1));
 
-        // Reset the reminder to be due again so the dispatcher picks it up.
-        await using var resetScope = fixture.Factory.Services.CreateAsyncScope();
-        var resetDb = resetScope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await resetDb.Reminders
-            .Where(r => r.Id == reminder.Id)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.ScheduledAtUtc, now.AddMinutes(-1)));
+        // Still inside the back-off window, so the reminder is not retried yet.
+        (await delivery.DispatchDueAsync()).ShouldBe(0);
+        sender.Calls.ShouldBe(1);
+
+        clock.Advance(TimeSpan.FromMinutes(1));
 
         // Second attempt: sender succeeds, reminder is marked Sent.
-        var sender2 = new CapturingEmailSender();
-        var delivery2 = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-            resetScope.ServiceProvider,
-            sender2);
+        var retrySender = new CapturingEmailSender();
+        var retryDelivery = CreateDelivery(scope.ServiceProvider, retrySender, clock);
 
-        var sent2 = await delivery2.DispatchDueAsync();
-        sent2.ShouldBe(1);
-        sender2.Messages.ShouldHaveSingleItem().Subject.ShouldContain("Retry me");
+        (await retryDelivery.DispatchDueAsync()).ShouldBe(1);
+        retrySender.Messages.ShouldHaveSingleItem().Subject.ShouldContain("Retry me");
 
-        var stored2 = await resetDb.Reminders
+        var stored2 = await db.Reminders
             .AsNoTracking()
             .SingleAsync(candidate => candidate.Id == reminder.Id);
         stored2.Status.ShouldBe(ReminderStatus.Sent);
-        stored2.SentAtUtc.ShouldNotBeNull();
+        stored2.SentAtUtc.ShouldBe(now.AddMinutes(1));
     }
 
     [Fact]
@@ -418,28 +411,23 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
             DueDate,
             DueTime))).Value;
 
-        var now = DateTimeOffset.UtcNow;
+        var clock = CreateClock();
+        var now = clock.GetUtcNow();
         var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync();
 
         var sender = new FailingEmailSender(failCalls: Reminder.MaxAttempts);
 
-        for (var i = 0; i < Reminder.MaxAttempts; i++)
+        for (var attempt = 1; attempt <= Reminder.MaxAttempts; attempt++)
         {
             await using var attemptScope = fixture.Factory.Services.CreateAsyncScope();
-            var attemptDb = attemptScope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var delivery = CreateDelivery(attemptScope.ServiceProvider, sender, clock);
 
-            // Keep the reminder due so DispatchDueAsync processes it every iteration.
-            await attemptDb.Reminders
-                .Where(r => r.Id == reminder.Id)
-                .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.ScheduledAtUtc, now.AddMinutes(-1)));
+            (await delivery.DispatchDueAsync()).ShouldBe(0);
 
-            var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
-                attemptScope.ServiceProvider,
-                sender);
-
-            await delivery.DispatchDueAsync();
+            // Step past the longest back-off (60 minutes) so the next attempt is due.
+            clock.Advance(TimeSpan.FromHours(1));
         }
 
         var stored = await db.Reminders
@@ -461,6 +449,18 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
                 reminder => reminder.Status,
                 ReminderStatus.Cancelled));
 
+    /// <summary>
+    /// Reminder delivery is driven entirely by <see cref="TimeProvider"/>, so a
+    /// fake clock keeps the back-off windows exact instead of racing wall time.
+    /// </summary>
+    private static FakeTimeProvider CreateClock() => new(ClockStart);
+
+    private static ReminderDeliveryService CreateDelivery(
+        IServiceProvider services,
+        IEmailSender sender,
+        TimeProvider clock)
+        => ActivatorUtilities.CreateInstance<ReminderDeliveryService>(services, sender, clock);
+
     private sealed class FailingEmailSender : IEmailSender
     {
         private readonly int _failCalls;
@@ -475,6 +475,8 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         {
             _failCalls = failCalls;
         }
+
+        public int Calls => _calls;
 
         public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
         {

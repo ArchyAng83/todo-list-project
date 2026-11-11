@@ -58,10 +58,19 @@ public sealed class ReminderTests
         var reminder = Reminder.Create(Guid.NewGuid(), Guid.NewGuid(), Now, Now);
 
         reminder.MarkFailed("first", Now);
-        reminder.MarkFailed("second", Now);
+        reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(1));
 
-        reminder.Attempts.ShouldBe(2);
+        reminder.MarkFailed("second", Now);
         reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(2));
+
+        reminder.MarkFailed("third", Now);
+        reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(4));
+
+        reminder.MarkFailed("fourth", Now);
+
+        reminder.Attempts.ShouldBe(4);
+        reminder.Status.ShouldBe(ReminderStatus.Pending);
+        reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(8));
     }
 
     [Fact]

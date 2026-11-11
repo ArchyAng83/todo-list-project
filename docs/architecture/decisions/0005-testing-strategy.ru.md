@@ -16,7 +16,7 @@
 - **Component** (bUnit): ключевые Blazor-компоненты, формы, фильтрация, локализация.
 - **E2E** (Playwright .NET): реальный браузер против приложения, PostgreSQL и Mailpit.
 
-Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, чтобы тесты были детерминированными. CI запускает unit/integration/component на каждом PR, E2E smoke на PR и полный E2E на `main` и nightly.
+Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, а `FakeTimeProvider` делает его integration-тесты детерминированными без реальных задержек. CI запускает unit/integration/component на каждом PR, E2E smoke на PR и полный E2E на `main` и nightly.
 
 ## Последствия
 

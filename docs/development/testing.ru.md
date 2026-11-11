@@ -42,8 +42,8 @@ pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 
 - Общие фикстуры живут в `TodoList.Testing`; типы `[CollectionDefinition]` — в тестовых сборках, которые их используют.
 - Unit-тесты Application используют небольшие ручные fake'и, например in-memory `IUserSettingsStore`.
-- `TimeProvider` внедряется везде, чтобы time-sensitive функции можно было тестировать детерминированно.
-- Отправка email будет использовать fake `IEmailSender` в integration-тестах, когда появятся напоминания.
+- `TimeProvider` внедряется везде, а тесты доставки напоминаний передают `FakeTimeProvider`, чтобы тайминги back-off были точными, а не зависели от реального времени.
+- Отправка email использует fake-реализации `IEmailSender` в integration-тестах.
 
 ## CI
 

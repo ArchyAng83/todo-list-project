@@ -1,6 +1,6 @@
 # Follow-up Backlog — Post-Review Items
 
-Branch: `main` | Created: 2026-11-11 | Status: In Progress — 2 of 4 done
+Branch: `main` | Created: 2026-11-11 | Status: In Progress — 3 of 4 done
 
 ## Context
 
@@ -16,7 +16,7 @@ English is canonical; `backlog.ru.md` is the paired translation.
 |----|-------|----------|------|--------|
 | B1 | Rate limiting for authentication endpoints | P2 | Security | ✅ Done |
 | B2 | Isolate E2E tests from shared demo state | P2 | Testing | ✅ Done |
-| B3 | Deterministic time in reminder tests | P3 | Testing | ⬜ Open |
+| B3 | Deterministic time in reminder tests | P3 | Testing | ✅ Done |
 | B4 | Record the shared integration-database decision | P3 | Testing / docs | ⬜ Open |
 
 ## B1 — Rate limiting for authentication endpoints
@@ -82,7 +82,7 @@ depends on execution order and cannot be parallelised safely.
 - No test asserts on data created by another test.
 
 **Status:** ✅ Done
-**Commit:** `_pending_`
+**Commit:** `1706de4` — `test: give each E2E journey its own user`
 
 **Implementation.** `E2EFixture.CreateUserAsync()` registers a unique
 `e2e-{guid}@example.com` through the real registration form, keeps the browser
@@ -112,6 +112,19 @@ the tests timing-sensitive and occasionally flaky.
 - No reminder test depends on wall-clock delays.
 - Back-off schedule is asserted exactly (1, 2, 4, 8 minutes, capped at 60).
 - Tests remain green when the machine is under load.
+
+**Status:** ✅ Done
+**Commit:** `_pending_`
+
+**Implementation.** `Microsoft.Extensions.TimeProvider.Testing` is back in
+`Directory.Packages.props`, and the delivery tests build a `FakeTimeProvider`
+pinned to `2026-11-20T08:00Z` and pass it to `ReminderDeliveryService` through
+`ActivatorUtilities`, so the dispatcher's "due now" check no longer reads wall
+time. Retries advance the clock instead of rewriting `ScheduledAtUtc` with SQL,
+and the tests assert the exact back-off (`ScheduledAtUtc == now + 1 minute`,
+`SentAtUtc == now + 1 minute`). The unit test pins 1, 2, 4, and 8 minutes; the
+60-minute cap is unreachable because `MaxAttempts` is 5, so it stays covered by
+the formula only.
 
 ## B4 — Record the shared integration-database decision
 

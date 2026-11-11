@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IStringLocalizer<SharedResource> L
+@inject TimeProvider TimeProvider
 
 <div class="auth-page">
     <header class="auth-header">
@@ -12,6 +13,6 @@
     </main>
 
     <footer class="auth-footer">
-        &copy; @DateTime.UtcNow.Year @L["AppName"]
+        &copy; @TimeProvider.GetUtcNow().Year @L["AppName"]
     </footer>
 </div>

@@ -41,7 +41,8 @@ builder.Services.AddLocalization(options => options.ResourcesPath = "Resources")
 
 builder.Services.AddOpenApi();
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    options.SerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(allowIntegerValues: false)));
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("The 'Default' connection string is not configured.");
@@ -49,6 +50,7 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 builder.Services.AddInfrastructure(connectionString, builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddScoped<ICurrentUserProvider, CurrentUserProvider>();
+builder.Services.AddScoped<ErrorLocalizer>();
 builder.Services.AddScoped<ThemePreference>();
 builder.Services.AddScoped<ApiUserContextFactory>();
 
@@ -116,7 +118,11 @@ api.MapTaskEndpoints()
     .MapMeEndpoints()
     .MapDataEndpoints();
 
-app.MapGet("/culture/set", (string culture, string? redirect, HttpContext httpContext) =>
+app.MapGet("/culture/set", (
+    string culture,
+    string? redirect,
+    HttpContext httpContext,
+    TimeProvider timeProvider) =>
 {
     var selected = supportedCultures.FirstOrDefault(x => x.Name == culture)?.Name ?? "en";
 
@@ -125,7 +131,7 @@ app.MapGet("/culture/set", (string culture, string? redirect, HttpContext httpCo
         CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(selected)),
         new CookieOptions
         {
-            Expires = DateTimeOffset.UtcNow.AddYears(1),
+            Expires = timeProvider.GetUtcNow().AddYears(1),
             IsEssential = true,
             SameSite = SameSiteMode.Lax
         });

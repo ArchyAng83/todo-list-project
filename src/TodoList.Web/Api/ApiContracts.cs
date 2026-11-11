@@ -33,7 +33,8 @@ public sealed record UpdateTaskBody(
     int? ReminderOffsetMinutes,
     RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
     int RecurrenceInterval = 1,
-    DateOnly? RecurrenceEndDate = null);
+    DateOnly? RecurrenceEndDate = null,
+    uint? Version = null);
 
 public sealed record SetTaskStatusBody(TodoTaskStatus Status);
 

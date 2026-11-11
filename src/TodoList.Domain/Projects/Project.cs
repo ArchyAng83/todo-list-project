@@ -52,7 +52,7 @@ public sealed class Project
 
     public void SetColor(string? color, DateTimeOffset now)
     {
-        Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
+        Color = NormalizeColor(color);
         UpdatedAt = now;
     }
 
@@ -87,6 +87,25 @@ public sealed class Project
 
         SortOrder = sortOrder;
         UpdatedAt = now;
+    }
+
+    private static string? NormalizeColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return null;
+        }
+
+        var trimmed = color.Trim();
+
+        if (trimmed.Length != 7
+            || trimmed[0] != '#'
+            || !trimmed.Skip(1).All(Uri.IsHexDigit))
+        {
+            throw new ArgumentException("Color must be a hex value such as #6B7280.", nameof(color));
+        }
+
+        return trimmed.ToUpperInvariant();
     }
 
     private static string NormalizeName(string name)

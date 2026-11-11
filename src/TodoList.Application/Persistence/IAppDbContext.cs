@@ -24,4 +24,10 @@ public interface IAppDbContext
     DbSet<Reminder> Reminders { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the PostgreSQL <c>xmin</c> concurrency token for a tracked task.
+    /// </summary>
+    uint GetVersion<TEntity>(TEntity entity)
+        where TEntity : class;
 }

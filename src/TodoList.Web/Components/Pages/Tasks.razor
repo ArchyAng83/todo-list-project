@@ -7,6 +7,7 @@
 @inject TimeProvider TimeProvider
 @inject ILogger<Tasks> Logger
 @inject IStringLocalizer<SharedResource> L
+@inject ErrorLocalizer Errors
 
 <PageTitle>@L["Tasks"] · @L["AppName"]</PageTitle>
 
@@ -152,7 +153,7 @@
     private TaskView _view = TaskView.All;
     private TaskSort _sort = TaskSort.Default;
 
-    private DateOnly _today = DateOnly.FromDateTime(DateTime.UtcNow);
+    private DateOnly _today;
 
     private static readonly TaskView[] Views = Enum.GetValues<TaskView>();
     private static readonly TaskSort[] Sorts = Enum.GetValues<TaskSort>();
@@ -172,6 +173,10 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // UTC is only the placeholder until the user's stored time zone is
+        // loaded; LoadTasksAsync replaces it with the user's local day.
+        _today = UserClock.Today(TimeProvider, "UTC");
+
         await LoadReferenceDataAsync();
         await LoadTasksAsync();
     }
@@ -284,7 +289,7 @@
 
             if (result.IsFailure)
             {
-                Snackbar.Add(result.Error.Message, Severity.Error);
+                Snackbar.Add(Errors.Describe(result.Error), Severity.Error);
                 return;
             }
 
@@ -321,7 +326,7 @@
 
         if (result.IsFailure)
         {
-            Snackbar.Add(result.Error.Message, Severity.Error);
+            Snackbar.Add(Errors.Describe(result.Error), Severity.Error);
             return;
         }
 
@@ -393,7 +398,7 @@
 
         if (result.IsFailure)
         {
-            Snackbar.Add(result.Error.Message, Severity.Error);
+            Snackbar.Add(Errors.Describe(result.Error), Severity.Error);
             return;
         }
 

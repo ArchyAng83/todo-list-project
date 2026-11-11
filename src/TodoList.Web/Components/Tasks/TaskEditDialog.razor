@@ -3,6 +3,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<SharedResource> L
+@inject ErrorLocalizer Errors
 
 <MudDialog>
     <TitleContent>
@@ -275,53 +276,21 @@
             _reminderOffsetMinutes,
             recurrence,
             recurrence == RecurrenceFrequency.None ? 1 : _recurrenceInterval,
-            recurrenceEndDate);
+            recurrenceEndDate,
+            Details.Version);
 
         await using var scope = ScopeFactory.CreateAsyncScope();
         var service = scope.ServiceProvider.GetRequiredService<TaskService>();
 
-        var result = await service.UpdateAsync(user, Details.Id, request);
+        var result = await service.UpdateDetailsAsync(
+            user,
+            Details.Id,
+            new UpdateTaskDetailsRequest(request, _status, _selectedTagIds.ToList()));
 
         if (result.IsFailure)
         {
-            _error = result.Error.Message;
+            _error = Errors.Describe(result.Error);
             return;
-        }
-
-        if (_status != Details.Status)
-        {
-            var statusResult = await service.SetStatusAsync(user, Details.Id, _status);
-
-            if (statusResult.IsFailure)
-            {
-                _error = statusResult.Error.Message;
-                return;
-            }
-        }
-
-        var originalTagIds = Details.Tags.Select(tag => tag.Id).ToHashSet();
-        var selectedTagIds = _selectedTagIds.ToHashSet();
-
-        foreach (var tagId in selectedTagIds.Except(originalTagIds))
-        {
-            var addResult = await service.AddTagAsync(user, Details.Id, new AddTaskTagRequest(tagId));
-
-            if (addResult.IsFailure)
-            {
-                _error = addResult.Error.Message;
-                return;
-            }
-        }
-
-        foreach (var tagId in originalTagIds.Except(selectedTagIds))
-        {
-            var removeResult = await service.RemoveTagAsync(user, Details.Id, tagId);
-
-            if (removeResult.IsFailure)
-            {
-                _error = removeResult.Error.Message;
-                return;
-            }
         }
 
         Snackbar.Add(L["TaskSaved"], Severity.Success);
@@ -353,7 +322,7 @@
 
         if (result.IsFailure)
         {
-            _error = result.Error.Message;
+            _error = Errors.Describe(result.Error);
             return;
         }
 
@@ -382,7 +351,7 @@
 
         if (result.IsFailure)
         {
-            _error = result.Error.Message;
+            _error = Errors.Describe(result.Error);
             return;
         }
 
@@ -406,7 +375,7 @@
 
         if (result.IsFailure)
         {
-            _error = result.Error.Message;
+            _error = Errors.Describe(result.Error);
             return;
         }
 
@@ -454,7 +423,7 @@
 
         if (result.IsFailure)
         {
-            _error = result.Error.Message;
+            _error = Errors.Describe(result.Error);
             return;
         }
 

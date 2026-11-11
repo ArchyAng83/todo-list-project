@@ -40,15 +40,43 @@ public sealed class ReminderTests
     }
 
     [Fact]
-    public void MarkFailed_IncrementsAttemptsAndStoresError()
+    public void MarkFailed_FirstFailure_KeepsPendingAndSchedulesRetry()
     {
         var reminder = Reminder.Create(Guid.NewGuid(), Guid.NewGuid(), Now, Now);
 
-        reminder.MarkFailed("smtp unavailable");
+        reminder.MarkFailed("smtp unavailable", Now);
 
-        reminder.Status.ShouldBe(ReminderStatus.Failed);
+        reminder.Status.ShouldBe(ReminderStatus.Pending);
         reminder.Attempts.ShouldBe(1);
         reminder.LastError.ShouldBe("smtp unavailable");
+        reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(1));
+    }
+
+    [Fact]
+    public void MarkFailed_RepeatedFailures_BackOffExponentially()
+    {
+        var reminder = Reminder.Create(Guid.NewGuid(), Guid.NewGuid(), Now, Now);
+
+        reminder.MarkFailed("first", Now);
+        reminder.MarkFailed("second", Now);
+
+        reminder.Attempts.ShouldBe(2);
+        reminder.ScheduledAtUtc.ShouldBe(Now.AddMinutes(2));
+    }
+
+    [Fact]
+    public void MarkFailed_AfterMaxAttempts_BecomesTerminal()
+    {
+        var reminder = Reminder.Create(Guid.NewGuid(), Guid.NewGuid(), Now, Now);
+
+        for (var attempt = 1; attempt <= Reminder.MaxAttempts; attempt++)
+        {
+            reminder.MarkFailed($"failure {attempt}", Now);
+        }
+
+        reminder.Status.ShouldBe(ReminderStatus.Failed);
+        reminder.Attempts.ShouldBe(Reminder.MaxAttempts);
+        reminder.LastError.ShouldBe($"failure {Reminder.MaxAttempts}");
     }
 
     [Fact]

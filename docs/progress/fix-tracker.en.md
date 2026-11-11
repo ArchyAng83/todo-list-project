@@ -76,16 +76,8 @@ tests proving the retry path.
 
 ### P2.5 — Import validation and correct 400 instead of 500
 
-**Problem:** `DataTransferService.ImportAsync` catches only
-`ArgumentException`/`InvalidOperationException`/`DbUpdateException`; `Project.SetColor`
-accepts any string (column limited to 7 chars) → `DbUpdateException` not caught → 500.
-
-**Plan:**
-- Add FluentValidation for the imported document (or explicit field validation).
-- Broaden catch in `ImportAsync` (map to `Error.Validation(ImportInvalid)` → 400).
-- Add hex validation to `Project.SetColor` (match `Tag.SetColor`).
-
-**Status:** ⬜ Not started
+**Status:** ✅ Done
+**Commit:** `23e91ff` — `fix: validate import document up front and return 400 instead of 500`
 
 ### P2.6–7 — Localize error messages and remaining hardcoded strings
 

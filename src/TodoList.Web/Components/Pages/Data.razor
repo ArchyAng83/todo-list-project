@@ -5,6 +5,7 @@
 @inject IServiceScopeFactory ScopeFactory
 @inject ICurrentUserProvider CurrentUser
 @inject IStringLocalizer<SharedResource> L
+@inject ErrorLocalizer Errors
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject TimeProvider Clock
@@ -276,7 +277,7 @@ else
 
             if (result.IsFailure)
             {
-                _importError = result.Error.Message;
+                _importError = Errors.Describe(result.Error);
                 return;
             }
 

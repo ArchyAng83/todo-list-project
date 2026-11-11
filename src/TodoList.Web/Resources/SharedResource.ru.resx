@@ -594,4 +594,118 @@
   <data name="MainNavigation" xml:space="preserve">
     <value>Основная навигация</value>
   </data>
+  <data name="ErrorValidation" xml:space="preserve">
+    <value>Проверьте введённые значения.</value>
+  </data>
+  <data name="ErrorNotFound" xml:space="preserve">
+    <value>Запрошенный элемент не найден.</value>
+  </data>
+  <data name="ErrorConflict" xml:space="preserve">
+    <value>Изменение конфликтует с более новой версией. Обновите данные и повторите.</value>
+  </data>
+  <data name="ErrorConcurrency" xml:space="preserve">
+    <value>Задача была изменена в другой вкладке или сессии. Обновите данные и повторите.</value>
+  </data>
+  <data name="ErrorForbidden" xml:space="preserve">
+    <value>У вас нет доступа к этому действию.</value>
+  </data>
+  <data name="ErrorUnexpected" xml:space="preserve">
+    <value>Что-то пошло не так. Попробуйте ещё раз.</value>
+  </data>
+  <data name="ErrorInvalidTaskStatus" xml:space="preserve">
+    <value>Выбранный статус недопустим.</value>
+  </data>
+  <data name="ErrorImportInvalid" xml:space="preserve">
+    <value>Не удалось импортировать файл. Убедитесь, что это JSON-экспорт TodoList.</value>
+  </data>
+  <data name="ErrorRequired" xml:space="preserve">
+    <value>Это поле обязательно.</value>
+  </data>
+  <data name="ErrorTooLong" xml:space="preserve">
+    <value>Слишком длинное значение. Максимальная длина — {0}.</value>
+  </data>
+  <data name="ErrorInvalidEnum" xml:space="preserve">
+    <value>Выбранное значение недопустимо.</value>
+  </data>
+  <data name="ErrorInvalidColor" xml:space="preserve">
+    <value>Цвет должен быть hex-значением, например #6B7280.</value>
+  </data>
+  <data name="ErrorOutOfRange" xml:space="preserve">
+    <value>Значение должно быть от {0} до {1}.</value>
+  </data>
+  <data name="ErrorDueTimeRequiresDueDate" xml:space="preserve">
+    <value>Время выполнения требует даты.</value>
+  </data>
+  <data name="ErrorReminderRequiresDueDate" xml:space="preserve">
+    <value>Напоминание требует даты.</value>
+  </data>
+  <data name="ErrorRecurrenceRequiresDueDate" xml:space="preserve">
+    <value>Повторяющаяся задача требует даты.</value>
+  </data>
+  <data name="ErrorRecurrenceEndBeforeDue" xml:space="preserve">
+    <value>Дата окончания повтора не может быть раньше срока.</value>
+  </data>
+  <data name="ErrorTargetIndexInvalid" xml:space="preserve">
+    <value>Недопустимая позиция для перемещения.</value>
+  </data>
+  <data name="ErrorInvalidCulture" xml:space="preserve">
+    <value>Язык должен быть одним из: en, ru.</value>
+  </data>
+  <data name="ErrorInvalidTheme" xml:space="preserve">
+    <value>Тема должна быть одной из: system, light, dark.</value>
+  </data>
+  <data name="ErrorInvalidTimeZone" xml:space="preserve">
+    <value>Часовой пояс не распознан.</value>
+  </data>
+  <data name="UnhandledError" xml:space="preserve">
+    <value>Произошла непредвиденная ошибка.</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Обновить</value>
+  </data>
+  <data name="ErrorPageTitle" xml:space="preserve">
+    <value>Ошибка</value>
+  </data>
+  <data name="ErrorPageHeading" xml:space="preserve">
+    <value>Ошибка.</value>
+  </data>
+  <data name="ErrorPageMessage" xml:space="preserve">
+    <value>При обработке запроса произошла ошибка.</value>
+  </data>
+  <data name="RequestIdLabel" xml:space="preserve">
+    <value>Идентификатор запроса:</value>
+  </data>
+  <data name="DevelopmentModeHeading" xml:space="preserve">
+    <value>Режим разработки</value>
+  </data>
+  <data name="DevelopmentModeBody" xml:space="preserve">
+    <value>В среде Development отображается более подробная информация об ошибке.</value>
+  </data>
+  <data name="DevelopmentModeWarning" xml:space="preserve">
+    <value>Среду Development нельзя включать для развёрнутых приложений: она может показывать пользователям конфиденциальные сведения из исключений. Для локальной отладки задайте переменную окружения ASPNETCORE_ENVIRONMENT в Development и перезапустите приложение.</value>
+  </data>
+  <data name="ReconnectRejoining" xml:space="preserve">
+    <value>Переподключение к серверу...</value>
+  </data>
+  <data name="ReconnectRetryPrefix" xml:space="preserve">
+    <value>Не удалось переподключиться... повтор через</value>
+  </data>
+  <data name="ReconnectRetrySuffix" xml:space="preserve">
+    <value>секунд.</value>
+  </data>
+  <data name="ReconnectGiveUp" xml:space="preserve">
+    <value>Не удалось переподключиться. Попробуйте ещё раз или обновите страницу.</value>
+  </data>
+  <data name="ReconnectRetry" xml:space="preserve">
+    <value>Повторить</value>
+  </data>
+  <data name="ReconnectPaused" xml:space="preserve">
+    <value>Сервер приостановил сессию.</value>
+  </data>
+  <data name="ReconnectResumeFailed" xml:space="preserve">
+    <value>Не удалось возобновить сессию. Попробуйте ещё раз или обновите страницу.</value>
+  </data>
+  <data name="ReconnectResume" xml:space="preserve">
+    <value>Возобновить</value>
+  </data>
 </root>

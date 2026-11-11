@@ -5,6 +5,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<SharedResource> L
+@inject ErrorLocalizer Errors
 
 <PageTitle>@L["Projects"] · @L["AppName"]</PageTitle>
 
@@ -168,7 +169,7 @@ else
 
         if (result.IsFailure)
         {
-            Snackbar.Add(result.Error.Message, Severity.Error);
+            Snackbar.Add(Errors.Describe(result.Error), Severity.Error);
             return;
         }
 

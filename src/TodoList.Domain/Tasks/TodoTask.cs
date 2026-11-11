@@ -106,12 +106,22 @@ public sealed class TodoTask
 
     public void SetPriority(TaskPriority priority, DateTimeOffset now)
     {
+        if (!Enum.IsDefined(priority))
+        {
+            throw new ArgumentOutOfRangeException(nameof(priority), "Unknown task priority.");
+        }
+
         Priority = priority;
         UpdatedAt = now;
     }
 
     public void SetStatus(TodoTaskStatus status, DateTimeOffset now)
     {
+        if (!Enum.IsDefined(status))
+        {
+            throw new ArgumentOutOfRangeException(nameof(status), "Unknown task status.");
+        }
+
         if (Status == status)
         {
             return;

@@ -594,4 +594,118 @@
   <data name="MainNavigation" xml:space="preserve">
     <value>Main navigation</value>
   </data>
+  <data name="ErrorValidation" xml:space="preserve">
+    <value>Please check the entered values.</value>
+  </data>
+  <data name="ErrorNotFound" xml:space="preserve">
+    <value>The requested item was not found.</value>
+  </data>
+  <data name="ErrorConflict" xml:space="preserve">
+    <value>The change conflicts with a newer version. Reload and try again.</value>
+  </data>
+  <data name="ErrorConcurrency" xml:space="preserve">
+    <value>This task was changed in another tab or session. Reload and try again.</value>
+  </data>
+  <data name="ErrorForbidden" xml:space="preserve">
+    <value>You do not have access to this action.</value>
+  </data>
+  <data name="ErrorUnexpected" xml:space="preserve">
+    <value>Something went wrong. Please try again.</value>
+  </data>
+  <data name="ErrorInvalidTaskStatus" xml:space="preserve">
+    <value>The selected status is not valid.</value>
+  </data>
+  <data name="ErrorImportInvalid" xml:space="preserve">
+    <value>The file could not be imported. Check that it is a TodoList JSON export.</value>
+  </data>
+  <data name="ErrorRequired" xml:space="preserve">
+    <value>This field is required.</value>
+  </data>
+  <data name="ErrorTooLong" xml:space="preserve">
+    <value>This value is too long. Maximum length is {0}.</value>
+  </data>
+  <data name="ErrorInvalidEnum" xml:space="preserve">
+    <value>The selected value is not valid.</value>
+  </data>
+  <data name="ErrorInvalidColor" xml:space="preserve">
+    <value>Color must be a hex value such as #6B7280.</value>
+  </data>
+  <data name="ErrorOutOfRange" xml:space="preserve">
+    <value>The value must be between {0} and {1}.</value>
+  </data>
+  <data name="ErrorDueTimeRequiresDueDate" xml:space="preserve">
+    <value>A due time requires a due date.</value>
+  </data>
+  <data name="ErrorReminderRequiresDueDate" xml:space="preserve">
+    <value>A reminder requires a due date.</value>
+  </data>
+  <data name="ErrorRecurrenceRequiresDueDate" xml:space="preserve">
+    <value>A repeating task requires a due date.</value>
+  </data>
+  <data name="ErrorRecurrenceEndBeforeDue" xml:space="preserve">
+    <value>The repeat end date cannot be before the due date.</value>
+  </data>
+  <data name="ErrorTargetIndexInvalid" xml:space="preserve">
+    <value>The target position is not valid.</value>
+  </data>
+  <data name="ErrorInvalidCulture" xml:space="preserve">
+    <value>Culture must be one of: en, ru.</value>
+  </data>
+  <data name="ErrorInvalidTheme" xml:space="preserve">
+    <value>Theme must be one of: system, light, dark.</value>
+  </data>
+  <data name="ErrorInvalidTimeZone" xml:space="preserve">
+    <value>Time zone is not recognized.</value>
+  </data>
+  <data name="UnhandledError" xml:space="preserve">
+    <value>An unhandled error has occurred.</value>
+  </data>
+  <data name="Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="ErrorPageTitle" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="ErrorPageHeading" xml:space="preserve">
+    <value>Error.</value>
+  </data>
+  <data name="ErrorPageMessage" xml:space="preserve">
+    <value>An error occurred while processing your request.</value>
+  </data>
+  <data name="RequestIdLabel" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="DevelopmentModeHeading" xml:space="preserve">
+    <value>Development Mode</value>
+  </data>
+  <data name="DevelopmentModeBody" xml:space="preserve">
+    <value>Switching to the Development environment displays more detailed information about the error that occurred.</value>
+  </data>
+  <data name="DevelopmentModeWarning" xml:space="preserve">
+    <value>The Development environment must not be enabled for deployed applications because it can display sensitive exception details to users. For local debugging, set the ASPNETCORE_ENVIRONMENT environment variable to Development and restart the app.</value>
+  </data>
+  <data name="ReconnectRejoining" xml:space="preserve">
+    <value>Rejoining the server...</value>
+  </data>
+  <data name="ReconnectRetryPrefix" xml:space="preserve">
+    <value>Rejoin failed... trying again in</value>
+  </data>
+  <data name="ReconnectRetrySuffix" xml:space="preserve">
+    <value>seconds.</value>
+  </data>
+  <data name="ReconnectGiveUp" xml:space="preserve">
+    <value>Failed to rejoin. Please retry or reload the page.</value>
+  </data>
+  <data name="ReconnectRetry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ReconnectPaused" xml:space="preserve">
+    <value>The session has been paused by the server.</value>
+  </data>
+  <data name="ReconnectResumeFailed" xml:space="preserve">
+    <value>Failed to resume the session. Please retry or reload the page.</value>
+  </data>
+  <data name="ReconnectResume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
 </root>

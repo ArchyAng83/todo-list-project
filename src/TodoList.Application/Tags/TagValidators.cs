@@ -1,4 +1,5 @@
 using FluentValidation;
+using TodoList.Application.Common;
 using TodoList.Domain.Tags;
 
 namespace TodoList.Application.Tags;
@@ -9,11 +10,14 @@ public sealed class CreateTagRequestValidator : AbstractValidator<CreateTagReque
     {
         RuleFor(x => x.Name)
             .NotEmpty()
-            .MaximumLength(Tag.NameMaxLength);
+            .WithErrorCode(ValidationCodes.Required)
+            .MaximumLength(Tag.NameMaxLength)
+            .WithErrorCode(ValidationCodes.TooLong);
 
         RuleFor(x => x.Color)
             .Must(TagColors.IsValid)
             .When(x => !string.IsNullOrWhiteSpace(x.Color))
+            .WithErrorCode(ValidationCodes.InvalidColor)
             .WithMessage("Color must be a hex value such as #6B7280.");
     }
 }
@@ -24,11 +28,14 @@ public sealed class UpdateTagRequestValidator : AbstractValidator<UpdateTagReque
     {
         RuleFor(x => x.Name)
             .NotEmpty()
-            .MaximumLength(Tag.NameMaxLength);
+            .WithErrorCode(ValidationCodes.Required)
+            .MaximumLength(Tag.NameMaxLength)
+            .WithErrorCode(ValidationCodes.TooLong);
 
         RuleFor(x => x.Color)
             .Must(TagColors.IsValid)
             .When(x => !string.IsNullOrWhiteSpace(x.Color))
+            .WithErrorCode(ValidationCodes.InvalidColor)
             .WithMessage("Color must be a hex value such as #6B7280.");
     }
 }

@@ -126,6 +126,13 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
             return null;
         }
 
+        // The xmin token lives as a shadow property, so it is read with a small
+        // projection instead of being carried by the tracked entity.
+        var version = await db.Tasks
+            .Where(candidate => candidate.Id == taskId && candidate.UserId == user.UserId)
+            .Select(candidate => EF.Property<uint>(candidate, "xmin"))
+            .SingleAsync(cancellationToken);
+
         return new TaskDetails(
             task.Id,
             task.Title,
@@ -153,7 +160,8 @@ public sealed class TaskQueries(IAppDbContext db, TimeProvider timeProvider)
             task.Tags
                 .OrderBy(link => link.Tag.Name)
                 .Select(link => new TagRef(link.TagId, link.Tag.Name, link.Tag.Color))
-                .ToList());
+                .ToList(),
+            version);
     }
 
     private static readonly Expression<Func<TodoTask, TaskListItem>> ToListItem = task => new TaskListItem(

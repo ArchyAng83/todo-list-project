@@ -65,14 +65,15 @@ public static class AuthEndpoints
         RefreshBody body,
         IOptionsMonitor<BearerTokenOptions> optionsMonitor,
         SignInManager<ApplicationUser> signInManager,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        TimeProvider timeProvider)
     {
         var options = optionsMonitor.Get(IdentityConstants.BearerScheme);
         var ticket = options.RefreshTokenProtector.Unprotect(body.RefreshToken);
 
         if (ticket?.Principal is null
             || ticket.Properties.ExpiresUtc is not { } expiresUtc
-            || DateTimeOffset.UtcNow >= expiresUtc)
+            || timeProvider.GetUtcNow() >= expiresUtc)
         {
             return Unauthorized();
         }

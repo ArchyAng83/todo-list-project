@@ -2,6 +2,7 @@
 @inject ICurrentUserProvider CurrentUser
 @inject ISnackbar Snackbar
 @inject IStringLocalizer<SharedResource> L
+@inject ErrorLocalizer Errors
 
 <MudDialog>
     <TitleContent>
@@ -127,7 +128,7 @@
 
             if (result.IsFailure)
             {
-                _error = result.Error.Message;
+                _error = Errors.Describe(result.Error);
                 return;
             }
 

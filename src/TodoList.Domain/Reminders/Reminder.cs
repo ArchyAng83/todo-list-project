@@ -2,6 +2,11 @@ namespace TodoList.Domain.Reminders;
 
 public sealed class Reminder
 {
+    /// <summary>
+    /// Delivery attempts before a reminder is treated as permanently failed.
+    /// </summary>
+    public const int MaxAttempts = 5;
+
     private Reminder()
     {
         // Required by EF Core.
@@ -56,12 +61,29 @@ public sealed class Reminder
         LastError = null;
     }
 
-    public void MarkFailed(string error)
+    /// <summary>
+    /// Records a failed attempt. Transient failures keep the reminder pending
+    /// with an exponential back-off so the dispatcher picks it up again; the
+    /// reminder becomes terminal <see cref="ReminderStatus.Failed"/> only after
+    /// <see cref="MaxAttempts"/> attempts.
+    /// </summary>
+    public void MarkFailed(string error, DateTimeOffset now)
     {
-        Status = ReminderStatus.Failed;
-        Attempts++;
         LastError = error;
+        Attempts++;
+
+        if (Attempts >= MaxAttempts)
+        {
+            Status = ReminderStatus.Failed;
+            return;
+        }
+
+        Status = ReminderStatus.Pending;
+        ScheduledAtUtc = now.Add(RetryDelay(Attempts));
     }
+
+    private static TimeSpan RetryDelay(int attempt)
+        => TimeSpan.FromMinutes(Math.Min(60, Math.Pow(2, attempt - 1)));
 
     public void Cancel()
     {

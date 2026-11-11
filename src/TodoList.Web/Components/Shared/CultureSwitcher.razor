@@ -1,6 +1,7 @@
 @inject NavigationManager Navigation
+@inject IStringLocalizer<SharedResource> L
 
-<nav class="culture-switcher" aria-label="Language">
+<nav class="culture-switcher" aria-label="@L["Language"]">
     <a href="@BuildUrl("en")" class="culture-link @(IsCurrent("en") ? "is-active" : null)">EN</a>
     <a href="@BuildUrl("ru")" class="culture-link @(IsCurrent("ru") ? "is-active" : null)">RU</a>
 </nav>

@@ -78,6 +78,11 @@ public sealed class TaskService(
             return Result.Failure(Error.NotFound("Task was not found."));
         }
 
+        if (IsStale(task, request.Version))
+        {
+            return Result.Failure(ConcurrencyConflict());
+        }
+
         var now = timeProvider.GetUtcNow();
         task.Rename(request.Title, now);
         task.SetNotes(request.Notes, now);
@@ -92,8 +97,113 @@ public sealed class TaskService(
             now);
 
         await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+
+        return await SaveAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Applies every change the task dialog makes — details, the status
+    /// transition, and the tag set — in one <c>SaveChangesAsync</c> so a failure
+    /// cannot leave the task half-updated.
+    /// </summary>
+    public async Task<Result> UpdateDetailsAsync(
+        UserContext user,
+        Guid taskId,
+        UpdateTaskDetailsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        if (!Enum.IsDefined(request.Status))
+        {
+            return Result.Failure(Error.Validation(
+                ErrorCodes.InvalidTaskStatus,
+                "Unknown task status."));
+        }
+
+        var validation = await updateValidator.ValidateAsync(request.Details, cancellationToken);
+
+        if (!validation.IsValid)
+        {
+            return Result.Failure(ValidationErrors.From(validation));
+        }
+
+        if (!await ProjectBelongsToUserAsync(user, request.Details.ProjectId, cancellationToken))
+        {
+            return Result.Failure(Error.NotFound("Project was not found."));
+        }
+
+        var task = await FindWithStructureAsync(user, taskId, cancellationToken);
+
+        if (task is null)
+        {
+            return Result.Failure(Error.NotFound("Task was not found."));
+        }
+
+        if (IsStale(task, request.Details.Version))
+        {
+            return Result.Failure(ConcurrencyConflict());
+        }
+
+        var tagIds = request.TagIds.Distinct().ToList();
+        var tags = tagIds.Count == 0
+            ? []
+            : await db.Tags
+                .Where(tag => tag.UserId == user.UserId && tagIds.Contains(tag.Id))
+                .ToListAsync(cancellationToken);
+
+        if (tags.Count != tagIds.Count)
+        {
+            return Result.Failure(Error.NotFound("Tag was not found."));
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var details = request.Details;
+
+        task.Rename(details.Title, now);
+        task.SetNotes(details.Notes, now);
+        task.MoveToProject(details.ProjectId, now);
+        task.SetPriority(details.Priority, now);
+        task.SetDueDate(details.DueDate, details.DueTime, now);
+        task.SetReminder(details.ReminderOffsetMinutes, now);
+        task.SetRecurrence(
+            details.Recurrence,
+            details.RecurrenceInterval,
+            details.RecurrenceEndDate,
+            now);
+
+        // Tags are applied before the status transition so a generated next
+        // occurrence copies the new tag set instead of the old one.
+        foreach (var link in task.Tags.Where(link => !tagIds.Contains(link.TagId)).ToList())
+        {
+            task.RemoveTag(link.TagId, now);
+        }
+
+        foreach (var tag in tags.Where(tag => task.Tags.All(link => link.TagId != tag.Id)))
+        {
+            task.AddTag(tag, now);
+        }
+
+        var previousStatus = task.Status;
+
+        if (previousStatus != request.Status)
+        {
+            task.SetStatus(request.Status, now);
+
+            if (previousStatus != TodoTaskStatus.Done && request.Status == TodoTaskStatus.Done)
+            {
+                var next = GenerateNextOccurrence(task, now);
+
+                if (next is not null)
+                {
+                    await reminderScheduler.ReconcileAsync(next, user, cancellationToken);
+                }
+            }
+        }
+
+        await reminderScheduler.ReconcileAsync(task, user, cancellationToken);
+
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> SetStatusAsync(
@@ -102,6 +212,13 @@ public sealed class TaskService(
         TodoTaskStatus status,
         CancellationToken cancellationToken = default)
     {
+        if (!Enum.IsDefined(status))
+        {
+            return Result.Failure(Error.Validation(
+                ErrorCodes.InvalidTaskStatus,
+                "Unknown task status."));
+        }
+
         var task = await FindWithStructureAsync(user, taskId, cancellationToken);
 
         if (task is null)
@@ -124,9 +241,7 @@ public sealed class TaskService(
             await reminderScheduler.ReconcileAsync(next, user, cancellationToken);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> MoveAsync(
@@ -191,9 +306,7 @@ public sealed class TaskService(
             await reminderScheduler.ReconcileAsync(next, user, cancellationToken);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> DeleteAsync(
@@ -209,9 +322,7 @@ public sealed class TaskService(
         }
 
         db.Tasks.Remove(task);
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result<Guid>> AddChecklistItemAsync(
@@ -236,9 +347,10 @@ public sealed class TaskService(
 
         var item = task.AddChecklistItem(request.Title, timeProvider.GetUtcNow());
         db.ChecklistItems.Add(item);
-        await db.SaveChangesAsync(cancellationToken);
 
-        return Result.Success(item.Id);
+        var saved = await SaveAsync(cancellationToken);
+
+        return saved.IsFailure ? Result.Failure<Guid>(saved.Error) : Result.Success(item.Id);
     }
 
     public async Task<Result> SetChecklistItemCompletedAsync(
@@ -263,9 +375,7 @@ public sealed class TaskService(
         }
 
         item.SetCompleted(request.IsCompleted, timeProvider.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> RemoveChecklistItemAsync(
@@ -287,9 +397,7 @@ public sealed class TaskService(
         }
 
         task.RemoveChecklistItem(checklistItemId, timeProvider.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> AddTagAsync(
@@ -322,9 +430,7 @@ public sealed class TaskService(
         }
 
         task.AddTag(tag, timeProvider.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await SaveAsync(cancellationToken);
     }
 
     public async Task<Result> RemoveTagAsync(
@@ -341,9 +447,28 @@ public sealed class TaskService(
         }
 
         task.RemoveTag(tagId, timeProvider.GetUtcNow());
-        await db.SaveChangesAsync(cancellationToken);
+        return await SaveAsync(cancellationToken);
+    }
 
-        return Result.Success();
+    private static Error ConcurrencyConflict()
+        => Error.Conflict(
+            ErrorCodes.ConcurrencyConflict,
+            "The task was changed by another session. Reload it and try again.");
+
+    private bool IsStale(TodoTask task, uint? expectedVersion)
+        => expectedVersion is { } expected && db.GetVersion(task) != expected;
+
+    private async Task<Result> SaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(ConcurrencyConflict());
+        }
     }
 
     private static void Renumber(IReadOnlyList<TodoTask> tasks, DateTimeOffset now)

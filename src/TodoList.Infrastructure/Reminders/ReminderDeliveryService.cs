@@ -15,10 +15,11 @@ namespace TodoList.Infrastructure.Reminders;
 
 /// <summary>
 /// Delivers due reminders from the database-backed outbox. A reminder is
-/// marked <see cref="ReminderStatus.Sent"/> only after the sender succeeds;
-/// failed sends become terminal <see cref="ReminderStatus.Failed"/> records
-/// with the error message, which keeps delivery at-least-once for the retry
-/// phase to build on later.
+/// marked <see cref="ReminderStatus.Sent"/> only after the sender succeeds.
+/// Transient failures reschedule the same reminder with an exponential
+/// back-off (so delivery is at-least-once), and only
+/// <see cref="Reminder.MaxAttempts"/> consecutive failures make it terminal
+/// <see cref="ReminderStatus.Failed"/>.
 /// </summary>
 public sealed class ReminderDeliveryService(
     AppDbContext db,
@@ -87,7 +88,7 @@ public sealed class ReminderDeliveryService(
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                reminder.MarkFailed(Truncate(exception.Message));
+                reminder.MarkFailed(Truncate(exception.Message), now);
                 logger.LogError(
                     exception,
                     "Reminder {ReminderId} for task {TaskId} could not be sent.",

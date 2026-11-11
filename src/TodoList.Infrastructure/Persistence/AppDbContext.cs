@@ -25,6 +25,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Reminder> Reminders => Set<Reminder>();
 
+    public uint GetVersion<TEntity>(TEntity entity)
+        where TEntity : class
+        => Entry(entity).Property<uint>("xmin").CurrentValue;
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

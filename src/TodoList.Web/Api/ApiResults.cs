@@ -6,10 +6,12 @@ public static class ApiResults
 {
     public static IResult FromError(Error error) => error.Code switch
     {
-        "not_found" => Results.NotFound(new ProblemResponse(error.Message)),
-        "conflict" => Results.Conflict(new ProblemResponse(error.Message)),
-        "validation" => Results.BadRequest(new ProblemResponse(error.Message)),
-        "forbidden" => Results.Forbid(),
+        ErrorCodes.NotFound => Results.NotFound(new ProblemResponse(error.Message)),
+        ErrorCodes.Conflict or ErrorCodes.ConcurrencyConflict =>
+            Results.Conflict(new ProblemResponse(error.Message)),
+        ErrorCodes.Validation or ErrorCodes.InvalidTaskStatus or ErrorCodes.ImportInvalid =>
+            Results.BadRequest(new ProblemResponse(error.Message)),
+        ErrorCodes.Forbidden => Results.Forbid(),
         _ => Results.Problem(error.Message, statusCode: StatusCodes.Status500InternalServerError)
     };
 }

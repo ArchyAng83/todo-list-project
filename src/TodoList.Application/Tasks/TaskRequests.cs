@@ -25,7 +25,18 @@ public sealed record UpdateTaskRequest(
     int? ReminderOffsetMinutes,
     RecurrenceFrequency Recurrence = RecurrenceFrequency.None,
     int RecurrenceInterval = 1,
-    DateOnly? RecurrenceEndDate = null);
+    DateOnly? RecurrenceEndDate = null,
+    uint? Version = null);
+
+/// <summary>
+/// Saves every field the task dialog edits in one use case: the task details,
+/// the status transition (including the next recurrence), and the tag set. A
+/// single <c>SaveChangesAsync</c> keeps the change atomic.
+/// </summary>
+public sealed record UpdateTaskDetailsRequest(
+    UpdateTaskRequest Details,
+    TodoTaskStatus Status,
+    IReadOnlyList<Guid> TagIds);
 
 public sealed record AddChecklistItemRequest(string Title);
 

@@ -36,7 +36,8 @@ public sealed record TaskDetails(
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt,
     IReadOnlyList<ChecklistItemDto> ChecklistItems,
-    IReadOnlyList<TagRef> Tags);
+    IReadOnlyList<TagRef> Tags,
+    uint Version);
 
 public sealed record TaskBoardColumn(TodoTaskStatus Status, IReadOnlyList<TaskListItem> Tasks);
 

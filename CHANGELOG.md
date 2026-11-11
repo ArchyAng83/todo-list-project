@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Reminder times convert the user's local due date/time to UTC and default date-only tasks to 09:00 local.
 - Task edits reconcile the reminder outbox in the same `SaveChangesAsync`, and the demo seed persists reminders and a recurring "Weekly planning" task.
 - Integration and E2E tests set `Reminders:Enabled=false` so background delivery stays deterministic.
+- Each Playwright journey registers its own user and seeds data through `/api/v1` instead of sharing the demo account, so journeys no longer depend on execution order.
 
 ### Fixed
 

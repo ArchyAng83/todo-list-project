@@ -1,6 +1,6 @@
 # Follow-up Backlog — Post-Review Items
 
-Branch: `main` | Created: 2026-11-11 | Status: In Progress — 1 of 4 done
+Branch: `main` | Created: 2026-11-11 | Status: In Progress — 2 of 4 done
 
 ## Context
 
@@ -15,7 +15,7 @@ English is canonical; `backlog.ru.md` is the paired translation.
 | ID | Title | Priority | Area | Status |
 |----|-------|----------|------|--------|
 | B1 | Rate limiting for authentication endpoints | P2 | Security | ✅ Done |
-| B2 | Isolate E2E tests from shared demo state | P2 | Testing | ⬜ Open |
+| B2 | Isolate E2E tests from shared demo state | P2 | Testing | ✅ Done |
 | B3 | Deterministic time in reminder tests | P3 | Testing | ⬜ Open |
 | B4 | Record the shared integration-database decision | P3 | Testing / docs | ⬜ Open |
 
@@ -80,6 +80,17 @@ depends on execution order and cannot be parallelised safely.
 - Each E2E test creates and owns its user and data.
 - Tests pass in any order and with xUnit parallelisation enabled per collection.
 - No test asserts on data created by another test.
+
+**Status:** ✅ Done
+**Commit:** `_pending_`
+
+**Implementation.** `E2EFixture.CreateUserAsync()` registers a unique
+`e2e-{guid}@example.com` through the real registration form, keeps the browser
+context signed in, and returns a `TestUser` with a bearer-authenticated
+`HttpClient`. Journeys seed only the tasks they assert on through
+`POST /api/v1/tasks` (due dates, recurrence) and share navigation helpers from
+`Pages`. The demo account is still seeded at startup so a broken seeder fails the
+suite and the container stays usable by hand, but no test asserts on its data.
 
 ## B3 — Deterministic time in reminder tests
 

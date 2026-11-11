@@ -9,6 +9,8 @@ namespace TodoList.E2ETests;
 [Collection(E2ECollection.Name)]
 public sealed class UserJourneyTests(E2EFixture fixture)
 {
+    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.UtcNow);
+
     [Fact]
     public async Task AnonymousVisitor_OpensLoginPageFromLandingPage()
     {
@@ -30,12 +32,21 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     }
 
     [Fact]
-    public async Task DemoUser_SignsIn_AndSeesSeededTasks()
+    public async Task Login_ValidCredentials_OpensEmptyTaskList()
     {
+        await using var user = await fixture.CreateUserAsync();
         await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        var page = await context.NewPageAsync();
 
-        await Expect(page.GetByText("Write portfolio case study")).ToBeVisibleAsync();
+        await page.GotoAsync("/account/login");
+        await page.Locator("#email").FillAsync(user.Email);
+        await page.Locator("#password").FillAsync(user.Password);
+        await page.Locator("button[type=submit]").ClickAsync();
+
+        await Expect(page).ToHaveURLAsync(new Regex("/tasks$"), new() { Timeout = 30_000 });
+        await Pages.WaitForBlazorAsync(page);
+
+        await Expect(page.GetByText("No tasks yet")).ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Today", Exact = true }))
             .ToBeVisibleAsync();
         await Expect(page.GetByRole(AriaRole.Button, new() { Name = "Upcoming", Exact = true }))
@@ -43,10 +54,10 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     }
 
     [Fact]
-    public async Task DemoUser_QuickAddsTask_AndSeesItInTheList()
+    public async Task QuickAdd_CreatesTask_AndShowsItInTheList()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        var page = await Pages.OpenTasksAsync(user.Context);
         var title = $"E2E task {Guid.NewGuid():N}";
 
         await page.GetByPlaceholder("Add a task and press Add").FillAsync(title);
@@ -58,8 +69,11 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task Search_FiltersTasksByName()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        await user.AddTaskAsync("Buy groceries");
+        await user.AddTaskAsync("Write portfolio case study");
+
+        var page = await Pages.OpenTasksAsync(user.Context);
 
         await page.GetByLabel("Search tasks").FillAsync("groceries");
 
@@ -70,27 +84,27 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task TodayView_ShowsOnlyTasksDueToday()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        await user.AddTaskAsync("Today task", Today);
+        await user.AddTaskAsync("Later task", Today.AddDays(3));
+
+        var page = await Pages.OpenTasksAsync(user.Context);
 
         await page.GetByRole(AriaRole.Button, new() { Name = "Today", Exact = true }).ClickAsync();
 
-        await Expect(page.GetByText("Write portfolio case study")).ToBeVisibleAsync();
-        await Expect(page.GetByText("Read the ASP.NET Core docs")).ToHaveCountAsync(0);
+        await Expect(page.GetByText("Today task")).ToBeVisibleAsync();
+        await Expect(page.GetByText("Later task")).ToHaveCountAsync(0);
     }
 
     [Fact]
     public async Task Board_MovesCardWithTheMenu_AndPersistsAfterReload()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
         var title = $"E2E board {Guid.NewGuid():N}";
+        await user.AddTaskAsync(title);
 
-        await page.GetByPlaceholder("Add a task and press Add").FillAsync(title);
-        await page.GetByRole(AriaRole.Button, new() { Name = "Add task" }).ClickAsync();
-        await Expect(page.GetByText(title)).ToBeVisibleAsync();
-
-        await OpenBoardAsync(page);
+        var page = await Pages.OpenTasksAsync(user.Context);
+        await Pages.OpenBoardAsync(page);
 
         var card = page.Locator(".board-card").Filter(new() { HasTextString = title });
 
@@ -113,11 +127,12 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task Board_DragsCardToAnotherColumn_AndPersistsAfterReload()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
-        const string title = "Plan the weekly review";
+        await using var user = await fixture.CreateUserAsync();
+        var title = $"E2E drag {Guid.NewGuid():N}";
+        await user.AddTaskAsync(title);
 
-        await OpenBoardAsync(page);
+        var page = await Pages.OpenTasksAsync(user.Context);
+        await Pages.OpenBoardAsync(page);
 
         var source = page
             .Locator(".board-column[data-status='Todo'] .board-card")
@@ -136,28 +151,29 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     }
 
     [Fact]
-    public async Task Calendar_ShowsTasksOnTheirDueDates()
+    public async Task Calendar_ShowsTaskOnItsDueDate()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        var title = $"E2E calendar {Guid.NewGuid():N}";
+        await user.AddTaskAsync(title, Today);
 
-        await OpenCalendarAsync(page);
+        var page = await Pages.OpenTasksAsync(user.Context);
+
+        await Pages.OpenCalendarAsync(page);
 
         var today = page.Locator(".calendar-day.is-today");
 
         await Expect(today).ToHaveCountAsync(1);
-        await Expect(today.GetByText("Buy groceries")).ToBeVisibleAsync();
-        await Expect(today.GetByText("Write portfolio case study")).ToBeVisibleAsync();
-        await Expect(page.GetByText("Read the ASP.NET Core docs")).ToBeVisibleAsync();
+        await Expect(today.GetByText(title)).ToBeVisibleAsync();
     }
 
     [Fact]
     public async Task Calendar_NavigatesBetweenMonths()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        var page = await Pages.OpenTasksAsync(user.Context);
 
-        await OpenCalendarAsync(page);
+        await Pages.OpenCalendarAsync(page);
 
         var title = page.Locator(".calendar-month");
         var initial = (await title.TextContentAsync())!.Trim();
@@ -172,10 +188,10 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task Calendar_CreatesTaskOnClickedDay_AndPersistsAfterReload()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        var page = await Pages.OpenTasksAsync(user.Context);
 
-        await OpenCalendarAsync(page);
+        await Pages.OpenCalendarAsync(page);
 
         var title = $"E2E calendar {Guid.NewGuid():N}";
         var day = page.Locator(".calendar-day.is-today");
@@ -217,8 +233,10 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task RecurringTask_CompletingIt_CreatesTheNextOccurrence()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        await user.AddTaskAsync("Weekly planning", Today, recurrence: "Weekly");
+
+        var page = await Pages.OpenTasksAsync(user.Context);
 
         var rows = page.Locator(".task-row").Filter(new() { HasTextString = "Weekly planning" });
 
@@ -237,10 +255,12 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task DataPage_ExportsJsonAndCsv()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        await user.AddTaskAsync("Export me");
 
-        await OpenDataAsync(page);
+        var page = await Pages.OpenTasksAsync(user.Context);
+
+        await Pages.OpenDataAsync(page);
 
         var jsonDownload = await page.RunAndWaitForDownloadAsync(
             () => page.GetByRole(AriaRole.Button, new() { Name = "Download JSON" }).ClickAsync());
@@ -272,10 +292,10 @@ public sealed class UserJourneyTests(E2EFixture fixture)
     [Fact]
     public async Task DataPage_ImportsJsonAndShowsTheTask()
     {
-        await using var context = await fixture.NewContextAsync();
-        var page = await SignInAsync(context);
+        await using var user = await fixture.CreateUserAsync();
+        var page = await Pages.OpenTasksAsync(user.Context);
 
-        await OpenDataAsync(page);
+        await Pages.OpenDataAsync(page);
 
         var title = $"E2E import {Guid.NewGuid():N}";
         var importPath = Path.Combine(
@@ -326,54 +346,4 @@ public sealed class UserJourneyTests(E2EFixture fixture)
             File.Delete(importPath);
         }
     }
-
-    private static async Task OpenDataAsync(IPage page)
-    {
-        await page.GetByRole(AriaRole.Link, new() { Name = "Data", Exact = true }).ClickAsync();
-        await Expect(page).ToHaveURLAsync(new Regex("/data$"));
-        await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Data" }))
-            .ToBeVisibleAsync();
-        await WaitForBlazorAsync(page);
-    }
-
-    private static async Task OpenBoardAsync(IPage page)
-    {
-        await page.GetByRole(AriaRole.Link, new() { Name = "Board", Exact = true }).ClickAsync();
-        await Expect(page).ToHaveURLAsync(new Regex("/board$"));
-        await Expect(page.Locator(".board-card").First).ToBeVisibleAsync();
-    }
-
-    private static async Task OpenCalendarAsync(IPage page)
-    {
-        await page.GetByRole(AriaRole.Link, new() { Name = "Calendar", Exact = true }).ClickAsync();
-        await Expect(page).ToHaveURLAsync(new Regex("/calendar$"));
-        await Expect(page.Locator(".calendar-day").First).ToBeVisibleAsync();
-    }
-
-    private static async Task<IPage> SignInAsync(IBrowserContext context)
-    {
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync("/account/login");
-        await page.Locator("#email").FillAsync("demo@todolist.local");
-        await page.Locator("#password").FillAsync("DemoPass123");
-        await page.Locator("button[type=submit]").ClickAsync();
-
-        await Expect(page).ToHaveURLAsync(new Regex("/tasks$"), new() { Timeout = 30_000 });
-
-        // The prerendered HTML is fully clickable before the Blazor Server circuit
-        // takes over, and a click in that window submits the quick-add form
-        // natively. Blazor marks elements with event handlers using `_bl_*`
-        // attributes, so wait for the quick-add button to become interactive.
-        await WaitForBlazorAsync(page);
-
-        return page;
-    }
-
-    private static Task WaitForBlazorAsync(IPage page)
-        => page.WaitForFunctionAsync(
-            "() => [...document.querySelectorAll('button')]"
-            + ".some(button => [...button.attributes].some(attribute => attribute.name.startsWith('_bl_')))",
-            null,
-            new PageWaitForFunctionOptions { Timeout = 30_000 });
 }

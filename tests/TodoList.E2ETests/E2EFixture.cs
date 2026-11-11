@@ -48,6 +48,25 @@ public sealed class E2EFixture : IAsyncLifetime
             ViewportSize = new ViewportSize { Width = 1280, Height = 800 }
         });
 
+    /// <summary>
+    /// Registers a user for a single journey and returns it signed in, together
+    /// with a bearer-authenticated API client for seeding data.
+    /// </summary>
+    public async Task<TestUser> CreateUserAsync()
+    {
+        var context = await NewContextAsync();
+
+        try
+        {
+            return await TestUser.RegisterAsync(this, context);
+        }
+        catch
+        {
+            await context.DisposeAsync();
+            throw;
+        }
+    }
+
     public async Task DisposeAsync()
     {
         if (Browser is not null)
@@ -103,6 +122,9 @@ public sealed class E2EFixture : IAsyncLifetime
 
         startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Development";
         startInfo.Environment["ConnectionStrings__Default"] = _postgres.ConnectionString;
+        // Journeys register their own users; seeding stays on so a broken seeder
+        // still fails the suite at startup and the demo account remains usable
+        // for manual evaluation of the container.
         startInfo.Environment["Seed__Demo"] = "true";
         startInfo.Environment["Reminders__Enabled"] = "false";
 

@@ -161,8 +161,205 @@ public sealed class DataTransferTests(TodoListAppFixture fixture)
         var result = await service.ImportAsync(user, document);
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("validation");
+        result.Error.Code.ShouldBe("import_invalid");
         result.Error.Message.ShouldContain("Unsupported export version");
+        (await service.ExportAsync(user)).Tasks.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_InvalidProjectColor_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Projects =
+            [
+                new ExportProject(
+                    Guid.CreateVersion7(),
+                    "Work",
+                    "not-a-color",
+                    false,
+                    0)
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("invalid_color");
+        result.Error.Message.ShouldContain("hex");
+        (await service.ExportAsync(user)).Projects.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_EmptyProjectName_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Projects =
+            [
+                new ExportProject(
+                    Guid.CreateVersion7(),
+                    "   ",
+                    "#4F46E5",
+                    false,
+                    0)
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("required");
+        (await service.ExportAsync(user)).Projects.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_InvalidTagColor_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Tags =
+            [
+                new ExportTag(Guid.CreateVersion7(), "urgent", "invalid")
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("invalid_color");
+        result.Error.Message.ShouldContain("hex");
+        (await service.ExportAsync(user)).Tags.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_EmptyTaskTitle_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Tasks =
+            [
+                new ExportTask(
+                    Guid.CreateVersion7(),
+                    null,
+                    "",
+                    null,
+                    TodoTaskStatus.Todo,
+                    TaskPriority.None,
+                    null,
+                    null,
+                    null,
+                    RecurrenceFrequency.None,
+                    1,
+                    null,
+                    0,
+                    ImportedCreatedAt,
+                    null,
+                    [],
+                    [])
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("required");
+        result.Error.Message.ShouldContain("title");
+        (await service.ExportAsync(user)).Tasks.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_InvalidTaskStatus_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Tasks =
+            [
+                new ExportTask(
+                    Guid.CreateVersion7(),
+                    null,
+                    "Bad status task",
+                    null,
+                    (TodoTaskStatus)99,
+                    TaskPriority.None,
+                    null,
+                    null,
+                    null,
+                    RecurrenceFrequency.None,
+                    1,
+                    null,
+                    0,
+                    ImportedCreatedAt,
+                    null,
+                    [],
+                    [])
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("invalid_enum");
+        result.Error.Message.ShouldContain("status");
+        (await service.ExportAsync(user)).Tasks.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Import_TaskWithoutDueDateButWithReminder_ReturnsValidationFailure()
+    {
+        var user = await CreateUserContextAsync();
+        var document = CreateDocument() with
+        {
+            Tasks =
+            [
+                new ExportTask(
+                    Guid.CreateVersion7(),
+                    null,
+                    "Reminder without date",
+                    null,
+                    TodoTaskStatus.Todo,
+                    TaskPriority.None,
+                    null,
+                    null,
+                    15,
+                    RecurrenceFrequency.None,
+                    1,
+                    null,
+                    0,
+                    ImportedCreatedAt,
+                    null,
+                    [],
+                    [])
+            ]
+        };
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var service = scope.ServiceProvider.GetRequiredService<DataTransferService>();
+
+        var result = await service.ImportAsync(user, document);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Code.ShouldBe("reminder_requires_due_date");
         (await service.ExportAsync(user)).Tasks.ShouldBeEmpty();
     }
 

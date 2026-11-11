@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.EntityFrameworkCore;
 using TodoList.Application.Common;
 using TodoList.Application.Persistence;
@@ -153,6 +155,7 @@ public sealed class DataTransferService(
         if (document.Version != ExportDocument.CurrentVersion)
         {
             return Result.Failure<ImportSummary>(Error.Validation(
+                ErrorCodes.ImportInvalid,
                 $"Unsupported export version {document.Version}. "
                 + $"The supported version is {ExportDocument.CurrentVersion}."));
         }
@@ -160,16 +163,26 @@ public sealed class DataTransferService(
         if (document.Projects is null || document.Tags is null || document.Tasks is null)
         {
             return Result.Failure<ImportSummary>(Error.Validation(
+                ErrorCodes.ImportInvalid,
                 "The document must contain projects, tags, and tasks arrays."));
+        }
+
+        var validation = ValidateImportDocument(document);
+
+        if (!validation.IsValid)
+        {
+            return Result.Failure<ImportSummary>(ValidationErrors.From(validation));
         }
 
         try
         {
             return await ImportCoreAsync(user, document, cancellationToken);
         }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+        catch (Exception exception) when (exception is
+            ArgumentException or InvalidOperationException or DbUpdateException)
         {
             return Result.Failure<ImportSummary>(Error.Validation(
+                ErrorCodes.ImportInvalid,
                 $"Import failed: {exception.Message}"));
         }
     }
@@ -353,5 +366,160 @@ public sealed class DataTransferService(
             tagsReused,
             document.Tasks.Count,
             checklistItemsCreated));
+    }
+
+    /// <summary>
+    /// Validates every imported project, tag, and task <i>before</i> any entity
+    /// is added to the change tracker, so a bad document fails fast with a
+    /// single 400 instead of leaving a partially applied import or surfacing a
+    /// 500 from EF Core.
+    /// </summary>
+    private static ValidationResult ValidateImportDocument(ExportDocument document)
+    {
+        var errors = new List<ValidationFailure>();
+
+        for (var i = 0; i < document.Projects.Count; i++)
+        {
+            var project = document.Projects[i];
+            var prefix = $"Projects[{i}]";
+
+            if (string.IsNullOrWhiteSpace(project.Name))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Name", "Project name is required.")
+                { ErrorCode = ValidationCodes.Required });
+            }
+            else if (project.Name.Trim().Length > Project.NameMaxLength)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Name",
+                    $"Project name cannot exceed {Project.NameMaxLength} characters.")
+                { ErrorCode = ValidationCodes.TooLong });
+            }
+
+            if (!string.IsNullOrWhiteSpace(project.Color) && !IsValidHexColor(project.Color))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Color",
+                    "Color must be a hex value such as #6B7280.")
+                { ErrorCode = ValidationCodes.InvalidColor });
+            }
+        }
+
+        for (var i = 0; i < document.Tags.Count; i++)
+        {
+            var tag = document.Tags[i];
+            var prefix = $"Tags[{i}]";
+
+            if (string.IsNullOrWhiteSpace(tag.Name))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Name", "Tag name is required.")
+                { ErrorCode = ValidationCodes.Required });
+            }
+            else if (tag.Name.Trim().Length > Tag.NameMaxLength)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Name",
+                    $"Tag name cannot exceed {Tag.NameMaxLength} characters.")
+                { ErrorCode = ValidationCodes.TooLong });
+            }
+
+            if (!string.IsNullOrWhiteSpace(tag.Color) && !IsValidHexColor(tag.Color))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Color",
+                    "Color must be a hex value such as #6B7280.")
+                { ErrorCode = ValidationCodes.InvalidColor });
+            }
+        }
+
+        for (var i = 0; i < document.Tasks.Count; i++)
+        {
+            var task = document.Tasks[i];
+            var prefix = $"Tasks[{i}]";
+
+            if (string.IsNullOrWhiteSpace(task.Title))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Title", "Task title is required.")
+                { ErrorCode = ValidationCodes.Required });
+            }
+            else if (task.Title.Trim().Length > TodoTask.TitleMaxLength)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Title",
+                    $"Task title cannot exceed {TodoTask.TitleMaxLength} characters.")
+                { ErrorCode = ValidationCodes.TooLong });
+            }
+
+            if (!Enum.IsDefined(task.Status))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Status", "Unknown task status.")
+                { ErrorCode = ValidationCodes.InvalidEnum });
+            }
+
+            if (!Enum.IsDefined(task.Priority))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Priority", "Unknown task priority.")
+                { ErrorCode = ValidationCodes.InvalidEnum });
+            }
+
+            if (!Enum.IsDefined(task.Recurrence))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Recurrence", "Unknown recurrence frequency.")
+                { ErrorCode = ValidationCodes.InvalidEnum });
+            }
+
+            if (task.DueTime is not null && task.DueDate is null)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.DueTime", "A due time requires a due date.")
+                { ErrorCode = ValidationCodes.DueTimeRequiresDueDate });
+            }
+
+            if (task.ReminderOffsetMinutes is not null
+                && (task.ReminderOffsetMinutes < 0 || task.ReminderOffsetMinutes > TodoTask.MaxReminderOffsetMinutes))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.ReminderOffsetMinutes",
+                    $"Reminder offset must be between 0 and {TodoTask.MaxReminderOffsetMinutes} minutes.")
+                { ErrorCode = ValidationCodes.OutOfRange });
+            }
+
+            if (task.ReminderOffsetMinutes is not null && task.DueDate is null)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.ReminderOffsetMinutes", "A reminder requires a due date.")
+                { ErrorCode = ValidationCodes.ReminderRequiresDueDate });
+            }
+
+            if (task.Recurrence != RecurrenceFrequency.None && task.DueDate is null)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.Recurrence", "A recurring task requires a due date.")
+                { ErrorCode = ValidationCodes.RecurrenceRequiresDueDate });
+            }
+
+            if (task.Recurrence != RecurrenceFrequency.None
+                && (task.RecurrenceInterval < 1 || task.RecurrenceInterval > TodoTask.MaxRecurrenceInterval))
+            {
+                errors.Add(new ValidationFailure($"{prefix}.RecurrenceInterval",
+                    $"Recurrence interval must be between 1 and {TodoTask.MaxRecurrenceInterval}.")
+                { ErrorCode = ValidationCodes.OutOfRange });
+            }
+
+            if (task.RecurrenceEndDate is not null && task.DueDate is not null
+                && task.RecurrenceEndDate < task.DueDate)
+            {
+                errors.Add(new ValidationFailure($"{prefix}.RecurrenceEndDate",
+                    "The recurrence end date cannot be before the due date.")
+                { ErrorCode = ValidationCodes.RecurrenceEndBeforeDue });
+            }
+        }
+
+        return new ValidationResult(errors);
+    }
+
+    private static bool IsValidHexColor(string? color)
+    {
+        if (string.IsNullOrWhiteSpace(color))
+        {
+            return true;
+        }
+
+        var trimmed = color.Trim();
+
+        return trimmed.Length == 7
+            && trimmed[0] == '#'
+            && trimmed.Skip(1).All(Uri.IsHexDigit);
     }
 }

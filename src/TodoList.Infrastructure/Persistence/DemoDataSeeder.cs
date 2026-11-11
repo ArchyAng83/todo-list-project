@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using TodoList.Domain.Projects;
 using TodoList.Domain.Reminders;
@@ -17,11 +18,10 @@ public sealed class DemoDataSeeder(
     UserManager<ApplicationUser> userManager,
     AppDbContext db,
     TimeProvider timeProvider,
+    IConfiguration configuration,
     ILogger<DemoDataSeeder> logger)
 {
     public const string Email = "demo@todolist.local";
-
-    public const string Password = "DemoPass123";
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
@@ -48,7 +48,9 @@ public sealed class DemoDataSeeder(
             CreatedAt = now
         };
 
-        var created = await userManager.CreateAsync(user, Password);
+        var password = configuration["Seed:DemoPassword"] ?? "DemoPass123";
+
+        var created = await userManager.CreateAsync(user, password);
 
         if (!created.Succeeded)
         {

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using TodoList.Application.Common;
 using TodoList.Domain.Projects;
 using TodoList.Domain.Reminders;
 using TodoList.Domain.Tags;
@@ -23,6 +24,8 @@ public sealed class DemoDataSeeder(
 {
     public const string Email = "demo@todolist.local";
 
+    private int _nextSortOrder;
+
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         if (await userManager.FindByEmailAsync(Email) is not null)
@@ -32,6 +35,7 @@ public sealed class DemoDataSeeder(
 
         var now = timeProvider.GetUtcNow();
         var today = DateOnly.FromDateTime(now.UtcDateTime);
+        _nextSortOrder = 0;
 
         var user = new ApplicationUser
         {
@@ -85,6 +89,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.High,
             notes: "Cover the architecture, the test pyramid, and the trade-offs.",
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [urgent],
             checklist: ["Outline the story", "Collect metrics", "Publish"]);
 
@@ -97,6 +102,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Medium,
             notes: null,
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [deepWork],
             checklist: []);
 
@@ -109,6 +115,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Low,
             notes: "Milk, eggs, coffee.",
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [errand],
             checklist: []);
 
@@ -121,6 +128,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Medium,
             notes: "Decide what to carry over.",
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [],
             checklist: ["Review open tasks", "Pick next week's goals"]);
 
@@ -133,6 +141,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Urgent,
             notes: null,
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [urgent],
             checklist: []);
 
@@ -145,6 +154,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Low,
             notes: null,
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [deepWork],
             checklist: []);
 
@@ -157,6 +167,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.High,
             notes: null,
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [urgent, deepWork],
             checklist: ["Update CHANGELOG", "Tag the release", "Write release notes"]);
 
@@ -169,6 +180,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.Medium,
             notes: "Pick the top three outcomes for the week.",
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [deepWork],
             checklist: ["Review last week", "Choose top three outcomes"],
             recurrence: RecurrenceFrequency.Weekly,
@@ -183,6 +195,7 @@ public sealed class DemoDataSeeder(
             priority: TaskPriority.None,
             notes: null,
             now: now,
+            timeZoneId: user.TimeZoneId,
             tags: [],
             checklist: [],
             status: TodoTaskStatus.Done);
@@ -207,10 +220,15 @@ public sealed class DemoDataSeeder(
         RecurrenceFrequency recurrence = RecurrenceFrequency.None,
         int recurrenceInterval = 1,
         DateOnly? recurrenceEndDate = null,
-        int? reminderOffsetMinutes = 15)
+        int? reminderOffsetMinutes = 15,
+        string timeZoneId = "UTC")
     {
         var task = TodoTask.Create(userId, title, now);
 
+        // A distinct sort order keeps the demo board deterministic; otherwise
+        // every seeded task shares SortOrder 0 and the board order is up to the
+        // database.
+        task.SetSortOrder(_nextSortOrder++, now);
         task.MoveToProject(project, now);
         task.SetPriority(priority, now);
         task.SetNotes(notes, now);
@@ -223,9 +241,10 @@ public sealed class DemoDataSeeder(
 
             if (reminderOffsetMinutes is not null && status != TodoTaskStatus.Done)
             {
-                var dueUtc = new DateTimeOffset(
-                    dueDate.Value.ToDateTime(dueTime ?? new TimeOnly(9, 0)),
-                    TimeSpan.Zero);
+                var dueUtc = UserTime.ToUtc(
+                    dueDate.Value,
+                    dueTime ?? new TimeOnly(9, 0),
+                    timeZoneId);
 
                 db.Reminders.Add(Reminder.Create(
                     userId,

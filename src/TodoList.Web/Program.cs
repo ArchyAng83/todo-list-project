@@ -39,7 +39,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 
-builder.Services.AddOpenApi();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddOpenApi();
+}
+
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(
         new JsonStringEnumConverter(allowIntegerValues: false)));
@@ -103,8 +107,11 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = registration => registration.Tags.Contains("ready")
 });
 
-app.MapOpenApi();
-app.MapScalarApiReference("/scalar");
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference("/scalar");
+}
 
 app.MapAuthEndpoints();
 

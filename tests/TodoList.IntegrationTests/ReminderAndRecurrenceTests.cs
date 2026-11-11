@@ -333,6 +333,139 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         stored.Status.ShouldBe(ReminderStatus.Cancelled);
     }
 
+    [Fact]
+    public async Task ReminderDeliveryService_FailedDelivery_ReturnsToPendingAndRetries()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
+            "Retry me",
+            null,
+            TaskPriority.None,
+            DueDate,
+            DueTime))).Value;
+
+        var now = DateTimeOffset.UtcNow;
+        var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
+        db.Reminders.Add(reminder);
+        await db.SaveChangesAsync();
+
+        var sender = new FailingEmailSender(failFirst: true);
+        var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
+            scope.ServiceProvider,
+            sender);
+
+        // First attempt: delivery fails, reminder returns to Pending with back-off.
+        var sent = await delivery.DispatchDueAsync();
+        sent.ShouldBe(0);
+
+        var stored = await db.Reminders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == reminder.Id);
+        stored.Status.ShouldBe(ReminderStatus.Pending);
+        stored.Attempts.ShouldBe(1);
+        stored.LastError.ShouldNotBeNull();
+        stored.ScheduledAtUtc.ShouldBeGreaterThan(now);
+
+        // Reset the reminder to be due again so the dispatcher picks it up.
+        await using var resetScope = fixture.Factory.Services.CreateAsyncScope();
+        var resetDb = resetScope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await resetDb.Reminders
+            .Where(r => r.Id == reminder.Id)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.ScheduledAtUtc, now.AddMinutes(-1)));
+
+        // Second attempt: sender succeeds, reminder is marked Sent.
+        var sender2 = new CapturingEmailSender();
+        var delivery2 = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
+            resetScope.ServiceProvider,
+            sender2);
+
+        var sent2 = await delivery2.DispatchDueAsync();
+        sent2.ShouldBe(1);
+        sender2.Messages.ShouldHaveSingleItem().Subject.ShouldContain("Retry me");
+
+        var stored2 = await resetDb.Reminders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == reminder.Id);
+        stored2.Status.ShouldBe(ReminderStatus.Sent);
+        stored2.SentAtUtc.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task ReminderDeliveryService_MaxAttempts_BecomesTerminalFailed()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
+            "Always fails",
+            null,
+            TaskPriority.None,
+            DueDate,
+            DueTime))).Value;
+
+        var now = DateTimeOffset.UtcNow;
+        var reminder = Reminder.Create(userId, taskId, now.AddMinutes(-1), now);
+        db.Reminders.Add(reminder);
+        await db.SaveChangesAsync();
+
+        var sender = new FailingEmailSender(failFirst: true);
+
+        for (var i = 0; i < Reminder.MaxAttempts; i++)
+        {
+            await using var attemptScope = fixture.Factory.Services.CreateAsyncScope();
+            var attemptDb = attemptScope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Keep the reminder due so DispatchDueAsync processes it every iteration.
+            await attemptDb.Reminders
+                .Where(r => r.Id == reminder.Id)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(r => r.ScheduledAtUtc, now.AddMinutes(-1)));
+
+            var delivery = ActivatorUtilities.CreateInstance<ReminderDeliveryService>(
+                attemptScope.ServiceProvider,
+                sender);
+
+            await delivery.DispatchDueAsync();
+        }
+
+        var stored = await db.Reminders
+            .AsNoTracking()
+            .SingleAsync(candidate => candidate.Id == reminder.Id);
+        stored.Status.ShouldBe(ReminderStatus.Failed);
+        stored.Attempts.ShouldBe(Reminder.MaxAttempts);
+    }
+
+    private sealed class FailingEmailSender : IEmailSender
+    {
+        private readonly bool _failFirst;
+        private int _calls;
+
+        public FailingEmailSender(bool failFirst)
+        {
+            _failFirst = failFirst;
+        }
+
+        public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
+        {
+            _calls++;
+            if (_failFirst && _calls == 1)
+            {
+                throw new InvalidOperationException("SMTP temporarily unavailable");
+            }
+
+            return Task.CompletedTask;
+        }
+    }
+
     private static async Task<Guid> CreateRecurringTaskAsync(TaskService taskService, UserContext user)
     {
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(

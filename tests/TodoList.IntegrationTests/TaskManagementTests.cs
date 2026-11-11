@@ -405,6 +405,54 @@ public sealed class TaskManagementTests(TodoListAppFixture fixture)
             new DateOnly(2026, 12, 1))).ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task TaskService_UpdateDetailsAsync_AtomicTransaction()
+    {
+        var userId = await CreateUserAsync();
+        var user = new UserContext(userId, "UTC");
+
+        await using var scope = fixture.Factory.Services.CreateAsyncScope();
+        var projectService = scope.ServiceProvider.GetRequiredService<ProjectService>();
+        var tagService = scope.ServiceProvider.GetRequiredService<TagService>();
+        var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
+        var taskQueries = scope.ServiceProvider.GetRequiredService<TaskQueries>();
+
+        var projectId = (await projectService.CreateAsync(user, new CreateProjectRequest("Home"))).Value;
+        var tagId = (await tagService.CreateAsync(user, new CreateTagRequest("urgent", "#EF4444"))).Value;
+        var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest("Buy milk"))).Value;
+
+        var result = await taskService.UpdateDetailsAsync(
+            user,
+            taskId,
+            new UpdateTaskDetailsRequest(
+                new UpdateTaskRequest(
+                    "Buy groceries",
+                    "Milk, eggs, coffee.",
+                    projectId,
+                    TaskPriority.High,
+                    new DateOnly(2026, 11, 15),
+                    new TimeOnly(19, 30),
+                    15,
+                    RecurrenceFrequency.Weekly,
+                    1,
+                    new DateOnly(2026, 12, 31)),
+                TodoTaskStatus.InProgress,
+                [tagId]));
+
+        result.IsSuccess.ShouldBeTrue();
+
+        var updated = await taskQueries.GetAsync(user, taskId);
+        updated.ShouldNotBeNull();
+        updated.Title.ShouldBe("Buy groceries");
+        updated.Notes.ShouldBe("Milk, eggs, coffee.");
+        updated.Status.ShouldBe(TodoTaskStatus.InProgress);
+        updated.Priority.ShouldBe(TaskPriority.High);
+        updated.DueDate.ShouldBe(new DateOnly(2026, 11, 15));
+        updated.DueTime.ShouldBe(new TimeOnly(19, 30));
+        updated.ReminderOffsetMinutes.ShouldBe(15);
+        updated.Tags.ShouldHaveSingleItem().Id.ShouldBe(tagId);
+    }
+
     private static string[] ColumnTitles(TaskBoard board, TodoTaskStatus status)
         => board.Columns
             .Single(column => column.Status == status)

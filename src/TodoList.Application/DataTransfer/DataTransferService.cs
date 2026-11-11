@@ -213,6 +213,7 @@ public sealed class DataTransferService(
             if (imported is null)
             {
                 return Result.Failure<ImportSummary>(Error.Validation(
+                    ErrorCodes.ImportInvalid,
                     "The document contains an empty project entry."));
             }
 
@@ -260,6 +261,7 @@ public sealed class DataTransferService(
             if (imported is null)
             {
                 return Result.Failure<ImportSummary>(Error.Validation(
+                    ErrorCodes.ImportInvalid,
                     "The document contains an empty tag entry."));
             }
 
@@ -288,18 +290,21 @@ public sealed class DataTransferService(
             if (imported is null)
             {
                 return Result.Failure<ImportSummary>(Error.Validation(
+                    ErrorCodes.ImportInvalid,
                     "The document contains an empty task entry."));
             }
 
             if (!Enum.IsDefined(imported.Status))
             {
                 return Result.Failure<ImportSummary>(Error.Validation(
+                    ErrorCodes.ImportInvalid,
                     $"Task '{imported.Title}' has an unknown status."));
             }
 
             if (!Enum.IsDefined(imported.Priority))
             {
                 return Result.Failure<ImportSummary>(Error.Validation(
+                    ErrorCodes.ImportInvalid,
                     $"Task '{imported.Title}' has an unknown priority."));
             }
 
@@ -310,6 +315,7 @@ public sealed class DataTransferService(
                 if (!projectIds.TryGetValue(importedProjectId, out var mappedProjectId))
                 {
                     return Result.Failure<ImportSummary>(Error.Validation(
+                        ErrorCodes.ImportInvalid,
                         $"Task '{imported.Title}' references a project that is not part of the import."));
                 }
 
@@ -336,6 +342,7 @@ public sealed class DataTransferService(
                     || !tagsById.TryGetValue(mappedTagId, out var tag))
                 {
                     return Result.Failure<ImportSummary>(Error.Validation(
+                        ErrorCodes.ImportInvalid,
                         $"Task '{imported.Title}' references a tag that is not part of the import."));
                 }
 

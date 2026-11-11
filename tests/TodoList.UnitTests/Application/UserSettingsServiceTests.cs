@@ -27,7 +27,7 @@ public sealed class UserSettingsServiceTests
             new UpdateUserSettingsRequest("User", "en", "UTC", "neon", DayOfWeek.Monday, 15));
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("validation");
+        result.Error.Code.ShouldBe(ValidationCodes.InvalidTheme);
         store.SaveCount.ShouldBe(0);
     }
 

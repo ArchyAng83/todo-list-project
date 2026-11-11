@@ -4,23 +4,6 @@ namespace TodoList.Application.Common;
 
 public static class ValidationErrors
 {
-    private static readonly HashSet<string> KnownCodes =
-    [
-        ValidationCodes.Required,
-        ValidationCodes.TooLong,
-        ValidationCodes.InvalidEnum,
-        ValidationCodes.InvalidColor,
-        ValidationCodes.OutOfRange,
-        ValidationCodes.DueTimeRequiresDueDate,
-        ValidationCodes.ReminderRequiresDueDate,
-        ValidationCodes.RecurrenceRequiresDueDate,
-        ValidationCodes.RecurrenceEndBeforeDue,
-        ValidationCodes.TargetIndexInvalid,
-        ValidationCodes.InvalidCulture,
-        ValidationCodes.InvalidTheme,
-        ValidationCodes.InvalidTimeZone
-    ];
-
     /// <summary>
     /// Aggregates the failure messages into an <see cref="Error"/>. The first
     /// failure's stable code is used when every validator declared one, so the
@@ -38,7 +21,7 @@ public static class ValidationErrors
         var message = string.Join("; ", messages);
         var first = failures.FirstOrDefault();
 
-        if (first is null || !KnownCodes.Contains(first.ErrorCode))
+        if (first is null || !ValidationCodes.IsValidation(first.ErrorCode))
         {
             return Error.Validation(message);
         }

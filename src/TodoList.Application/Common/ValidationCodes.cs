@@ -20,4 +20,27 @@ public static class ValidationCodes
     public const string InvalidCulture = "invalid_culture";
     public const string InvalidTheme = "invalid_theme";
     public const string InvalidTimeZone = "invalid_time_zone";
+
+    private static readonly HashSet<string> Known =
+    [
+        Required,
+        TooLong,
+        InvalidEnum,
+        InvalidColor,
+        OutOfRange,
+        DueTimeRequiresDueDate,
+        ReminderRequiresDueDate,
+        RecurrenceRequiresDueDate,
+        RecurrenceEndBeforeDue,
+        TargetIndexInvalid,
+        InvalidCulture,
+        InvalidTheme,
+        InvalidTimeZone
+    ];
+
+    /// <summary>
+    /// True when the code describes an invalid request, so the API can answer
+    /// <c>400</c> instead of <c>500</c>.
+    /// </summary>
+    public static bool IsValidation(string code) => Known.Contains(code);
 }

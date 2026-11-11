@@ -381,7 +381,7 @@ public sealed class DataTransferTests(TodoListAppFixture fixture)
         var result = await service.ImportAsync(user, document);
 
         result.IsFailure.ShouldBeTrue();
-        result.Error.Code.ShouldBe("validation");
+        result.Error.Code.ShouldBe(ErrorCodes.ImportInvalid);
         (await service.ExportAsync(user)).Tasks.ShouldBeEmpty();
         (await service.GetSummaryAsync(user)).Projects.ShouldBe(0);
     }

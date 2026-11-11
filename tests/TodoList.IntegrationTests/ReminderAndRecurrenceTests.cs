@@ -227,6 +227,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await CancelPendingRemindersAsync(db);
 
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
             "Send the report",
@@ -270,6 +271,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await CancelPendingRemindersAsync(db);
 
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
             "Подготовить отчёт",
@@ -303,6 +305,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await CancelPendingRemindersAsync(db);
 
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
             "Already done",
@@ -342,6 +345,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await CancelPendingRemindersAsync(db);
 
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
             "Retry me",
@@ -405,6 +409,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         await using var scope = fixture.Factory.Services.CreateAsyncScope();
         var taskService = scope.ServiceProvider.GetRequiredService<TaskService>();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await CancelPendingRemindersAsync(db);
 
         var taskId = (await taskService.CreateAsync(user, new CreateTaskRequest(
             "Always fails",
@@ -418,7 +423,7 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         db.Reminders.Add(reminder);
         await db.SaveChangesAsync();
 
-        var sender = new FailingEmailSender(failFirst: true);
+        var sender = new FailingEmailSender(failCalls: Reminder.MaxAttempts);
 
         for (var i = 0; i < Reminder.MaxAttempts; i++)
         {
@@ -444,20 +449,37 @@ public sealed class ReminderAndRecurrenceTests(TodoListAppFixture fixture)
         stored.Attempts.ShouldBe(Reminder.MaxAttempts);
     }
 
+    /// <summary>
+    /// The integration fixture shares one database across the collection, so a
+    /// reminder left pending by an earlier test would be delivered here too.
+    /// Cancel them to keep each delivery test scoped to its own reminder.
+    /// </summary>
+    private static Task CancelPendingRemindersAsync(AppDbContext db)
+        => db.Reminders
+            .Where(reminder => reminder.Status == ReminderStatus.Pending)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(
+                reminder => reminder.Status,
+                ReminderStatus.Cancelled));
+
     private sealed class FailingEmailSender : IEmailSender
     {
-        private readonly bool _failFirst;
+        private readonly int _failCalls;
         private int _calls;
 
         public FailingEmailSender(bool failFirst)
+            : this(failFirst ? 1 : 0)
         {
-            _failFirst = failFirst;
+        }
+
+        public FailingEmailSender(int failCalls)
+        {
+            _failCalls = failCalls;
         }
 
         public Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
         {
             _calls++;
-            if (_failFirst && _calls == 1)
+            if (_calls <= _failCalls)
             {
                 throw new InvalidOperationException("SMTP temporarily unavailable");
             }

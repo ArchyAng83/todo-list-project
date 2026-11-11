@@ -342,7 +342,7 @@ public sealed class TaskManagementTests(TodoListAppFixture fixture)
             new MoveTaskRequest(TodoTaskStatus.Todo, -1));
 
         moved.IsFailure.ShouldBeTrue();
-        moved.Error.Code.ShouldBe("validation");
+        moved.Error.Code.ShouldBe(ValidationCodes.TargetIndexInvalid);
     }
 
     [Fact]

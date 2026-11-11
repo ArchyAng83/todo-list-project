@@ -16,5 +16,5 @@ public sealed class ApplicationUser : IdentityUser<Guid>
 
     public int DefaultReminderMinutes { get; set; } = 15;
 
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; }
 }

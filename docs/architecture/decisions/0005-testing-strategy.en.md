@@ -18,6 +18,8 @@ Use a four-level test pyramid:
 
 Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
 
+Integration tests share one PostgreSQL database per collection and never reset it between tests. Unique `Guid`-suffixed identities keep tests apart, and the few tests whose outcome depends on leftover rows clear them explicitly (for example, pending reminders before a delivery test). This keeps the suite fast; see `docs/development/testing.en.md` for the revisit trigger.
+
 ## Consequences
 
 - High confidence across the stack.

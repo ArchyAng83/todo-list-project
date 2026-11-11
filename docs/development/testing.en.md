@@ -31,13 +31,32 @@ On Linux CI add `--with-deps` so the Chromium system libraries are installed too
 ## How the suites run
 
 - Unit tests need no infrastructure.
-- Integration tests start one PostgreSQL container per collection and create an isolated database per factory.
+- Integration tests start one PostgreSQL container per collection, and every test in the collection uses that one database.
 - Component tests render components in isolation with localization and MudBlazor services; they do not touch a database.
 - E2E starts a PostgreSQL container, runs the real web app on a free port, waits for `/health/ready`, and drives headless Chromium.
 - Each E2E journey registers its own user and seeds the tasks it asserts on through `/api/v1`, so journeys never share state and do not depend on execution order.
 - E2E waits until Blazor has attached event handlers before clicking, so interactions do not fall through to native form submits.
 - Board cards rendered after enhanced navigation do not carry the `_bl_*` marker, so board tests wait for the card to be visible instead.
 - E2E contexts use a 1280x800 viewport: the default viewport stacks the Kanban columns, which makes cross-column drag-and-drop unreliable.
+
+## Integration test database
+
+`IntegrationCollection` owns a single `TodoListAppFixture`, which starts one PostgreSQL container, applies migrations once, and hands the same connection string to every test in the collection. The database is not reset between tests, and tests run sequentially inside the collection, so the suite pays for schema creation once instead of once per test.
+
+Isolation comes from the data, not from the schema:
+
+- Every test creates its own user, and assertions read only rows it created. Emails use a `Guid` suffix, so a name collision cannot happen.
+- Cross-test order dependence is treated as a bug. A test that needs a globally empty table clears it explicitly — reminder delivery tests cancel leftover pending reminders before dispatching.
+- Container startup dominates the runtime, so keeping one database is what makes the suite finish in well under a minute.
+
+Startup cost is fine at the current size. Revisit this decision when any of the following becomes true:
+
+- One test needs a database-wide invariant, such as an exact row count or a sequence value.
+- A test has to clean up data it does not own, or starts depending on execution order.
+- Integration tests run in parallel, or the collection grows enough that one database becomes a bottleneck.
+- A failure leaves the shared database in a state that breaks later tests.
+
+The remedies, in increasing cost, are a transaction rollback per test, a schema per test, or a Respawn-style reset. Any of them should land with an ADR update rather than ad hoc cleanup code.
 
 ## Test data and fakes
 

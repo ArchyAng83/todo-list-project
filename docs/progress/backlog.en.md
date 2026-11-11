@@ -1,6 +1,6 @@
 # Follow-up Backlog — Post-Review Items
 
-Branch: `main` | Created: 2026-11-11 | Status: In Progress — 3 of 4 done
+Branch: `main` | Created: 2026-11-11 | Status: Done — 4 of 4 done
 
 ## Context
 
@@ -17,7 +17,7 @@ English is canonical; `backlog.ru.md` is the paired translation.
 | B1 | Rate limiting for authentication endpoints | P2 | Security | ✅ Done |
 | B2 | Isolate E2E tests from shared demo state | P2 | Testing | ✅ Done |
 | B3 | Deterministic time in reminder tests | P3 | Testing | ✅ Done |
-| B4 | Record the shared integration-database decision | P3 | Testing / docs | ⬜ Open |
+| B4 | Record the shared integration-database decision | P3 | Testing / docs | ✅ Done |
 
 ## B1 — Rate limiting for authentication endpoints
 
@@ -114,7 +114,7 @@ the tests timing-sensitive and occasionally flaky.
 - Tests remain green when the machine is under load.
 
 **Status:** ✅ Done
-**Commit:** `_pending_`
+**Commit:** `0ac371c` — `test: drive reminder delivery with a fake clock`
 
 **Implementation.** `Microsoft.Extensions.TimeProvider.Testing` is back in
 `Directory.Packages.props`, and the delivery tests build a `FakeTimeProvider`
@@ -147,6 +147,19 @@ an accident.
 **Acceptance criteria.**
 - The testing guide and ADR describe the current approach and its limits.
 - The note names the trigger for revisiting the decision.
+
+**Status:** ✅ Done
+**Commit:** `_pending_`
+
+**Implementation.** `docs/development/testing.en.md` gained an "Integration test
+database" section: one `TodoListAppFixture` per `IntegrationCollection` starts a
+single container, migrations run once, and every test reuses the same database
+without a reset. Isolation comes from per-test users and `Guid`-suffixed emails,
+and tests that need a globally empty table clear the rows they care about.
+Revisit triggers are listed explicitly (database-wide invariants, cleanup of
+foreign rows, parallel execution, or a poisoned database after a failure), with
+transaction/schema per test or Respawn as the remedies. ADR 0005 now points at
+that section, so the shared database reads as a decision rather than an accident.
 
 ## Out of scope
 

@@ -87,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration and E2E tests set `Reminders:Enabled=false` so background delivery stays deterministic.
 - Each Playwright journey registers its own user and seeds data through `/api/v1` instead of sharing the demo account, so journeys no longer depend on execution order.
 - Reminder integration tests drive `ReminderDeliveryService` with a `FakeTimeProvider` instead of wall-clock offsets, so back-off windows are asserted exactly.
+- The testing guide and ADR 0005 record the shared per-collection integration database, its isolation rules, and the conditions that trigger a per-test reset.
 
 ### Fixed
 

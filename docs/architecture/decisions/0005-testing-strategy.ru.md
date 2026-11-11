@@ -12,11 +12,11 @@
 Используем четырёхуровневую пирамиду тестов:
 
 - **Unit** (xUnit + Shouldly + NSubstitute): доменные правила, валидация, timezone/recurrence расчёты.
-- **Integration** (WebApplicationFactory + Testcontainers PostgreSQL + Respawn): EF Core, Application-сервисы, Identity, API, изоляция данных, конкурентность.
+- **Integration** (WebApplicationFactory + Testcontainers PostgreSQL): EF Core, Application-сервисы, Identity, API, изоляция данных, конкурентность.
 - **Component** (bUnit): ключевые Blazor-компоненты, формы, фильтрация, локализация.
 - **E2E** (Playwright .NET): реальный браузер против приложения, PostgreSQL и Mailpit.
 
-Общие builders, fixtures, fake email и fake time живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, чтобы тесты были детерминированными. CI запускает unit/integration/component на каждом PR, E2E smoke на PR и полный E2E на `main` и nightly.
+Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, чтобы тесты были детерминированными. CI запускает unit/integration/component на каждом PR, E2E smoke на PR и полный E2E на `main` и nightly.
 
 ## Последствия
 

@@ -15,9 +15,6 @@
   <data name="AppName" xml:space="preserve">
     <value>TodoList</value>
   </data>
-  <data name="Tagline" xml:space="preserve">
-    <value>A production-minded task manager built with .NET 10 and Blazor.</value>
-  </data>
   <data name="HeroTitle" xml:space="preserve">
     <value>What do you want to get done?</value>
   </data>
@@ -87,9 +84,6 @@
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
-  <data name="Profile" xml:space="preserve">
-    <value>Profile</value>
-  </data>
   <data name="TimeZone" xml:space="preserve">
     <value>Time zone</value>
   </data>
@@ -117,9 +111,6 @@
   <data name="Tags" xml:space="preserve">
     <value>Tags</value>
   </data>
-  <data name="Add" xml:space="preserve">
-    <value>Add</value>
-  </data>
   <data name="Save" xml:space="preserve">
     <value>Save</value>
   </data>
@@ -132,20 +123,8 @@
   <data name="Edit" xml:space="preserve">
     <value>Edit</value>
   </data>
-  <data name="Close" xml:space="preserve">
-    <value>Close</value>
-  </data>
-  <data name="Confirm" xml:space="preserve">
-    <value>Confirm</value>
-  </data>
   <data name="GenericError" xml:space="preserve">
     <value>Something went wrong. Please try again.</value>
-  </data>
-  <data name="Loading" xml:space="preserve">
-    <value>Loading...</value>
-  </data>
-  <data name="Optional" xml:space="preserve">
-    <value>Optional</value>
   </data>
   <data name="QuickAddPlaceholder" xml:space="preserve">
     <value>Add a task and press Add</value>
@@ -269,9 +248,6 @@
   </data>
   <data name="Clear" xml:space="preserve">
     <value>Clear</value>
-  </data>
-  <data name="Overdue" xml:space="preserve">
-    <value>Overdue</value>
   </data>
   <data name="NewProject" xml:space="preserve">
     <value>New project</value>

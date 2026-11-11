@@ -12,11 +12,11 @@ The project needs confidence in domain rules, EF Core mappings, Identity flows, 
 Use a four-level test pyramid:
 
 - **Unit** (xUnit + Shouldly + NSubstitute): domain rules, validation, timezone/recurrence calculations.
-- **Integration** (WebApplicationFactory + Testcontainers PostgreSQL + Respawn): EF Core, Application services, Identity, API, data isolation, concurrency.
+- **Integration** (WebApplicationFactory + Testcontainers PostgreSQL): EF Core, Application services, Identity, API, data isolation, concurrency.
 - **Component** (bUnit): key Blazor components, forms, filtering, localization.
 - **E2E** (Playwright .NET): real browser against the app, PostgreSQL, and Mailpit.
 
-Shared builders, fixtures, fake email, and fake time live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider` so tests are deterministic. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
+Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider` so tests are deterministic. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
 
 ## Consequences
 

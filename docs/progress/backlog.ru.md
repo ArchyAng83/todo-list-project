@@ -154,7 +154,7 @@ email не дают им столкнуться, но строки накапл�
 - В заметке указан триггер пересмотра решения.
 
 **Статус:** ✅ Готово
-**Коммит:** `_ожидается_`
+**Коммит:** `aa3dfef` — `docs: record the shared integration-database decision`
 
 **Реализация.** В `docs/development/testing.ru.md` появился раздел «База данных
 для integration-тестов»: один `TodoListAppFixture` на `IntegrationCollection`

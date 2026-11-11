@@ -149,7 +149,7 @@ an accident.
 - The note names the trigger for revisiting the decision.
 
 **Status:** ✅ Done
-**Commit:** `_pending_`
+**Commit:** `aa3dfef` — `docs: record the shared integration-database decision`
 
 **Implementation.** `docs/development/testing.en.md` gained an "Integration test
 database" section: one `TodoListAppFixture` per `IntegrationCollection` starts a

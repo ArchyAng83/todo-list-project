@@ -23,8 +23,10 @@ public sealed class DatabaseTests(TodoListAppFixture fixture)
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         var migrations = await db.Database.GetAppliedMigrationsAsync();
+        var pending = await db.Database.GetPendingMigrationsAsync();
 
         migrations.ShouldContain(migration => migration.EndsWith("_InitialCreate", StringComparison.Ordinal));
+        pending.ShouldBeEmpty();
     }
 
     [Fact]

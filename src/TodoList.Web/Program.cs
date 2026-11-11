@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -38,6 +39,42 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+
+// Authentication attempts share one fixed-window policy keyed by the client IP.
+// The limiter runs only inside the authentication branch below, so the global
+// limiter never sees page loads, static assets, or the rest of the API.
+var authRateLimit = builder.Configuration.GetSection("Auth:RateLimit");
+var authPermitLimit = Math.Max(1, authRateLimit.GetValue("PermitLimit", 10));
+var authWindowSeconds = Math.Max(1, authRateLimit.GetValue("WindowSeconds", 60));
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var key = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = authPermitLimit,
+            Window = TimeSpan.FromSeconds(authWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+
+    options.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+        }
+
+        return ValueTask.CompletedTask;
+    };
+});
 
 if (builder.Environment.IsDevelopment())
 {
@@ -93,8 +130,14 @@ app.UseRequestLocalization(new RequestLocalizationOptions
     ]
 });
 
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Authentication attempts are the only throttled surface: page loads, assets,
+// and the REST API stay unaffected so the limiter cannot slow the normal UI.
+// Registered above the status-code pages so a rejection keeps a bare 429.
+app.UseWhen(IsAuthenticationRequest, branch => branch.UseRateLimiter());
+
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -158,5 +201,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+static bool IsAuthenticationRequest(HttpContext context)
+{
+    if (!HttpMethods.IsPost(context.Request.Method))
+    {
+        return false;
+    }
+
+    var path = context.Request.Path;
+
+    return path.Equals("/api/v1/auth/login", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/account/login", StringComparison.OrdinalIgnoreCase)
+        || path.Equals("/account/register", StringComparison.OrdinalIgnoreCase);
+}
 
 public partial class Program;

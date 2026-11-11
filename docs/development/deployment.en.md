@@ -23,6 +23,8 @@ The `Dockerfile` is multi-stage:
 | `ConnectionStrings__Default` | yes | Npgsql connection string |
 | `ASPNETCORE_ENVIRONMENT` | yes | `Production` enables HSTS, the exception handler, and JSON console logs |
 | `ASPNETCORE_URLS` | no | Defaults to `http://+:8080` in the image |
+| `Auth__RateLimit__PermitLimit` | no | Login/registration requests per client IP per window; defaults to `10` |
+| `Auth__RateLimit__WindowSeconds` | no | Fixed window length in seconds; defaults to `60` |
 | `Logging__LogLevel__Default` | no | Defaults to `Information` |
 
 The demo seeder only runs in Development, so production never creates the demo account. Provide secrets through the platform secret store; do not bake them into the image.
@@ -59,6 +61,21 @@ Run the bundle before shifting traffic to the new image, and keep the rollback p
 
 Point the platform liveness probe at `/health/live` and the readiness probe at `/health/ready`. Liveness deliberately ignores the database so a slow database does not restart a healthy process.
 
+## Authentication rate limiting
+
+`POST /api/v1/auth/login`, `POST /account/login`, and `POST /account/register` are
+throttled per client IP with a fixed window: 10 requests per 60 seconds by
+default, configured through `Auth:RateLimit`. A rejected request gets
+`429 Too Many Requests` with `Retry-After`; Identity lockout (5 attempts, 15
+minutes) stays the per-account protection. Page loads, static assets, and the rest
+of `/api/v1` are never throttled.
+
+The partition key is `HttpContext.Connection.RemoteIpAddress`. Directly exposed,
+that is the caller; behind a proxy every request carries the proxy address and the
+whole deployment would share one partition. Enable forwarded headers — with the
+proxy in `KnownProxies`/`KnownNetworks` — before relying on the limit, or raise it
+for the aggregate traffic of the proxy.
+
 ## Reverse proxy and TLS
 
 Terminate TLS at the platform proxy or ingress and forward plain HTTP to port 8080. `UseHttpsRedirection` cannot infer an HTTPS port behind such a proxy and logs a benign warning; configure forwarded headers before exposing the app directly to the internet.
@@ -82,5 +99,6 @@ Outside Development the app writes single-line JSON to stdout, including scopes 
 - [ ] `ASPNETCORE_ENVIRONMENT=Production`.
 - [ ] Liveness and readiness probes configured.
 - [ ] TLS terminated and the public host name configured.
+- [ ] `Auth__RateLimit__*` reviewed for the expected traffic (a shared NAT or proxy counts as one client).
 - [ ] A production SMTP provider selected before email reminders ship.
 - [ ] Backups and a restore drill scheduled for PostgreSQL.

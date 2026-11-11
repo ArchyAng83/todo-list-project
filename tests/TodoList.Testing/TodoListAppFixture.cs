@@ -8,6 +8,12 @@ public sealed class TodoListAppFixture : IAsyncLifetime
 
     public TodoListWebApplicationFactory Factory { get; private set; } = null!;
 
+    /// <summary>
+    /// Shared database, exposed so a test can start an extra host with
+    /// different configuration without migrating a second database.
+    /// </summary>
+    public string ConnectionString => _postgres.ConnectionString;
+
     public HttpClient CreateClient(bool allowAutoRedirect = true)
     {
         return Factory.CreateClient(new WebApplicationFactoryClientOptions

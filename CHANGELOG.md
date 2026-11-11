@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `UserTime` centralizes timezone-aware "today" and local-to-UTC conversion for reminders.
 - Recurrence fields on `CreateTaskRequest`/`UpdateTaskRequest`, the API bodies, and the task endpoints as optional append-only values.
 - 12 unit tests for recurrence and copying, 9 integration and 3 API tests for generation, rescheduling, cancellation, and delivery, 1 bUnit test for the repeat indicator, and 1 Playwright journey for completing a recurring task.
+- Per-IP rate limiting for the login and registration POST endpoints (`Auth:RateLimit`, 10 requests per 60 seconds by default) that answers `429` with `Retry-After`.
 
 ### Changed
 

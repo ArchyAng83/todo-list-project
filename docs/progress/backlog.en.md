@@ -29,9 +29,10 @@ forms have no request throttling at all. The review flagged
 
 **Plan.**
 - Add the built-in ASP.NET Core rate limiter (`builder.Services.AddRateLimiter`)
-  with a sliding-window or fixed-window policy partitioned by client IP.
-- Apply a stricter policy to `POST /api/v1/auth/login` (for example 5 attempts
-  per minute per IP) and to the Blazor login/registration POST endpoints.
+  with a fixed-window policy partitioned by client IP.
+- Apply it to `POST /api/v1/auth/login`, `POST /account/login`, and
+  `POST /account/register` only; page loads, assets, and the rest of the API stay
+  unthrottled.
 - Return `429 Too Many Requests` with `Retry-After`; keep lockout as the
   per-account protection.
 - Read the client IP from `ForwardedHeaders`/`X-Forwarded-For` only when the app
@@ -43,9 +44,23 @@ forms have no request throttling at all. The review flagged
 - Limit values live in configuration, not in code.
 - Integration tests cover the `429` path and the header.
 
+**Status:** ✅ Done
+**Commit:** `_pending_`
+
+**Implementation.** `Auth:RateLimit` (`PermitLimit` 10, `WindowSeconds` 60 by
+default) drives a fixed window over the three auth POSTs, mounted with
+`app.UseWhen(IsAuthenticationRequest, branch => branch.UseRateLimiter())` above
+the status-code pages so a rejection keeps its bare `429`. The partition key is
+`HttpContext.Connection.RemoteIpAddress`. Tests get a higher limit through
+`TodoListWebApplicationFactory` and the E2E environment, and
+`AuthRateLimitTests` runs a low-limit host to assert the `429`, the
+`Retry-After` header, and that a different client still logs in.
+
 **Notes.** Keep the policy conservative enough that normal users are not
 throttled by a shared NAT; verify the limits with the deployment target before
-tightening them.
+tightening them. Behind a proxy every request carries the proxy address, so
+forwarded headers must be enabled (and the proxy trusted) before relying on the
+limit — see `docs/development/deployment.en.md`.
 
 ## B2 — Isolate E2E tests from shared demo state
 

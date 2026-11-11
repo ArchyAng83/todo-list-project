@@ -105,6 +105,10 @@ public sealed class E2EFixture : IAsyncLifetime
         startInfo.Environment["ConnectionStrings__Default"] = _postgres.ConnectionString;
         startInfo.Environment["Seed__Demo"] = "true";
         startInfo.Environment["Reminders__Enabled"] = "false";
+
+        // All journeys sign in from the same loopback address, so the
+        // production auth limit would throttle the suite.
+        startInfo.Environment["Auth__RateLimit__PermitLimit"] = "1000";
         startInfo.Environment["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] = "Warning";
 
         _app = Process.Start(startInfo)

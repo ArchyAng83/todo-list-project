@@ -69,8 +69,8 @@ pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 - Каждый push и pull request запускает build, unit-, integration-, component- и E2E-тесты.
 - CI ставит браузер Chromium для Playwright перед запуском набора.
 - Вторая job собирает контейнерный образ из `Dockerfile`.
-- Nightly-запуски и артефакты coverage появятся после публикации репозитория.
+- Результаты тестов выгружаются артефактом TRX; nightly-запуски пока не настроены.
 
 ## Coverage и flakiness
 
-Coverage публикуется, но не является жёстким gate на старте. Цель — 70%+ для Domain и Application, с акцентом на критические пути. Flaky-тест чинится или уходит в quarantine с issue в течение недели.
+Coverage собирается локально через `coverlet.collector` (`dotnet test --collect:"XPlat Code Coverage"`); в CI он не запускается и gate не является. Цель — 70%+ для Domain и Application, с акцентом на критические пути. Flaky-тест чинится или уходит в quarantine с issue в течение недели.

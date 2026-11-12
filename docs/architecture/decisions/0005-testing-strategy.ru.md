@@ -16,7 +16,7 @@
 - **Component** (bUnit): ключевые Blazor-компоненты, формы, фильтрация, локализация.
 - **E2E** (Playwright .NET): реальный браузер против приложения, PostgreSQL и Mailpit.
 
-Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, а `FakeTimeProvider` делает его integration-тесты детерминированными без реальных задержек. CI запускает unit/integration/component на каждом PR, E2E smoke на PR и полный E2E на `main` и nightly.
+Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, а `FakeTimeProvider` делает его integration-тесты детерминированными без реальных задержек. CI собирает решение в Release, ставит Chromium и запускает все четыре набора на каждый push и pull request в `main`; сборка образа — отдельная job.
 
 Integration-тесты делят одну базу PostgreSQL на коллекцию и не сбрасывают её между тестами. Уникальные идентификаторы с `Guid`-суффиксом не дают тестам столкнуться, а те несколько тестов, чей результат зависит от оставшихся строк, явно их очищают (например, ожидающие напоминания перед тестом доставки). Это ускоряет набор; триггер пересмотра описан в `docs/development/testing.ru.md`.
 
@@ -24,5 +24,5 @@ Integration-тесты делят одну базу PostgreSQL на коллек
 
 - Высокая уверенность по всему стеку.
 - Integration и E2E тесты требуют Docker и увеличивают время CI.
-- Coverage собирается, но не используется как жёсткий gate на старте; приоритет — критические пути.
+- Coverage доступен через `coverlet.collector`, но не подключён в CI и не является gate; приоритет — критические пути.
 - Flaky-тесты чинятся или уходят в quarantine в течение недели.

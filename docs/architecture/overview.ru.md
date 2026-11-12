@@ -41,6 +41,7 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 - `/api/v1` использует **только bearer-токены** и переиспользует Application-сервисы. Blazor не вызывает API — это убирает CSRF и смешивание cookie/bearer.
 - `POST /api/v1/auth/login` выдаёт access- и refresh-токены, а `POST /api/v1/auth/refresh` их обновляет; API покрывает задачи (включая порядок на доске), проекты, теги и `/me/settings`.
 - API документируется через OpenAPI по `/openapi/v1.json` и Scalar по `/scalar`.
+- POST-запросы входа и регистрации ограничены по IP клиента фиксированным окном (`Auth:RateLimit`, по умолчанию 10 запросов за 60 секунд) и возвращают `429` с `Retry-After`; lockout Identity остаётся защитой на уровне аккаунта.
 - Настройки пользователя (язык, тема, часовой пояс, начало недели, напоминание по умолчанию) хранятся в `ApplicationUser` и доступны через `IUserSettingsStore`, поэтому Identity не попадает в Application.
 
 ## Порядок задач и Kanban

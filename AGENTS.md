@@ -8,12 +8,13 @@ non-negotiable version.
 
 TodoList is a multi-user task manager built as a production-minded portfolio
 project. It targets .NET 10, Blazor Web App (Interactive Server), and
-PostgreSQL 17. The UI and documentation are bilingual (RU/EN). The product is
-an MVP in progress; an AI layer is planned only after v1.0 and must not leak
-into the domain now.
+PostgreSQL 17. The UI and documentation are bilingual (RU/EN). v1.0 is code
+complete; production deployment (hosting + SMTP provider) is the remaining
+milestone. An AI layer is planned only after v1.0 and must not leak into the
+domain now.
 
-Current status and weekly goals: `docs/progress/status.en.md` and
-`docs/progress/week-*.en.md`.
+Current snapshot: `docs/progress/status.en.md`; the newest
+`docs/progress/week-*.en.md` is the latest weekly log.
 
 ## Golden rules
 
@@ -43,6 +44,16 @@ dotnet test tests/TodoList.UnitTests/TodoList.UnitTests.csproj
 dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj   # needs Docker
 dotnet test TodoList.sln -c Release                                            # same as CI
 
+# One suite or one test (filters are the fastest feedback loop)
+dotnet test tests/TodoList.ComponentTests/TodoList.ComponentTests.csproj
+dotnet test tests/TodoList.IntegrationTests/TodoList.IntegrationTests.csproj \
+  --filter "FullyQualifiedName~AuthRateLimitTests"
+dotnet test tests/TodoList.E2ETests/TodoList.E2ETests.csproj \
+  --filter "FullyQualifiedName~UserJourneyTests"
+
+# Install the Playwright browser once after building (needed for E2E)
+pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
+
 # EF Core migrations (dotnet-ef 10.x installed globally)
 dotnet ef migrations add <Name> \
   --project src/TodoList.Infrastructure \
@@ -60,7 +71,7 @@ src/
   TodoList.Domain/         entities, enums, invariants; no framework dependencies
   TodoList.Application/    use cases, DTOs, validators, IAppDbContext, Result/Error
   TodoList.Infrastructure/ EF Core, Identity, email, background jobs
-  TodoList.Web/            Blazor UI, auth pages, composition root, future /api/v1
+  TodoList.Web/            Blazor UI, auth pages, minimal `/api/v1`, composition root
 tests/
   TodoList.UnitTests/       domain and pure Application tests (xUnit + Shouldly)
   TodoList.IntegrationTests/ WebApplicationFactory + Testcontainers PostgreSQL
@@ -134,6 +145,24 @@ docs/                       bilingual docs, ADRs, progress tracking
   to avoid BL0008.
 - The app has RU and EN cultures resolved from a cookie, then `Accept-Language`.
 
+## Auth and rate limiting
+
+- `Auth:RateLimit` (`PermitLimit` 10, `WindowSeconds` 60 by default) is mounted
+  with `app.UseWhen(IsAuthenticationRequest, ...)` above the status-code pages,
+  so only `POST /api/v1/auth/login`, `POST /account/login`, and
+  `POST /account/register` are throttled; page loads and the rest of the API are
+  not. A rejection stays a bare `429` with `Retry-After`.
+- The partition key is `HttpContext.Connection.RemoteIpAddress`. Behind a proxy,
+  forwarded headers must be enabled and the proxy trusted, otherwise every
+  request shares the proxy partition; see `docs/development/deployment.en.md`.
+- Identity lockout (5 attempts, 15 minutes) remains the per-account protection;
+  the limiter covers distributed password spraying.
+- Test hosts raise the limit (`TodoListWebApplicationFactory` and the E2E
+  process set `Auth:RateLimit:PermitLimit=1000`). A throttling test stands up a
+  host with a low permit plus a startup filter that assigns `RemoteIpAddress`
+  (a request header works), because `TestServer` leaves it unset and all
+  in-process clients would share one partition.
+
 ## Localization
 
 - UI strings live in `src/TodoList.Web/Resources/SharedResource.resx` (English)
@@ -149,6 +178,15 @@ docs/                       bilingual docs, ADRs, progress tracking
 - Auth, persistence, API, or Identity change -> integration test.
 - Integration tests run against real PostgreSQL via Testcontainers and require
   Docker. Do not use the EF in-memory provider.
+- One `TodoListAppFixture` per `IntegrationCollection` starts a single container,
+  applies migrations once, and never resets the database between tests. New
+  tests create their own users (unique `Guid` emails), assert only on rows they
+  created, and explicitly clear global rows they depend on. Read the
+  "Integration test database" section of `docs/development/testing.en.md` before
+  adding cleanup code or a second fixture.
+- `TodoListAppFixture.ConnectionString` lets a test start an extra host with
+  different configuration (for example a low rate limit) without migrating a
+  second database.
 - Shared fixtures live in `TodoList.Testing`; test files live in the test
   projects. `[CollectionDefinition]` must be in the same assembly as the tests
   that use it (xUnit1041).
@@ -156,10 +194,17 @@ docs/                       bilingual docs, ADRs, progress tracking
   parameterless builder is obsolete.
 - Name tests `Method_State_ExpectedBehavior`.
 - No network calls in unit tests. Replace `TimeProvider` and `IEmailSender`
-  with fakes where time or email matters.
+  with fakes where time or email matters. Reminder delivery tests pass a
+  `FakeTimeProvider` and advance it; never sleep or rewrite `ScheduledAtUtc` in
+  SQL.
 - Component tests (bUnit) target presentational components through
-  `ComponentTestContext`; E2E tests (Playwright) start the real app process on a
-  free port. Keep `[CollectionDefinition]` types in the test assemblies.
+  `ComponentTestContext`, which pins the culture to English; E2E tests
+  (Playwright) start the real app process on a free port.
+- Integration and E2E hosts set `Reminders:Enabled=false`; reminder delivery is
+  driven by `FakeTimeProvider` in tests, not by the background dispatcher.
+- E2E journeys call `E2EFixture.CreateUserAsync()`: each registers a unique user
+  through the real form and seeds its data through `/api/v1`. Never assert on the
+  demo account; `Seed:Demo` stays on only so a broken seeder fails startup.
 
 ## Conventions
 
@@ -175,36 +220,49 @@ docs/                       bilingual docs, ADRs, progress tracking
 
 - English docs are canonical; update the paired `.ru.md` file in the same change.
 - When a milestone closes, update `docs/progress/status.*`,
-  `docs/progress/week-*.md`, and `CHANGELOG.md`.
+  `docs/progress/week-*.md`, `CHANGELOG.md`, and the index in `docs/README.*`.
+- Keep the test counts in `README.md` and `docs/progress/status.*` equal to the
+  last full `-c Release` run; they have drifted before.
 - Significant architectural decisions get an ADR in
   `docs/architecture/decisions/`.
-- Work on `main`, though the repository may still be published later. Use
-  Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
+- Commit directly to `main` in this repository. `docs/development/git-workflow.en.md`
+  describes the PR/squash model to follow once development moves to branches.
+  Use Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`).
 - `README.md` holds the public overview; do not let it drift from the docs.
 
 ## Known gotchas
 
 - The app locks its DLLs on Windows. Stop the process on port 5122 before
   rebuilding if the build fails with file-in-use errors.
-- Docker Desktop must be running for PostgreSQL, Mailpit, and integration tests.
+- Docker Desktop must be running for PostgreSQL, Mailpit, and integration/E2E.
 - The SDK is pinned in `global.json` (10.0.400). A mismatch fails the build.
 - `dotnet-ef` may print a version warning; it is harmless as long as migrations
   are generated correctly.
+- The `AddTaskRecurrence` migration was hand-edited so the new `recurrence`
+  column defaults to the `None` enum string. Do not regenerate it; a fresh
+  scaffold produces an invalid default for existing rows.
 - `.playwright-mcp/` and `TestResults/` are ignored artifacts; do not commit them.
-- Playwright browsers install once with
-  `pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium`.
 - E2E waits for the `_bl_*` handler marker before clicking; otherwise a click can
   submit a form natively before the Blazor circuit starts.
 - Razor treats a bare attribute value on a `string` component parameter as
   literal text: write `Error="@_error"`, not `Error="_error"`.
 - If a build fails only in `TodoList.Testing`, make sure it stays
   `<IsTestProject>false</IsTestProject>`.
+- On this Windows host, edit UTF-8/Cyrillic files with the file tools, not with
+  PowerShell text round-trips, which mangle the encoding.
+- `dotnet test ... | Select-String` often prints nothing; tee the output to a
+  temp file and search the file instead.
 
 ## Read more
 
 - `docs/development/setup.en.md` — local setup and infrastructure.
 - `docs/development/conventions.en.md` — coding conventions.
-- `docs/development/testing.en.md` — test pyramid and commands.
+- `docs/development/testing.en.md` — test pyramid, commands, and the shared
+  integration database.
+- `docs/development/deployment.en.md` — configuration, rate limits, migrations,
+  and proxy caveats.
 - `docs/architecture/overview.en.md` — architecture and flows.
 - `docs/architecture/decisions/` — ADRs.
+- `docs/progress/backlog.en.md` — open follow-ups; currently all review items
+  are closed.
 - `docs/product/roadmap.en.md` — phased roadmap.

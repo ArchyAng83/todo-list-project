@@ -70,8 +70,8 @@ The remedies, in increasing cost, are a transaction rollback per test, a schema 
 - Every push and pull request runs build, unit, integration, component, and E2E tests.
 - CI installs the Playwright Chromium browser before running the suite.
 - A second job builds the container image from the `Dockerfile`.
-- Nightly runs and coverage artifacts are added when the repository is published.
+- Test results are uploaded as a TRX artifact; nightly runs are not configured yet.
 
 ## Coverage and flakiness
 
-Coverage is reported, not enforced as a hard gate initially. The target is 70%+ for Domain and Application, with emphasis on critical paths. A flaky test is fixed or quarantined with an issue within one week.
+Coverage is collected locally with `coverlet.collector` (`dotnet test --collect:"XPlat Code Coverage"`); CI does not run it and it is not a gate. The target is 70%+ for Domain and Application, with emphasis on critical paths. A flaky test is fixed or quarantined with an issue within one week.

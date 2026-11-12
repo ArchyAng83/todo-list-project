@@ -41,6 +41,7 @@ Every aggregate root carries `UserId`; child entities are verified through their
 - `/api/v1` uses **bearer tokens only** and reuses Application services. Blazor does not call the API, which avoids CSRF and cookie/bearer mixing.
 - `POST /api/v1/auth/login` issues access and refresh tokens, and `POST /api/v1/auth/refresh` rotates them; the API covers tasks (including board ordering), projects, tags, and `/me/settings`.
 - The API is documented with OpenAPI at `/openapi/v1.json` and exposed through Scalar at `/scalar`.
+- Login and registration POSTs are throttled per client IP with a fixed window (`Auth:RateLimit`, 10 requests per 60 seconds by default) and return `429` with `Retry-After`; Identity lockout stays the per-account protection.
 - User settings (language, theme, timezone, week start, default reminder) live on `ApplicationUser` and are accessed through `IUserSettingsStore`, keeping Identity out of Application.
 
 ## Task ordering and Kanban

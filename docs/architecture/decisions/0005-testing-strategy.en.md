@@ -16,7 +16,7 @@ Use a four-level test pyramid:
 - **Component** (bUnit): key Blazor components, forms, filtering, localization.
 - **E2E** (Playwright .NET): real browser against the app, PostgreSQL, and Mailpit.
 
-Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI runs unit/integration/component on every PR, E2E smoke on PR, and full E2E on `main` and nightly.
+Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI builds the solution in Release, installs Chromium, and runs all four suites on every push and pull request to `main`; the image build is a second job.
 
 Integration tests share one PostgreSQL database per collection and never reset it between tests. Unique `Guid`-suffixed identities keep tests apart, and the few tests whose outcome depends on leftover rows clear them explicitly (for example, pending reminders before a delivery test). This keeps the suite fast; see `docs/development/testing.en.md` for the revisit trigger.
 
@@ -24,5 +24,5 @@ Integration tests share one PostgreSQL database per collection and never reset i
 
 - High confidence across the stack.
 - Integration and E2E tests require Docker and add CI time.
-- Coverage is reported but not used as a hard gate initially; critical paths are the priority.
+- Coverage is available through `coverlet.collector` but is not wired into CI or used as a gate; critical paths are the priority.
 - Flaky tests are fixed or quarantined within one week.

@@ -4,7 +4,7 @@
 [![Blazor](https://img.shields.io/badge/Blazor-Interactive%20Server-512BD4)](https://learn.microsoft.com/aspnet/core/blazor/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1)](https://www.postgresql.org/)
 [![CI](https://github.com/ArchyAng83/todo-list-project/actions/workflows/ci.yml/badge.svg)](https://github.com/ArchyAng83/todo-list-project/actions/workflows/ci.yml)
-[![Status](https://img.shields.io/badge/status-week%207%20complete-brightgreen)](docs/progress/status.en.md)
+[![Status](https://img.shields.io/badge/status-week%208%20complete-brightgreen)](docs/progress/status.en.md)
 
 A production-minded task manager built with **.NET 10**, **Blazor**, and **PostgreSQL**. It is also a portfolio project for AI engineering roles: the core product is a real multi-user task manager, and the AI layer will be added after v1.0 without rewriting the domain.
 
@@ -12,9 +12,9 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 7 complete.** Recurring tasks (daily, weekly, monthly, with interval and end date) and email reminders backed by a database outbox and a background dispatcher are in place. Reminders are localized per recipient and land in Mailpit during development. The app builds on the month calendar, Kanban board, task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. Release v1.0 is the remaining milestone.
+**Week 8 complete.** JSON/CSV import and export, an accessible `/data` page, and per-IP throttling on the login and registration endpoints are in place. The app builds on recurring tasks, the reminder outbox, the month calendar, Kanban board, task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. The v1.0 code is complete; production deployment is the remaining milestone.
 
-See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-07.en.md](docs/progress/week-07.en.md) for the current week.
+See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-08.en.md](docs/progress/week-08.en.md) for the current week.
 
 ## Stack
 
@@ -143,6 +143,8 @@ OpenAPI is served at `/openapi/v1.json`, and the Scalar UI at [http://localhost:
 
 The board order is available to API clients through `GET /api/v1/tasks/board` and `POST /api/v1/tasks/{id}/move`. Calendar ranges are available through `GET /api/v1/tasks/calendar?from=2026-11-01&to=2026-11-30`. `POST /api/v1/tasks` and `PUT /api/v1/tasks/{id}` accept `priority`, `dueDate`, `dueTime`, `reminderOffsetMinutes`, `recurrence`, `recurrenceInterval`, and `recurrenceEndDate`.
 
+Login and registration are rate limited per client IP (`Auth:RateLimit`, 10 requests per 60 seconds by default) and answer `429 Too Many Requests` with `Retry-After`.
+
 ### Test
 
 ```bash
@@ -150,7 +152,7 @@ dotnet test
 dotnet test TodoList.sln -c Release   # same as CI
 ```
 
-The suite has 47 unit, 45 integration, 32 component (bUnit), and 12 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
+The suite has 54 unit, 72 integration, 32 component (bUnit), and 14 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
 
 Install the Playwright browser once after building:
 
@@ -200,7 +202,7 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 7 завершена: появились повторяющиеся задачи (день, неделя, месяц, с интервалом и датой окончания) и email-напоминания из outbox в базе с фоновым диспетчером. Письма локализуются под получателя и в Development попадают в Mailpit. До этого — календарь на месяц, Kanban-доска, представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Остался релиз v1.0.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 8 завершена: появились импорт/экспорт JSON и CSV, доступная страница `/data` и ограничение частоты входов и регистраций по IP. До этого — повторяющиеся задачи, outbox напоминаний, календарь на месяц, Kanban-доска, представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Код v1.0 готов; остался продакшн-деплой.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)

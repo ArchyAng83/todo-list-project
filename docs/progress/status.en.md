@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-11-09
+Last updated: 2026-11-12
 
 - **Current phase:** Week 8 - Import/export, accessibility, and v1.0 release (code complete)
 - **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, the reminder outbox, import/export, and accessibility are complete; MVP ready for production deployment.
@@ -38,6 +38,7 @@ Last updated: 2026-11-09
 - Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, auth throttling, and the REST API (72 passing).
 - bUnit component tests for the task list, Kanban board, calendar grid, layout, and culture switcher (32 passing).
 - Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (14 passing).
+- The post-review follow-up backlog is closed: E2E journeys own their users, reminder delivery tests use a fake clock, and the shared integration database is documented in the testing guide and ADR 0005.
 - `/health/live` and `/health/ready` endpoints with a database readiness check.
 - JSON console logging outside Development for container platforms.
 - Multi-stage `Dockerfile` running as a non-root user on port 8080, plus `.dockerignore`.

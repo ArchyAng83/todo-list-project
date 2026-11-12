@@ -27,8 +27,12 @@ RUN apt-get update \
 
 COPY --from=build /app ./
 
+# Mount a volume here so encryption keys survive container recreation.
+RUN mkdir -p /app/keys && chown $APP_UID:$APP_UID /app/keys
+
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
+    DataProtection__KeysPath=/app/keys \
     DOTNET_NOLOGO=true \
     DOTNET_CLI_TELEMETRY_OPTOUT=true
 

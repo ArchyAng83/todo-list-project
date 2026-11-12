@@ -168,10 +168,20 @@ E2E starts a real Kestrel process on a free port, waits for `/health/ready`, and
 docker build -t todolist .
 docker run --rm -p 8080:8080 \
   -e 'ConnectionStrings__Default=Host=host.docker.internal;Port=5433;Database=todolist;Username=todolist;Password=todolist_dev' \
+  -v todolist-keys:/app/keys \
   todolist
 ```
 
-The app listens on port 8080 as a non-root user. Health probes: `/health/live` (process) and `/health/ready` (PostgreSQL). See the [deployment guide](docs/development/deployment.en.md) for production configuration, migrations, and probes.
+The app listens on port 8080 as a non-root user. Health probes: `/health/live` (process) and `/health/ready` (PostgreSQL). The `todolist-keys` volume keeps the Data Protection key ring.
+
+`docker-compose.production.yml` runs PostgreSQL, a one-shot migration bundle (`Dockerfile.migrations`), and the app with `.env.production.example`:
+
+```bash
+cp .env.production.example .env.production
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+```
+
+See the [deployment guide](docs/development/deployment.en.md) for production configuration, migrations, proxy/TLS, and probes.
 
 ## Documentation
 

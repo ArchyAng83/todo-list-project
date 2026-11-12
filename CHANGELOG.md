@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-11-12
+
+### Added
+
+- Production deployment hardening: configurable Data Protection key persistence, opt-in forwarded headers with an explicit proxy trust list, secure auth/antiforgery cookies outside Development, and startup warnings for an unpersisted key ring and a missing SMTP host.
+- `Dockerfile.migrations` builds a self-contained EF Core migration bundle from the pinned `dotnet-ef` tool manifest; `Dockerfile` prepares `/app/keys` for the key-ring volume.
+- `docker-compose.production.yml` and `.env.production.example` describe the reference PostgreSQL + migrate + app stack with health checks and a persistent key-ring volume.
+- ADR 0006 records the production deployment shape; the deployment guide now covers Data Protection, proxy/TLS, email, the single-replica reminder constraint, and an expanded go-live checklist.
+- `appsettings.Development.json` carries the local PostgreSQL connection string and Mailpit settings, so a fresh clone runs without extra configuration.
+
+### Changed
+
+- `AddInfrastructure` receives the host environment and applies `CookieSecurePolicy.Always` outside Development.
+- Reminder documentation now matches the code: `System.Net.Mail.SmtpClient`, no `FOR UPDATE SKIP LOCKED` claim, and one app replica for the MVP.
+
+### Fixed
+
+- Per-IP throttling for the login and registration POST endpoints (`Auth:RateLimit`).
+- Task status enum validation plus `ETag`/`If-Match` optimistic concurrency on the task API.
+- Import validation errors answer `400` instead of `500`, and validation codes map consistently.
+- Removed the committed database password and the hardcoded demo password; both come from configuration.
+- Removed the `DateTimeOffset.UtcNow` default from `ApplicationUser`, localized the remaining hardcoded messages, and fixed demo-seed timezone and ordering.
+- OpenAPI and Scalar are exposed only in Development.
+
 ## [Unreleased]
 
 ### Added

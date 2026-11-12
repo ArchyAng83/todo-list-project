@@ -28,6 +28,8 @@ dotnet run --project src/TodoList.Web
 
 The app is available at https://localhost:7037 or http://localhost:5122.
 
+`appsettings.Development.json` already points at the compose PostgreSQL (`todolist_dev`) and Mailpit on `localhost:1025`, so a fresh clone runs without extra configuration.
+
 Health probes:
 
 | Endpoint | Checks |
@@ -44,13 +46,14 @@ docker run --rm -p 8080:8080 \
   todolist
 ```
 
-The image publishes in Release, runs as a non-root user, and listens on port 8080. See [deployment](deployment.en.md) for the production checklist.
+The image publishes in Release, runs as a non-root user, and listens on port 8080. Mount a volume at `/app/keys` to keep the Data Protection key ring, or use the production compose stack. See [deployment](deployment.en.md) for the production checklist.
 
 ## Database
 
-EF Core migrations and the `AppDbContext` are in place. Apply them with:
+EF Core migrations and the `AppDbContext` are in place. `dotnet-ef` is pinned by `.config/dotnet-tools.json`, so restore the local tool once and then apply migrations:
 
 ```bash
+dotnet tool restore
 dotnet ef database update --project src/TodoList.Infrastructure --startup-project src/TodoList.Web
 ```
 

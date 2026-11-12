@@ -1,0 +1,37 @@
+# Builds a self-contained EF Core migration bundle for production deployments.
+# The app image never migrates on startup outside Development; run this bundle
+# as a separate deploy step before shifting traffic to the new image.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY .config .config
+COPY src/TodoList.Domain/TodoList.Domain.csproj src/TodoList.Domain/
+COPY src/TodoList.Application/TodoList.Application.csproj src/TodoList.Application/
+COPY src/TodoList.Infrastructure/TodoList.Infrastructure.csproj src/TodoList.Infrastructure/
+COPY src/TodoList.Web/TodoList.Web.csproj src/TodoList.Web/
+
+RUN dotnet tool restore \
+    && dotnet restore src/TodoList.Web/TodoList.Web.csproj --runtime linux-x64
+
+COPY src/ src/
+
+RUN dotnet ef migrations bundle \
+    --project src/TodoList.Infrastructure \
+    --startup-project src/TodoList.Web \
+    --configuration Release \
+    --runtime linux-x64 \
+    --self-contained \
+    --output /app/efbundle
+
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
+WORKDIR /app
+
+# Npgsql probes for GSSAPI; installing it avoids a loader warning on connect.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /app/efbundle ./
+
+ENTRYPOINT ["/app/efbundle"]

@@ -69,7 +69,7 @@ The remedies, in increasing cost, are a transaction rollback per test, a schema 
 
 - Every push and pull request runs build, unit, integration, component, and E2E tests.
 - CI installs the Playwright Chromium browser before running the suite.
-- A second job builds the container image from the `Dockerfile`.
+- A second job builds the runtime image and the migration bundle image.
 - Test results are uploaded as a TRX artifact; nightly runs are not configured yet.
 
 ## Coverage and flakiness

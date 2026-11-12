@@ -68,7 +68,7 @@ pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 
 - Каждый push и pull request запускает build, unit-, integration-, component- и E2E-тесты.
 - CI ставит браузер Chromium для Playwright перед запуском набора.
-- Вторая job собирает контейнерный образ из `Dockerfile`.
+- Вторая job собирает runtime-образ и образ с bundle миграций.
 - Результаты тестов выгружаются артефактом TRX; nightly-запуски пока не настроены.
 
 ## Coverage и flakiness

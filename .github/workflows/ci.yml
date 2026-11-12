@@ -57,3 +57,6 @@ jobs:
 
       - name: Build image
         run: docker build --tag todolist:${{ github.sha }} .
+
+      - name: Build migration bundle image
+        run: docker build --file Dockerfile.migrations --tag todolist-migrations:${{ github.sha }} .

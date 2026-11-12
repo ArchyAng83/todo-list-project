@@ -16,7 +16,7 @@ Use a four-level test pyramid:
 - **Component** (bUnit): key Blazor components, forms, filtering, localization.
 - **E2E** (Playwright .NET): real browser against the app, PostgreSQL, and Mailpit.
 
-Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI builds the solution in Release, installs Chromium, and runs all four suites on every push and pull request to `main`; the image build is a second job.
+Shared fixtures and helpers live in `TodoList.Testing`. Reminder dispatch uses `TimeProvider`, and `FakeTimeProvider` drives its integration tests without wall-clock delays. CI builds the solution in Release, installs Chromium, and runs all four suites on every push and pull request to `main`; building the runtime and migration bundle images is a second job.
 
 Integration tests share one PostgreSQL database per collection and never reset it between tests. Unique `Guid`-suffixed identities keep tests apart, and the few tests whose outcome depends on leftover rows clear them explicitly (for example, pending reminders before a delivery test). This keeps the suite fast; see `docs/development/testing.en.md` for the revisit trigger.
 

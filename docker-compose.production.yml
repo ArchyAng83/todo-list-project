@@ -1,0 +1,89 @@
+name: todolist-production
+
+# Production stack: PostgreSQL, a one-shot migration bundle, and the app.
+# Prefix every command with the env file so interpolation sees the secrets:
+#   cp .env.production.example .env.production   # then edit it
+#   docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
+#
+# Run exactly one app replica: Blazor Server keeps circuits in memory and the
+# reminder dispatcher has no cross-replica claim, so two replicas could send
+# the same reminder twice. Scale the API separately if needed.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-todolist}
+      POSTGRES_USER: ${POSTGRES_USER:-todolist}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - backend
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    image: ${TODOLIST_MIGRATIONS_IMAGE:-todolist-migrations:latest}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-todolist};Username=${POSTGRES_USER:-todolist};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    restart: "no"
+    networks:
+      - backend
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${TODOLIST_IMAGE:-todolist:latest}
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-todolist};Username=${POSTGRES_USER:-todolist};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      DataProtection__KeysPath: /app/keys
+      Auth__RateLimit__PermitLimit: ${AUTH_RATE_LIMIT_PERMIT_LIMIT:-10}
+      Auth__RateLimit__WindowSeconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+      ForwardedHeaders__Enabled: ${FORWARDED_HEADERS_ENABLED:-false}
+      ForwardedHeaders__ForwardLimit: ${FORWARDED_HEADERS_FORWARD_LIMIT:-1}
+      Email__Host: ${SMTP_HOST:-}
+      Email__Port: ${SMTP_PORT:-587}
+      Email__UseSsl: ${SMTP_USE_SSL:-true}
+      Email__UserName: ${SMTP_USER_NAME:-}
+      Email__Password: ${SMTP_PASSWORD:-}
+      Email__FromAddress: ${SMTP_FROM_ADDRESS:-no-reply@todolist.local}
+      Email__FromName: ${SMTP_FROM_NAME:-TodoList}
+      Reminders__Enabled: ${REMINDERS_ENABLED:-true}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - data-protection-keys:/app/keys
+    healthcheck:
+      # The runtime image has no curl; a bash TCP probe only checks the listener.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - backend
+
+volumes:
+  postgres-data:
+  data-protection-keys:
+
+networks:
+  backend:
+    driver: bridge

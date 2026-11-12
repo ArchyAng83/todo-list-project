@@ -65,7 +65,7 @@ Every aggregate root carries `UserId`; child entities are verified through their
 
 ## Background work
 
-Reminders are written to the `Reminder` table by Application services. A hosted dispatcher claims due rows with `FOR UPDATE SKIP LOCKED`, sends email through MailKit, and marks them sent. Recurring tasks generate their next occurrence when the current one is completed.
+Reminders are written to the `Reminder` table by Application services. A hosted dispatcher polls due rows, sends email through `System.Net.Mail.SmtpClient` (or a logging sender when `Email:Host` is empty), and marks them sent. The MVP runs a single replica because delivery has no cross-replica row claim; recurring tasks generate their next occurrence when the current one is completed.
 
 ## Testing
 
@@ -82,3 +82,4 @@ Reminders are written to the `Reminder` table by Application services. A hosted 
 - [ADR-0003: Identity cookie and bearer-only API](decisions/0003-identity-cookie-and-bearer.en.md)
 - [ADR-0004: Modular monolith without MediatR/AutoMapper](decisions/0004-modular-monolith.en.md)
 - [ADR-0005: Testing strategy](decisions/0005-testing-strategy.en.md)
+- [ADR-0006: Production deployment shape](decisions/0006-production-deployment.en.md)

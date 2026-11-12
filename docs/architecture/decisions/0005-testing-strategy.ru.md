@@ -16,7 +16,7 @@
 - **Component** (bUnit): ключевые Blazor-компоненты, формы, фильтрация, локализация.
 - **E2E** (Playwright .NET): реальный браузер против приложения, PostgreSQL и Mailpit.
 
-Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, а `FakeTimeProvider` делает его integration-тесты детерминированными без реальных задержек. CI собирает решение в Release, ставит Chromium и запускает все четыре набора на каждый push и pull request в `main`; сборка образа — отдельная job.
+Общие fixtures и helpers живут в `TodoList.Testing`. Reminder dispatch использует `TimeProvider`, а `FakeTimeProvider` делает его integration-тесты детерминированными без реальных задержек. CI собирает решение в Release, ставит Chromium и запускает все четыре набора на каждый push и pull request в `main`; сборка runtime-образа и образа с bundle миграций — отдельная job.
 
 Integration-тесты делят одну базу PostgreSQL на коллекцию и не сбрасывают её между тестами. Уникальные идентификаторы с `Guid`-суффиксом не дают тестам столкнуться, а те несколько тестов, чей результат зависит от оставшихся строк, явно их очищают (например, ожидающие напоминания перед тестом доставки). Это ускоряет набор; триггер пересмотра описан в `docs/development/testing.ru.md`.
 

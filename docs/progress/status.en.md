@@ -58,17 +58,20 @@ Last updated: 2026-11-12
 - JSON import/export (`/data` page and `/api/v1/data`) with a versioned schema, reuse-by-name for projects and tags, and `ImportSummary`.
 - CSV export with UTF-8 BOM, quoted fields, and CRLF line endings.
 - `/data` page with JSON/CSV export, a JSON file picker, and an `aria-live` import result; a skip link, main landmark, localized nav labels, and `:focus-visible` styles improve accessibility.
+- Production deployment assets: `DataProtection:KeysPath` key persistence on a volume, opt-in forwarded headers with a proxy trust list, secure auth/antiforgery cookies outside Development, and startup warnings for an unpersisted key ring or a missing SMTP host.
+- `Dockerfile.migrations` builds a self-contained EF Core migration bundle, `docker-compose.production.yml` runs PostgreSQL + migrate + app, and `.env.production.example` documents every variable.
 
 ## In progress
 
 ## Next
 
-- Deploy the v1.0 release to a chosen hosting target with a production SMTP provider.
+- Choose a hosting target and a production SMTP provider, then deploy the prepared release and run the go-live checklist.
 
 ## Blockers and risks
 
 - Docker Desktop must be running for PostgreSQL, Mailpit, integration tests, and E2E.
 - The production SMTP provider and hosting target will be chosen before the MVP deployment.
+- The reminder dispatcher has no cross-replica row claim, so production runs a single app replica until a `FOR UPDATE SKIP LOCKED` claim is implemented.
 
 ## Quality gates
 
@@ -79,13 +82,16 @@ Last updated: 2026-11-12
 | Integration tests | ✅ 72 passing (Testcontainers) |
 | Component tests | ✅ 32 passing (bUnit) |
 | E2E tests | ✅ 14 passing (Playwright) |
-| Container image | ✅ builds; health probes respond |
+| Container image | ✅ builds; migration bundle applies migrations; health probes respond |
 | CI | ✅ all recent runs passed on GitHub Actions |
+| Deployment assets | ✅ prepare a production stack; hosting and SMTP remain operator decisions |
 | Deployed | ⬜ production deployment pending hosting/SMTP selection |
 
 ## Deployment notes
 
-- The app runs on Kestrel in a container on port 8080 and expects a PostgreSQL database (`Default` connection string) plus an SMTP host for reminders (`Email:Host`).
-- Production migrations should be applied as a separate deploy step (`dotnet ef database update`); they are applied on startup only in Development.
-- Migration `AddTaskRecurrence` was hand-edited to set `recurrence` default to `none` (PostgreSQL string) and must not be regenerated.
+- The app runs on Kestrel in a container on port 8080 and expects a PostgreSQL database (`Default` connection string). Reminders need `Email:Host`; without it they are logged and a startup warning is emitted.
+- `DataProtection:KeysPath` must point at a persistent volume; losing the key ring invalidates cookies, antiforgery tokens, and bearer tokens.
+- Behind a TLS proxy set `ForwardedHeaders:Enabled=true` and trust the proxy through `KnownProxies`/`KnownNetworks`.
+- Production migrations run through `Dockerfile.migrations` or the compose `migrate` service; they are applied on startup only in Development.
+- Migration `AddTaskRecurrence` was hand-edited to set the `recurrence` default to the `None` enum string and must not be regenerated.
 - Demo credentials (`demo@todolist.local` / `DemoPass123`) are for local evaluation only and must be removed or rotated in production.

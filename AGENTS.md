@@ -54,7 +54,8 @@ dotnet test tests/TodoList.E2ETests/TodoList.E2ETests.csproj \
 # Install the Playwright browser once after building (needed for E2E)
 pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 
-# EF Core migrations (dotnet-ef 10.x installed globally)
+# EF Core migrations (dotnet-ef is pinned by .config/dotnet-tools.json)
+dotnet tool restore    # once per clone; dotnet ef resolves the local tool
 dotnet ef migrations add <Name> \
   --project src/TodoList.Infrastructure \
   --startup-project src/TodoList.Web \
@@ -162,6 +163,24 @@ docs/                       bilingual docs, ADRs, progress tracking
   host with a low permit plus a startup filter that assigns `RemoteIpAddress`
   (a request header works), because `TestServer` leaves it unset and all
   in-process clients would share one partition.
+
+## Production runtime config
+
+- `DataProtection:KeysPath` persists the key ring; the image defaults it to
+  `/app/keys`. Losing it invalidates auth cookies, antiforgery tokens, and
+  bearer/refresh tokens. Compose mounts `data-protection-keys` there.
+- Auth and antiforgery cookies are `Secure` (`Always`) outside Development.
+  Development uses `SameAsRequest` so plain HTTP on port 5122 still works.
+- `ForwardedHeaders:Enabled` is off by default. When on, only
+  `X-Forwarded-For`/`X-Forwarded-Proto` are honoured, with `ForwardLimit` and an
+  explicit `KnownProxies`/`KnownNetworks` list; setting either list replaces the
+  loopback defaults, and an invalid IP/CIDR fails startup.
+- Empty `Email:Host` registers `LoggingEmailSender` and logs a warning while
+  reminders stay enabled. The dispatcher has no cross-replica row claim, so
+  production runs one app replica.
+- Production schema changes run through `Dockerfile.migrations` or the compose
+  `migrate` service, never through app startup. `.config/dotnet-tools.json` pins
+  `dotnet-ef`; compose must be invoked with `--env-file .env.production`.
 
 ## Localization
 

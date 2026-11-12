@@ -53,3 +53,9 @@
 
 - Выбрать площадку хостинга и продакшн-SMTP-провайдера до деплоя v1.0.
 - Создать GitHub Release после пуша тега `v1.0.0` (на машине нет `gh`, но тег можно отправить напрямую).
+
+## Follow-up: подготовка деплоя в v1.0.1
+
+- Репозиторий готов к деплою без хоста и SMTP-аккаунта: ключи Data Protection сохраняются на volume, forwarded headers включаются явно со списком доверия, auth- и antiforgery-cookie безопасны вне Development, а при старте выводятся предупреждения о несохранённом key ring или отсутствующем SMTP-хосте.
+- `Dockerfile.migrations` и `docker-compose.production.yml` упаковывают шаг схемы и runtime-стек; `.env.production.example` описывает конфигурацию, а ADR 0006 фиксирует форму деплоя.
+- Полный набор теперь 176 тестов (54 unit / 72 integration / 32 component / 14 E2E).

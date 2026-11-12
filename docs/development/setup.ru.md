@@ -28,6 +28,8 @@ dotnet run --project src/TodoList.Web
 
 Приложение доступно на https://localhost:7037 или http://localhost:5122.
 
+`appsettings.Development.json` уже указывает на PostgreSQL из compose (`todolist_dev`) и Mailpit на `localhost:1025`, поэтому свежий клон запускается без дополнительной настройки.
+
 Health-пробы:
 
 | Endpoint | Проверяет |
@@ -44,13 +46,14 @@ docker run --rm -p 8080:8080 \
   todolist
 ```
 
-Образ собирается в Release, запускается от непривилегированного пользователя и слушает порт 8080. Подробнее — в [deployment](deployment.ru.md).
+Образ собирается в Release, запускается от непривилегированного пользователя и слушает порт 8080. Смонтируйте volume в `/app/keys`, чтобы сохранить key ring Data Protection, или используйте production compose-стек. Подробнее — в [deployment](deployment.ru.md).
 
 ## База данных
 
-EF Core migrations и `AppDbContext` уже есть. Применить их можно так:
+EF Core migrations и `AppDbContext` уже есть. `dotnet-ef` зафиксирован в `.config/dotnet-tools.json`, поэтому один раз восстановите локальный инструмент и применяйте миграции:
 
 ```bash
+dotnet tool restore
 dotnet ef database update --project src/TodoList.Infrastructure --startup-project src/TodoList.Web
 ```
 

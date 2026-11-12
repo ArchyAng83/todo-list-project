@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using TodoList.Application.Email;
 using TodoList.Application.Persistence;
 using TodoList.Application.Settings;
@@ -18,10 +20,29 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(environment);
+
+        // Blazor circuits, auth cookies, antiforgery tokens, and bearer tokens
+        // all depend on the key ring. A mounted volume keeps it stable across
+        // container recreations; an unset path falls back to the container
+        // filesystem and is only suitable for local runs.
+        var dataProtection = configuration.GetSection("DataProtection");
+        var applicationName = dataProtection["ApplicationName"];
+        var keysPath = dataProtection["KeysPath"];
+
+        var dataProtectionBuilder = services
+            .AddDataProtection()
+            .SetApplicationName(string.IsNullOrWhiteSpace(applicationName) ? "TodoList" : applicationName);
+
+        if (!string.IsNullOrWhiteSpace(keysPath))
+        {
+            dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+        }
 
         services.AddDbContextFactory<AppDbContext>(options => options
             .UseNpgsql(
@@ -56,6 +77,9 @@ public static class DependencyInjection
             options.Cookie.Name = "TodoList.Auth";
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
+            options.Cookie.SecurePolicy = environment.IsDevelopment()
+                ? CookieSecurePolicy.SameAsRequest
+                : CookieSecurePolicy.Always;
             options.LoginPath = "/account/login";
             options.LogoutPath = "/account/logout";
             options.AccessDeniedPath = "/account/access-denied";

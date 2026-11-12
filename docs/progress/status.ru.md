@@ -58,17 +58,20 @@
 - JSON-импорт/экспорт (страница `/data` и `/api/v1/data`) с версионированной схемой, переиспользованием проектов и тегов по имени и `ImportSummary`.
 - Экспорт в CSV с BOM в кодировке UTF-8, экранированными полями и CRLF.
 - Страница `/data` с экспортом JSON/CSV, выбором JSON-файла и областью результата с `aria-live`; ссылка «перейти», главная разметка, локализованные подписи навигации и стили `:focus-visible` улучшают доступность.
+- Production-ассеты для деплоя: сохранение ключей Data Protection по `DataProtection:KeysPath` на volume, opt-in forwarded headers со списком доверенных прокси, secure auth/antiforgery-cookie вне Development и предупреждения при старте о несохранённом key ring или отсутствующем SMTP-хосте.
+- `Dockerfile.migrations` собирает self-contained bundle миграций EF Core, `docker-compose.production.yml` поднимает PostgreSQL + migrate + приложение, а `.env.production.example` описывает все переменные.
 
 ## В работе
 
 ## Далее
 
-- Деплой релиза v1.0 на выбранную площадку с продакшн-SMTP-провайдером.
+- Выбрать площадку хостинга и продакшн-SMTP-провайдера, задеплоить подготовленный релиз и пройти go-live чек-лист.
 
 ## Блокеры и риски
 
 - Docker Desktop должен быть запущен для PostgreSQL, Mailpit, integration-тестов и E2E.
 - SMTP-провайдер для прода и площадку хостинга выберем до деплоя MVP.
+- У reminder dispatcher нет межрепличного claim, поэтому в production работает одна реплика приложения, пока не появится claim через `FOR UPDATE SKIP LOCKED`.
 
 ## Quality gates
 
@@ -79,12 +82,16 @@
 | Integration tests | ✅ 72 проходят (Testcontainers) |
 | Component tests | ✅ 32 проходят (bUnit) |
 | E2E tests | ✅ 14 проходят (Playwright) |
-| Container image | ✅ собирается; health-пробы отвечают |
+| Container image | ✅ собирается; bundle миграций применяет миграции; health-пробы отвечают |
 | CI | ✅ последние запуски прошли в GitHub Actions |
+| Deployment assets | ✅ production-стек подготовлен; хостинг и SMTP остаются решением оператора |
 | Deployed | ⬜ продакшн-деплой ждёт выбора хостинга и SMTP |
 
 ## Заметки о деплое
 
-- Приложение запускается на Kestrel в контейнере на порту 8080 и ожидает базу PostgreSQL (`Default` строка подключения) и SMTP-хост для напоминаний (`Email:Host`).
-- В продакшене миграции применяются отдельным шагом деплоя; в Development они применяются на старте через `MigrateDatabaseAsync`.
+- Приложение запускается на Kestrel в контейнере на порту 8080 и ожидает базу PostgreSQL (`Default` строка подключения). Напоминаниям нужен `Email:Host`; без него они пишутся в лог, а при старте выводится предупреждение.
+- `DataProtection:KeysPath` должен указывать на постоянный volume; потеря key ring инвалидирует cookie, antiforgery-токены и bearer-токены.
+- За TLS-прокси включите `ForwardedHeaders:Enabled=true` и доверьте прокси через `KnownProxies`/`KnownNetworks`.
+- В продакшене миграции применяются через `Dockerfile.migrations` или compose-сервис `migrate`; в Development они применяются на старте через `MigrateDatabaseAsync`.
+- Миграция `AddTaskRecurrence` была отредактирована вручную: значение по умолчанию для `recurrence` — строка enum `None`; не перегенерируйте её.
 - Демо-учётная запись (`demo@todolist.local` / `DemoPass123`) предназначена только для локальной оценки и должна быть удалена или заменена в продакшене.

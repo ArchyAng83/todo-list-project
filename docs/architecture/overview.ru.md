@@ -65,7 +65,7 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 
 ## Фоновая работа
 
-Напоминания пишутся в таблицу `Reminder` Application-сервисами. Hosted dispatcher забирает due-строки через `FOR UPDATE SKIP LOCKED`, отправляет email через MailKit и помечает отправленными. Повторяющиеся задачи создают следующее вхождение при завершении текущей.
+Напоминания пишутся в таблицу `Reminder` Application-сервисами. Hosted dispatcher опрашивает due-строки, отправляет email через `System.Net.Mail.SmtpClient` (или logging-sender, если `Email:Host` пуст) и помечает их отправленными. MVP работает в одной реплике, потому что доставка не использует межрепличный claim; повторяющиеся задачи создают следующее вхождение при завершении текущей.
 
 ## Тестирование
 
@@ -82,3 +82,4 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 - [ADR-0003: Identity cookie и bearer-only API](decisions/0003-identity-cookie-and-bearer.ru.md)
 - [ADR-0004: Модульный монолит без MediatR/AutoMapper](decisions/0004-modular-monolith.ru.md)
 - [ADR-0005: Стратегия тестирования](decisions/0005-testing-strategy.ru.md)
+- [ADR-0006: Форма production-деплоя](decisions/0006-production-deployment.ru.md)

@@ -8,6 +8,7 @@
 .vscode/
 docs/
 tests/
+.env*
 *.user
 *.suo
 Dockerfile

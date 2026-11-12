@@ -53,3 +53,9 @@ Status: Code complete; all suites green
 
 - Choose a hosting target and a production SMTP provider before the v1.0 deployment.
 - Create a GitHub Release after the `v1.0.0` tag is pushed (GitHub CLI is not installed on the machine; a tag can still be pushed directly).
+
+## Follow-up: v1.0.1 deployment hardening
+
+- The repository is deployment-ready without a host or SMTP account: Data Protection keys persist on a volume, forwarded headers are opt-in with an explicit trust list, auth and antiforgery cookies are secure outside Development, and startup warns about an unpersisted key ring or a missing SMTP host.
+- `Dockerfile.migrations` and `docker-compose.production.yml` package the schema step and the runtime stack; `.env.production.example` documents the configuration and ADR 0006 records the shape.
+- The full suite is now 176 tests (54 unit / 72 integration / 32 component / 14 E2E).

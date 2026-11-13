@@ -1,7 +1,7 @@
 # Builds a self-contained EF Core migration bundle for production deployments.
 # The app image never migrates on startup outside Development; run this bundle
 # as a separate deploy step before shifting traffic to the new image.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./

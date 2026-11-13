@@ -88,7 +88,9 @@ public sealed class KanbanBoardTests : ComponentTestContext
                 [],
                 [])));
 
-        cut.Markup.ShouldContain("11/9/2026 6:00 PM");
+        // Format with the test culture so the assertion is platform-independent.
+        var dueText = $"{Today.ToString("d")} {new TimeOnly(18, 0).ToString("t")}";
+        cut.Markup.ShouldContain(dueText);
     }
 
     [Fact]

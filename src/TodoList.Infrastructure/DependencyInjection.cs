@@ -89,8 +89,17 @@ public static class DependencyInjection
 
         services.AddSingleton(TimeProvider.System);
 
-        services.Configure<EmailOptions>(configuration.GetSection(EmailOptions.SectionName));
-        services.Configure<ReminderOptions>(configuration.GetSection(ReminderOptions.SectionName));
+        services
+            .AddOptions<EmailOptions>()
+            .Bind(configuration.GetSection(EmailOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services
+            .AddOptions<ReminderOptions>()
+            .Bind(configuration.GetSection(ReminderOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
 
         if (string.IsNullOrWhiteSpace(configuration[$"{EmailOptions.SectionName}:Host"]))
         {
@@ -101,8 +110,11 @@ public static class DependencyInjection
             services.AddSingleton<IEmailSender, SmtpEmailSender>();
         }
 
+        services.AddScoped<ReminderDispatchLock>();
         services.AddScoped<ReminderDeliveryService>();
+        services.AddScoped<ReminderRetentionService>();
         services.AddHostedService<ReminderDispatcher>();
+        services.AddHostedService<ReminderRetentionWorker>();
 
         services.AddScoped<IUserSettingsStore, UserSettingsStore>();
         services.AddScoped<DemoDataSeeder>();

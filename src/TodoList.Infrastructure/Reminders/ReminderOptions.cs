@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TodoList.Infrastructure.Reminders;
 
 /// <summary>
@@ -10,7 +12,19 @@ public sealed class ReminderOptions
 
     public bool Enabled { get; set; } = true;
 
+    [Range(5, 3600)]
     public int PollIntervalSeconds { get; set; } = 30;
 
+    [Range(1, 500)]
     public int BatchSize { get; set; } = 25;
+
+    /// <summary>
+    /// Terminal reminders older than this many days are deleted by the
+    /// retention worker. Pending reminders are never removed.
+    /// </summary>
+    [Range(1, 3650)]
+    public int RetentionDays { get; set; } = 30;
+
+    [Range(1, 168)]
+    public int CleanupIntervalHours { get; set; } = 24;
 }

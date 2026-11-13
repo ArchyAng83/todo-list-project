@@ -58,4 +58,12 @@ Status: Code complete; all suites green
 
 - The repository is deployment-ready without a host or SMTP account: Data Protection keys persist on a volume, forwarded headers are opt-in with an explicit trust list, auth and antiforgery cookies are secure outside Development, and startup warns about an unpersisted key ring or a missing SMTP host.
 - `Dockerfile.migrations` and `docker-compose.production.yml` package the schema step and the runtime stack; `.env.production.example` documents the configuration and ADR 0006 records the shape.
-- The full suite is now 176 tests (54 unit / 72 integration / 32 component / 14 E2E).
+- The full suite is now 172 tests (54 unit / 72 integration / 32 component / 14 E2E).
+
+## Follow-up: v1.0.2 — operations, security, and reminder claim
+
+- The reminder dispatcher takes a PostgreSQL session advisory lock before selecting due rows, so several replicas cannot send duplicates; ADR 0007 records the decision. `ReminderRetentionWorker` deletes terminal reminders after `Reminders:RetentionDays`.
+- Security hardening: CSP and browser hardening headers, `AllowedHosts` with a production warning, `ValidateOnStart` for email/reminder options, and a read-only container with dropped capabilities and resource limits.
+- Operations runbooks and scripts: `backup-postgres.ps1` copies the database and Data Protection keys, `restore-postgres.ps1` restores into a scratch database, and `smoke-test.ps1` checks health, login, a task, the board, the calendar, and export. The restore drill was run against a real PostgreSQL container.
+- CI: vulnerable-package gate, CodeQL, Trivy scans of both images, Dependabot, and a smoke test on a disposable compose stack after the images build.
+- The full suite is now 176 tests (54 unit / 76 integration / 32 component / 14 E2E), and the Release build has 0 warnings.

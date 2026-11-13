@@ -1,9 +1,9 @@
 # Project Status
 
-Last updated: 2026-11-12
+Last updated: 2026-11-14
 
-- **Current phase:** Week 8 - Import/export, accessibility, and v1.0 release (code complete)
-- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, the reminder outbox, import/export, and accessibility are complete; MVP ready for production deployment.
+- **Current phase:** Week 8 follow-up - production operations, security hardening, and reminder dispatch claim (code complete)
+- **Overall:** Foundation, task management, settings, demo data, the bearer API, component tests, E2E, the container image, the Kanban board, the month calendar, recurring tasks, the reminder outbox, import/export, accessibility, and the production operations/security baseline are complete; MVP ready for production deployment.
 
 ## Done
 
@@ -35,7 +35,7 @@ Last updated: 2026-11-12
 - OpenAPI document at `/openapi/v1.json` and Scalar UI at `/scalar` in Development only.
 - Command/query Application services with FluentValidation and `Result<T>`.
 - Unit tests for domain rules, recurrence, and user settings (54 passing).
-- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, auth throttling, and the REST API (72 passing).
+- Testcontainers-based integration tests for auth, persistence, task management, board ordering, calendar ranges, recurrence, reminder delivery, reminder locking and retention, auth throttling, security headers, and the REST API (76 passing).
 - bUnit component tests for the task list, Kanban board, calendar grid, layout, and culture switcher (32 passing).
 - Playwright E2E journeys against a real Kestrel process, Testcontainers PostgreSQL, and headless Chromium (14 passing).
 - The post-review follow-up backlog is closed: E2E journeys own their users, reminder delivery tests use a fake clock, and the shared integration database is documented in the testing guide and ADR 0005.
@@ -60,6 +60,10 @@ Last updated: 2026-11-12
 - `/data` page with JSON/CSV export, a JSON file picker, and an `aria-live` import result; a skip link, main landmark, localized nav labels, and `:focus-visible` styles improve accessibility.
 - Production deployment assets: `DataProtection:KeysPath` key persistence on a volume, opt-in forwarded headers with a proxy trust list, secure auth/antiforgery cookies outside Development, and startup warnings for an unpersisted key ring or a missing SMTP host.
 - `Dockerfile.migrations` builds a self-contained EF Core migration bundle, `docker-compose.production.yml` runs PostgreSQL + migrate + app, and `.env.production.example` documents every variable.
+- Reminder dispatch is serialized with a PostgreSQL session advisory lock (ADR-0007), so additional app replicas cannot send duplicates; `ReminderRetentionWorker` deletes terminal reminders after `Reminders:RetentionDays`.
+- Security hardening: CSP and browser hardening headers, `AllowedHosts` with a production warning, `ValidateOnStart` for email/reminder options, and a read-only container with dropped capabilities and resource limits.
+- Operations runbooks and scripts: `backup-postgres.ps1` (database + Data Protection keys), `restore-postgres.ps1` (scratch restore drill), and `smoke-test.ps1` (health, login, task, board, calendar, export). The restore drill was run against a real PostgreSQL container.
+- CI security: vulnerable-package gate, CodeQL, Trivy image scans, Dependabot, and a disposable compose stack that runs the smoke test after both images build.
 
 ## In progress
 
@@ -71,7 +75,7 @@ Last updated: 2026-11-12
 
 - Docker Desktop must be running for PostgreSQL, Mailpit, integration tests, and E2E.
 - The production SMTP provider and hosting target will be chosen before the MVP deployment.
-- The reminder dispatcher has no cross-replica row claim, so production runs a single app replica until a `FOR UPDATE SKIP LOCKED` claim is implemented.
+- Blazor Server keeps circuits in memory, so horizontal UI scaling needs sticky sessions; reminder dispatch no longer blocks replicas.
 
 ## Quality gates
 
@@ -79,10 +83,12 @@ Last updated: 2026-11-12
 |---|---|
 | Build | ✅ 0 warnings, 0 errors |
 | Unit tests | ✅ 54 passing |
-| Integration tests | ✅ 72 passing (Testcontainers) |
+| Integration tests | ✅ 76 passing (Testcontainers) |
 | Component tests | ✅ 32 passing (bUnit) |
 | E2E tests | ✅ 14 passing (Playwright) |
 | Container image | ✅ builds; migration bundle applies migrations; health probes respond |
+| Operations | ✅ backup + restore drill passed; smoke test wired into CI |
+| Security | ✅ hardening headers; vulnerable-package, CodeQL, Trivy, and Dependabot checks |
 | CI | ✅ all recent runs passed on GitHub Actions |
 | Deployment assets | ✅ prepare a production stack; hosting and SMTP remain operator decisions |
 | Deployed | ⬜ production deployment pending hosting/SMTP selection |
@@ -90,8 +96,10 @@ Last updated: 2026-11-12
 ## Deployment notes
 
 - The app runs on Kestrel in a container on port 8080 and expects a PostgreSQL database (`Default` connection string). Reminders need `Email:Host`; without it they are logged and a startup warning is emitted.
-- `DataProtection:KeysPath` must point at a persistent volume; losing the key ring invalidates cookies, antiforgery tokens, and bearer tokens.
+- `AllowedHosts` should list the public host names; `*` logs a warning in production.
+- `DataProtection:KeysPath` must point at a persistent volume; losing the key ring invalidates cookies, antiforgery tokens, and bearer tokens. Back it up with the database (`scripts/backup-postgres.ps1`).
 - Behind a TLS proxy set `ForwardedHeaders:Enabled=true` and trust the proxy through `KnownProxies`/`KnownNetworks`.
 - Production migrations run through `Dockerfile.migrations` or the compose `migrate` service; they are applied on startup only in Development.
+- Reminder dispatch takes a PostgreSQL advisory lock; retention deletes terminal reminders after `Reminders:RetentionDays`.
 - Migration `AddTaskRecurrence` was hand-edited to set the `recurrence` default to the `None` enum string and must not be regenerated.
 - Demo credentials (`demo@todolist.local` / `DemoPass123`) are for local evaluation only and must be removed or rotated in production.

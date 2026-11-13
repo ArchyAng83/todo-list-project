@@ -83,3 +83,4 @@ Reminders are written to the `Reminder` table by Application services. A hosted 
 - [ADR-0004: Modular monolith without MediatR/AutoMapper](decisions/0004-modular-monolith.en.md)
 - [ADR-0005: Testing strategy](decisions/0005-testing-strategy.en.md)
 - [ADR-0006: Production deployment shape](decisions/0006-production-deployment.en.md)
+- [ADR-0007: Reminder dispatch claim](decisions/0007-reminder-dispatch-claim.en.md)

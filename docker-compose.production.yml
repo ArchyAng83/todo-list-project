@@ -5,9 +5,9 @@ name: todolist-production
 #   cp .env.production.example .env.production   # then edit it
 #   docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
 #
-# Run exactly one app replica: Blazor Server keeps circuits in memory and the
-# reminder dispatcher has no cross-replica claim, so two replicas could send
-# the same reminder twice. Scale the API separately if needed.
+# Blazor Server keeps circuits in memory: run one app replica unless the proxy
+# pins each circuit with sticky sessions. Reminder dispatch is serialized with a
+# PostgreSQL advisory lock, so extra replicas cannot send a reminder twice.
 
 services:
   postgres:
@@ -37,7 +37,15 @@ services:
         condition: service_healthy
     environment:
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-todolist};Username=${POSTGRES_USER:-todolist};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+      DOTNET_BUNDLE_EXTRACT_BASE_DIR: /tmp/.net
     restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - backend
 
@@ -52,6 +60,7 @@ services:
         condition: service_completed_successfully
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      AllowedHosts: ${ALLOWED_HOSTS:-*}
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-todolist};Username=${POSTGRES_USER:-todolist};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
       DataProtection__KeysPath: /app/keys
       Auth__RateLimit__PermitLimit: ${AUTH_RATE_LIMIT_PERMIT_LIMIT:-10}
@@ -66,10 +75,26 @@ services:
       Email__FromAddress: ${SMTP_FROM_ADDRESS:-no-reply@todolist.local}
       Email__FromName: ${SMTP_FROM_NAME:-TodoList}
       Reminders__Enabled: ${REMINDERS_ENABLED:-true}
+      Reminders__RetentionDays: ${REMINDERS_RETENTION_DAYS:-30}
+      Reminders__CleanupIntervalHours: ${REMINDERS_CLEANUP_INTERVAL_HOURS:-24}
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:
       - data-protection-keys:/app/keys
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+          pids: 256
     healthcheck:
       # The runtime image has no curl; a bash TCP probe only checks the listener.
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080'"]

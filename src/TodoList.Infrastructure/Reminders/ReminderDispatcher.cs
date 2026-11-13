@@ -6,9 +6,10 @@ using Microsoft.Extensions.Options;
 namespace TodoList.Infrastructure.Reminders;
 
 /// <summary>
-/// Polls the reminder outbox and delivers due messages. The dispatcher lives
-/// in the web process for the MVP; moving it to a worker only changes the host
-/// that registers the service.
+/// Polls the reminder outbox and delivers due messages. A PostgreSQL advisory
+/// lock serializes dispatch, so several app replicas can run the dispatcher
+/// without sending the same reminder twice. Moving delivery to a dedicated
+/// worker only changes the host that registers the service.
 /// </summary>
 public sealed class ReminderDispatcher(
     IServiceScopeFactory scopeFactory,
@@ -37,12 +38,22 @@ public sealed class ReminderDispatcher(
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
-                var delivery = scope.ServiceProvider.GetRequiredService<ReminderDeliveryService>();
-                var sent = await delivery.DispatchDueAsync(batchSize, stoppingToken);
+                var dispatchLock = scope.ServiceProvider.GetRequiredService<ReminderDispatchLock>();
 
-                if (sent > 0)
+                if (!await dispatchLock.TryAcquireAsync(stoppingToken))
                 {
-                    logger.LogInformation("Delivered {Count} reminder emails.", sent);
+                    logger.LogDebug(
+                        "Another replica holds the reminder dispatch lock; skipping this poll.");
+                }
+                else
+                {
+                    var delivery = scope.ServiceProvider.GetRequiredService<ReminderDeliveryService>();
+                    var sent = await delivery.DispatchDueAsync(batchSize, stoppingToken);
+
+                    if (sent > 0)
+                    {
+                        logger.LogInformation("Delivered {Count} reminder emails.", sent);
+                    }
                 }
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

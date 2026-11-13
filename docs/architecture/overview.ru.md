@@ -83,3 +83,4 @@ TodoList.Domain         -> сущности, enum'ы, доменные прав�
 - [ADR-0004: Модульный монолит без MediatR/AutoMapper](decisions/0004-modular-monolith.ru.md)
 - [ADR-0005: Стратегия тестирования](decisions/0005-testing-strategy.ru.md)
 - [ADR-0006: Форма production-деплоя](decisions/0006-production-deployment.ru.md)
+- [ADR-0007: Claim для отправки напоминаний](decisions/0007-reminder-dispatch-claim.ru.md)

@@ -35,6 +35,8 @@ pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 - Component-тесты рендерят компоненты изолированно с сервисами локализации и MudBlazor; база данных им не нужна.
 - E2E поднимает контейнер PostgreSQL, запускает реальное веб-приложение на свободном порту, ждёт `/health/ready` и управляет headless Chromium.
 - Каждый E2E-сценарий регистрирует своего пользователя и создаёт нужные задачи через `/api/v1`, поэтому сценарии не делят состояние и не зависят от порядка запуска.
+- Тесты отправки напоминаний берут `ReminderDispatchLock` из двух scope, чтобы доказать эксклюзивность advisory lock, а `ReminderRetentionService` проверяют с фиксированным `FakeTimeProvider`.
+- Тест security-заголовков запрашивает лендинг и проверяет CSP и заголовки `nosniff`/frame/referrer.
 - E2E ждёт, пока Blazor навесит обработчики событий, прежде чем кликать, чтобы клик не уходил в нативную отправку формы. Карточки доски, отрисованные после enhanced navigation, маркер `_bl_*` не несут, поэтому тесты доски ждут видимости карточки.
 - E2E-контексты используют viewport 1280x800: при стандартном viewport колонки Kanban складываются в столбец, и drag-and-drop между колонками становится нестабильным.
 
@@ -68,7 +70,9 @@ pwsh tests/TodoList.E2ETests/bin/Debug/net10.0/playwright.ps1 install chromium
 
 - Каждый push и pull request запускает build, unit-, integration-, component- и E2E-тесты.
 - CI ставит браузер Chromium для Playwright перед запуском набора.
-- Вторая job собирает runtime-образ и образ с bundle миграций.
+- Проверка `dotnet list package --vulnerable` валит сборку, если NuGet находит уязвимый прямой или транзитивный пакет.
+- CodeQL анализирует C# на push, pull request и по недельному расписанию; Dependabot раз в неделю обновляет NuGet, GitHub Actions и Docker.
+- Вторая job собирает runtime-образ и образ с bundle миграций, сканирует оба через Trivy на high/critical, поднимает одноразовый compose-стек и прогоняет против него `scripts/smoke-test.ps1`.
 - Результаты тестов выгружаются артефактом TRX; nightly-запуски пока не настроены.
 
 ## Coverage и flakiness

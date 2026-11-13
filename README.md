@@ -12,7 +12,7 @@ A production-minded task manager built with **.NET 10**, **Blazor**, and **Postg
 
 ## Project status
 
-**Week 8 complete.** JSON/CSV import and export, an accessible `/data` page, and per-IP throttling on the login and registration endpoints are in place. The app builds on recurring tasks, the reminder outbox, the month calendar, Kanban board, task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. The v1.0 code is complete; production deployment is the remaining milestone.
+**Week 8 complete.** JSON/CSV import and export, an accessible `/data` page, and per-IP throttling on the login and registration endpoints are in place. The app builds on recurring tasks, the reminder outbox, the month calendar, Kanban board, task views and sorting, persisted settings, deterministic demo account, bearer-only `/api/v1` API, bUnit component tests, Playwright E2E journeys, health checks, structured logging, and the container image from earlier weeks. The v1.0 code is complete; production deployment is the remaining milestone. Operations are also prepared: backup/restore and post-deploy smoke scripts, security headers, a hardened container, and duplicate-safe reminder dispatch across replicas.
 
 See [docs/progress/status.en.md](docs/progress/status.en.md) for the current state and [docs/progress/week-08.en.md](docs/progress/week-08.en.md) for the current week.
 
@@ -152,7 +152,7 @@ dotnet test
 dotnet test TodoList.sln -c Release   # same as CI
 ```
 
-The suite has 54 unit, 72 integration, 32 component (bUnit), and 14 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
+The suite has 54 unit, 76 integration, 32 component (bUnit), and 14 E2E (Playwright) tests. Integration and E2E tests run against PostgreSQL via Testcontainers and require Docker.
 
 Install the Playwright browser once after building:
 
@@ -183,6 +183,21 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 
 See the [deployment guide](docs/development/deployment.en.md) for production configuration, migrations, proxy/TLS, and probes.
 
+### Operations
+
+```powershell
+# Daily backup: database + Data Protection keys
+pwsh ./scripts/backup-postgres.ps1 -OutputDirectory D:\backups\todolist
+
+# Rehearse a restore into a scratch database
+pwsh ./scripts/restore-postgres.ps1 -BackupFile D:\backups\todolist\todolist-20261112-020015.dump -Force
+
+# Post-deploy smoke test
+pwsh ./scripts/smoke-test.ps1 -BaseUrl https://todo.example.com -Email smoke@example.com -Password 'change-me'
+```
+
+See [backup and restore](docs/operations/backup-restore.en.md) and the [post-deploy smoke test](docs/operations/smoke-test.en.md). Reminder dispatch is safe across replicas (PostgreSQL advisory lock, ADR-0007); Blazor Server circuits still need sticky sessions to scale the UI.
+
 ## Documentation
 
 Documentation is bilingual: English is canonical, Russian is synced.
@@ -212,12 +227,14 @@ TBD.
 
 ## Кратко по-русски
 
-**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 8 завершена: появились импорт/экспорт JSON и CSV, доступная страница `/data` и ограничение частоты входов и регистраций по IP. До этого — повторяющиеся задачи, outbox напоминаний, календарь на месяц, Kanban-доска, представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Код v1.0 готов; остался продакшн-деплой.
+**TodoList** — таск-менеджер на **.NET 10 + Blazor + PostgreSQL**, который делается как реальный продукт и как портфолио для AI engineering. Неделя 8 завершена: появились импорт/экспорт JSON и CSV, доступная страница `/data` и ограничение частоты входов и регистраций по IP. До этого — повторяющиеся задачи, outbox напоминаний, календарь на месяц, Kanban-доска, представления и сортировка задач, сохраняемые настройки, демо-аккаунт, REST API `/api/v1`, bUnit-тесты компонентов, E2E на Playwright, health checks, JSON-логи и контейнерный образ. Код v1.0 готов; остался продакшн-деплой. Эксплуатация тоже подготовлена: скрипты бэкапа/восстановления и smoke-теста, security-заголовки, защищённый контейнер и безопасная отправка напоминаний в нескольких репликах.
 
 - [Статус проекта](docs/progress/status.ru.md)
 - [Документация на русском](docs/README.ru.md)
 - [Архитектура](docs/architecture/overview.ru.md)
 - [Деплой](docs/development/deployment.ru.md)
+- [Бэкапы и восстановление](docs/operations/backup-restore.ru.md)
+- [Smoke-тест после деплоя](docs/operations/smoke-test.ru.md)
 - [Roadmap](docs/product/roadmap.ru.md)
 
 AI-слой добавим после v1.0: natural-language quick add, агент с tool calling, evals и трейсинг. Ядро проектируется так, чтобы это не потребовало переписывания.

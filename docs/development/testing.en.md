@@ -34,7 +34,9 @@ On Linux CI add `--with-deps` so the Chromium system libraries are installed too
 - Integration tests start one PostgreSQL container per collection, and every test in the collection uses that one database.
 - Component tests render components in isolation with localization and MudBlazor services; they do not touch a database.
 - E2E starts a PostgreSQL container, runs the real web app on a free port, waits for `/health/ready`, and drives headless Chromium.
-- Each E2E journey registers its own user and seeds the tasks it asserts on through `/api/v1`, so journeys never share state and do not depend on execution order.
+- Every E2E journey registers its own user and seeds the tasks it asserts on through `/api/v1`, so journeys never share state and do not depend on execution order.
+- Reminder dispatch tests acquire `ReminderDispatchLock` from two scopes to prove the advisory lock is exclusive, and drive `ReminderRetentionService` with a fixed `FakeTimeProvider`.
+- A security-headers test requests the landing page and asserts the CSP and `nosniff`/frame/referrer headers.
 - E2E waits until Blazor has attached event handlers before clicking, so interactions do not fall through to native form submits.
 - Board cards rendered after enhanced navigation do not carry the `_bl_*` marker, so board tests wait for the card to be visible instead.
 - E2E contexts use a 1280x800 viewport: the default viewport stacks the Kanban columns, which makes cross-column drag-and-drop unreliable.
@@ -69,7 +71,9 @@ The remedies, in increasing cost, are a transaction rollback per test, a schema 
 
 - Every push and pull request runs build, unit, integration, component, and E2E tests.
 - CI installs the Playwright Chromium browser before running the suite.
-- A second job builds the runtime image and the migration bundle image.
+- A `dotnet list package --vulnerable` gate fails the build when NuGet reports a vulnerable direct or transitive package.
+- CodeQL analyzes C# on pushes, pull requests, and a weekly schedule; Dependabot opens weekly NuGet, GitHub Actions, and Docker updates.
+- A second job builds the runtime image and the migration bundle image, scans both with Trivy for high and critical vulnerabilities, starts a disposable compose stack, and runs `scripts/smoke-test.ps1` against it.
 - Test results are uploaded as a TRX artifact; nightly runs are not configured yet.
 
 ## Coverage and flakiness

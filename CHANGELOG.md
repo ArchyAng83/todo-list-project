@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-11-14
+
+### Added
+
+- Reminder dispatch claim: `ReminderDispatchLock` serializes `ReminderDispatcher` with a PostgreSQL session advisory lock, so several app replicas cannot send the same reminder twice (ADR-0007).
+- `ReminderRetentionWorker` deletes terminal (`Sent`, `Failed`, `Cancelled`) reminders after `Reminders:RetentionDays`; `Pending` rows are never removed.
+- Browser hardening headers with a Blazor-compatible Content Security Policy, `AllowedHosts` guidance and a production warning when it remains `*`, and `ValidateOnStart` for `Email` and `Reminders` options.
+- Container hardening: read-only root filesystem, `/tmp` tmpfs, `no-new-privileges`, `cap_drop: ALL`, PID limit, and CPU/memory limits for the app; the migration service also drops capabilities.
+- `scripts/backup-postgres.ps1` backs up PostgreSQL and the Data Protection key ring; `scripts/restore-postgres.ps1` restores a dump into a scratch database and verifies it.
+- `scripts/smoke-test.ps1` checks health, hardening headers, bearer login, task create/read/delete, board, calendar, and JSON export.
+- `docs/operations/backup-restore.*` and `docs/operations/smoke-test.*` runbooks in English and Russian.
+- `docker-compose.smoke.yml` for a disposable CI/local stack that seeds the demo account and runs the smoke test.
+- CI security: vulnerable-package gate, CodeQL workflow, Trivy scans of both images, Dependabot configuration, and a smoke-test stage on the disposable compose stack.
+- Integration tests for advisory-lock exclusivity, reminder retention, and security headers.
+
+### Changed
+
+- The production compose stack no longer requires a single app replica for reminder delivery; one replica is still recommended for Blazor circuits unless the proxy supports sticky sessions.
+- Reminder and email options are validated at startup instead of failing on the first reminder.
+- The deployment guide covers security headers, `AllowedHosts`, retention, container hardening, backups, and the smoke test.
+- Test counts are now 54 unit, 76 integration, 32 component, and 14 E2E (176 total).
+
 ## [1.0.1] - 2026-11-12
 
 ### Added

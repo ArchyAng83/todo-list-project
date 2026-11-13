@@ -1,0 +1,19 @@
+# CI/local smoke override for docker-compose.production.yml.
+#
+# Starts the same production image in the Development environment so the demo
+# seeder creates the account used by scripts/smoke-test.ps1. Use it only for a
+# disposable stack:
+#
+#   docker compose -f docker-compose.production.yml -f docker-compose.smoke.yml up -d
+#   pwsh ./scripts/smoke-test.ps1 -BaseUrl http://localhost:8080 \
+#     -Email demo@todolist.local -Password DemoPass123
+#   docker compose -f docker-compose.production.yml -f docker-compose.smoke.yml down -v
+
+services:
+  app:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Seed__Demo: "true"
+      Reminders__Enabled: "false"
+      Auth__RateLimit__PermitLimit: "1000"
+      Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: Warning

@@ -58,4 +58,12 @@
 
 - Репозиторий готов к деплою без хоста и SMTP-аккаунта: ключи Data Protection сохраняются на volume, forwarded headers включаются явно со списком доверия, auth- и antiforgery-cookie безопасны вне Development, а при старте выводятся предупреждения о несохранённом key ring или отсутствующем SMTP-хосте.
 - `Dockerfile.migrations` и `docker-compose.production.yml` упаковывают шаг схемы и runtime-стек; `.env.production.example` описывает конфигурацию, а ADR 0006 фиксирует форму деплоя.
-- Полный набор теперь 176 тестов (54 unit / 72 integration / 32 component / 14 E2E).
+- Полный набор теперь 172 теста (54 unit / 72 integration / 32 component / 14 E2E).
+
+## Follow-up: v1.0.2 — эксплуатация, безопасность и claim напоминаний
+
+- Dispatcher напоминаний берёт PostgreSQL session advisory lock перед выборкой due-строк, поэтому несколько реплик не отправляют дубли; ADR 0007 фиксирует решение. `ReminderRetentionWorker` удаляет терминальные напоминания после `Reminders:RetentionDays`.
+- Security hardening: CSP и browser hardening-заголовки, `AllowedHosts` с предупреждением в production, `ValidateOnStart` для опций email/reminders, read-only контейнер со сброшенными capabilities и лимитами ресурсов.
+- Runbook'и и скрипты эксплуатации: `backup-postgres.ps1` копирует базу и ключи Data Protection, `restore-postgres.ps1` восстанавливает в черновую базу, `smoke-test.ps1` проверяет health, логин, задачу, board, calendar и экспорт. Восстановление прогнано на реальном контейнере PostgreSQL.
+- CI: проверка уязвимых пакетов, CodeQL, Trivy-сканы обоих образов, Dependabot и smoke-тест на одноразовом compose-стеке после сборки образов.
+- Полный набор теперь 176 тестов (54 unit / 76 integration / 32 component / 14 E2E), сборка Release без предупреждений.

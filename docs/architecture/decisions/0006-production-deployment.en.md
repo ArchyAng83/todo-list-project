@@ -11,7 +11,7 @@ The app is a single ASP.NET Core process serving Blazor Server, Identity pages, 
 
 Ship and operate the app with these defaults:
 
-- **One app container, one replica.** Blazor Server keeps circuits in memory, and the reminder dispatcher has no cross-replica row claim. The API could scale independently later; the UI stays single-replica for the MVP.
+- **One app container, one replica for the UI.** Blazor Server keeps circuits in memory, so horizontal UI scaling needs sticky sessions. Reminder dispatch is serialized by a PostgreSQL advisory lock (ADR-0007), so additional replicas cannot send duplicates.
 - **Two images.** `Dockerfile` produces the runtime image. `Dockerfile.migrations` produces a self-contained EF Core migration bundle, applied as a separate deploy step before traffic shifts.
 - **Data Protection keys on a volume.** `DataProtection:KeysPath` persists the key ring; the image defaults to `/app/keys`. Cookies, antiforgery tokens, and bearer/refresh tokens survive container recreation only when the volume is backed up and kept stable.
 - **Secure cookies outside Development.** Auth and antiforgery cookies use `CookieSecurePolicy.Always` in non-Development environments. Development keeps `SameAsRequest` so plain-HTTP local runs still work.
@@ -24,5 +24,5 @@ Ship and operate the app with these defaults:
 - Deploys are mechanical once a host and SMTP account exist; neither is required to build or test the release.
 - Losing the Data Protection volume logs every user out and invalidates tokens, so it belongs in backups.
 - Without forwarded headers behind a proxy, the app sees HTTP and the proxy IP; the deployment guide documents both the symptom and the override.
-- Scaling past one replica requires implementing a reminder claim and sticky Blazor sessions first.
+- Scaling the UI past one replica requires sticky Blazor sessions. Reminder dispatch itself is already safe across replicas (ADR-0007).
 - The migration bundle must run before the app starts; compose enforces this with `service_completed_successfully`.

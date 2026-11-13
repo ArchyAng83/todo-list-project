@@ -34,7 +34,8 @@ ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
     DataProtection__KeysPath=/app/keys \
     DOTNET_NOLOGO=true \
-    DOTNET_CLI_TELEMETRY_OPTOUT=true
+    DOTNET_CLI_TELEMETRY_OPTOUT=true \
+    DOTNET_EnableDiagnostics=0
 
 EXPOSE 8080
 

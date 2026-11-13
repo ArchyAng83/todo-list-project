@@ -17,6 +17,7 @@ using TodoList.Infrastructure.Identity;
 using TodoList.Infrastructure.Persistence;
 using TodoList.Web.Api;
 using TodoList.Web.Components;
+using TodoList.Web.Security;
 using TodoList.Web.Services;
 using IPNetwork = System.Net.IPNetwork;
 
@@ -42,6 +43,8 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 builder.Services.AddMudServices();
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.Configure<SecurityHeadersOptions>(
+    builder.Configuration.GetSection(SecurityHeadersOptions.SectionName));
 
 builder.Services.AddAntiforgery(options =>
 {
@@ -186,7 +189,20 @@ if (!app.Environment.IsDevelopment())
             "DataProtection:KeysPath is not configured. Keys live inside the container and " +
             "will be lost when it is recreated, invalidating cookies, antiforgery tokens, and bearer tokens.");
     }
+
+    var allowedHosts = app.Configuration["AllowedHosts"];
+    if (string.IsNullOrWhiteSpace(allowedHosts) || allowedHosts.Contains('*', StringComparison.Ordinal))
+    {
+        app.Logger.LogWarning(
+            "AllowedHosts accepts every host name. Set ALLOWED_HOSTS to the public host names " +
+            "before exposing the app, so a spoofed Host header cannot reach it.");
+    }
 }
+
+// Registered after the exception handler so both normal and re-executed error
+// responses carry the headers. Forwarded headers stay outside this middleware
+// because they do not write response headers.
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Configuration.GetValue("Reminders:Enabled", true)
     && string.IsNullOrWhiteSpace(app.Configuration["Email:Host"]))

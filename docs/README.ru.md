@@ -11,9 +11,10 @@
 | Продукт | [Vision](product/vision.ru.md) · [Scope](product/scope.ru.md) · [Roadmap](product/roadmap.ru.md) |
 | Архитектура | [Обзор](architecture/overview.ru.md) · [ADR](architecture/decisions/) |
 | Разработка | [Setup](development/setup.ru.md) · [Тестирование](development/testing.ru.md) · [Деплой](development/deployment.ru.md) · [Соглашения](development/conventions.ru.md) · [Git workflow](development/git-workflow.ru.md) · [Политика документации](development/documentation.ru.md) |
+| Эксплуатация | [Бэкапы и восстановление](operations/backup-restore.ru.md) · [Smoke-тест после деплоя](operations/smoke-test.ru.md) |
 | Прогресс | [Текущий статус](progress/status.ru.md) · [Неделя 8](progress/week-08.ru.md) |
 
-Документы по API, эксплуатации и демо добавляются по мере старта соответствующих фаз.
+Документы по API и демо добавляются по мере старта соответствующих фаз; runbook'и лежат в `operations/`.
 
 ## Отслеживание прогресса
 

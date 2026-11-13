@@ -34,6 +34,15 @@ jobs:
       - name: Build
         run: dotnet build TodoList.sln --no-restore --configuration Release
 
+      - name: Check vulnerable packages
+        shell: pwsh
+        run: |
+          $report = dotnet list TodoList.sln package --vulnerable --include-transitive --format json | Out-String
+          Write-Host $report
+          if ($report -match '"vulnerabilities"\s*:') {
+            throw 'NuGet reported vulnerable packages. Update Directory.Packages.props.'
+          }
+
       - name: Install Playwright browsers
         run: pwsh tests/TodoList.E2ETests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
@@ -60,3 +69,64 @@ jobs:
 
       - name: Build migration bundle image
         run: docker build --file Dockerfile.migrations --tag todolist-migrations:${{ github.sha }} .
+
+      - name: Scan runtime image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: todolist:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      - name: Scan migration image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: todolist-migrations:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+
+      - name: Start disposable smoke stack
+        run: |
+          cat > .env.smoke <<EOF
+          POSTGRES_PASSWORD=ci-smoke-password
+          TODOLIST_IMAGE=todolist:${GITHUB_SHA}
+          TODOLIST_MIGRATIONS_IMAGE=todolist-migrations:${GITHUB_SHA}
+          APP_PORT=8080
+          EOF
+          docker compose --env-file .env.smoke \
+            -f docker-compose.production.yml \
+            -f docker-compose.smoke.yml up -d
+
+      - name: Wait for readiness
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://localhost:8080/health/ready > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose --env-file .env.smoke \
+            -f docker-compose.production.yml \
+            -f docker-compose.smoke.yml logs --no-color
+          exit 1
+
+      - name: Smoke test
+        shell: pwsh
+        run: ./scripts/smoke-test.ps1 -BaseUrl http://localhost:8080 -Email demo@todolist.local -Password DemoPass123
+
+      - name: Dump smoke stack logs
+        if: failure()
+        run: |
+          docker compose --env-file .env.smoke \
+            -f docker-compose.production.yml \
+            -f docker-compose.smoke.yml logs --no-color
+
+      - name: Stop disposable smoke stack
+        if: always()
+        run: |
+          docker compose --env-file .env.smoke \
+            -f docker-compose.production.yml \
+            -f docker-compose.smoke.yml down -v

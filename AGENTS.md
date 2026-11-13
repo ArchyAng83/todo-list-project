@@ -63,6 +63,11 @@ dotnet ef migrations add <Name> \
 dotnet ef database update \
   --project src/TodoList.Infrastructure \
   --startup-project src/TodoList.Web
+
+# Operations (Docker Desktop or the production host)
+pwsh ./scripts/backup-postgres.ps1 -OutputDirectory D:\backups\todolist
+pwsh ./scripts/restore-postgres.ps1 -BackupFile <dump> -Force
+pwsh ./scripts/smoke-test.ps1 -BaseUrl http://localhost:8080 -Email <email> -Password <password>
 ```
 
 ## Repository map
@@ -90,6 +95,11 @@ docs/                       bilingual docs, ADRs, progress tracking
 - `Web` is the composition root and may reference Application and Infrastructure.
 - Application services are split into commands and queries. Return `Result<T>` for
   expected failures and throw for unexpected failures.
+- Reminder dispatch is serialized with `ReminderDispatchLock` (a PostgreSQL
+  session advisory lock, ADR-0007). Do not remove it or run a second dispatcher
+  without a replacement claim.
+- `ReminderRetentionWorker` deletes only terminal (`Sent`, `Failed`, `Cancelled`)
+  reminders older than `Reminders:RetentionDays`; never delete `Pending` rows.
 - Pass `UserContext` explicitly; never read the current user from a static or
   ambient context.
 - Manual mapping only. Keep DTOs in Application, not Domain.
@@ -169,6 +179,14 @@ docs/                       bilingual docs, ADRs, progress tracking
 - `DataProtection:KeysPath` persists the key ring; the image defaults it to
   `/app/keys`. Losing it invalidates auth cookies, antiforgery tokens, and
   bearer/refresh tokens. Compose mounts `data-protection-keys` there.
+- `AllowedHosts` must list the public host names in production; the app logs a
+  warning when it is empty or `*`.
+- `SecurityHeaders` adds CSP, `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, and `Permissions-Policy`. Keep the default CSP compatible
+  with Blazor Server (`'unsafe-inline'` for styles/scripts) or test the UI after
+  changing it.
+- `Email` and `Reminders` options use `ValidateOnStart`; out-of-range values fail
+  the host at startup.
 - Auth and antiforgery cookies are `Secure` (`Always`) outside Development.
   Development uses `SameAsRequest` so plain HTTP on port 5122 still works.
 - `ForwardedHeaders:Enabled` is off by default. When on, only
@@ -215,7 +233,10 @@ docs/                       bilingual docs, ADRs, progress tracking
 - No network calls in unit tests. Replace `TimeProvider` and `IEmailSender`
   with fakes where time or email matters. Reminder delivery tests pass a
   `FakeTimeProvider` and advance it; never sleep or rewrite `ScheduledAtUtc` in
-  SQL.
+  SQL. Lock tests acquire `ReminderDispatchLock` from two scopes and assert only
+  one succeeds; retention tests use a fixed clock.
+- CI also runs a vulnerable-package gate, CodeQL, Trivy image scans, Dependabot,
+  and `scripts/smoke-test.ps1` on a disposable compose stack.
 - Component tests (bUnit) target presentational components through
   `ComponentTestContext`, which pins the culture to English; E2E tests
   (Playwright) start the real app process on a free port.
@@ -263,6 +284,19 @@ docs/                       bilingual docs, ADRs, progress tracking
 - `.playwright-mcp/` and `TestResults/` are ignored artifacts; do not commit them.
 - E2E waits for the `_bl_*` handler marker before clicking; otherwise a click can
   submit a form natively before the Blazor circuit starts.
+- The reminder advisory lock is session-scoped: it is held on the open
+  `AppDbContext` connection and released by scope disposal or connection close.
+  Do not re-register `ReminderDispatchLock` as singleton or share it across
+  scopes.
+- `backup-postgres.ps1`/`restore-postgres.ps1` default to the production compose
+  file and `.env.production`; for the dev stack pass `-ComposeFile
+  docker-compose.yml -EnvFile ""` (and `-SkipKeys` for backups, because the dev
+  stack has no app service).
+- `smoke-test.ps1` needs an existing account: CI uses the demo account from the
+  Development smoke stack, while a real deploy uses a provisioned smoke user.
+- The migration bundle is a self-contained single-file executable, so the
+  read-only `migrate` service needs `DOTNET_BUNDLE_EXTRACT_BASE_DIR=/tmp/.net`
+  (already set in compose); without it the bundle exits 159.
 - Razor treats a bare attribute value on a `string` component parameter as
   literal text: write `Error="@_error"`, not `Error="_error"`.
 - If a build fails only in `TodoList.Testing`, make sure it stays

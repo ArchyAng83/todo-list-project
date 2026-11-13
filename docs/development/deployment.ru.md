@@ -14,7 +14,7 @@ docker build -f Dockerfile.migrations -t todolist-migrations:local .
 1. Восстановление и публикация `TodoList.Web` в Release на зафиксированном SDK.
 2. Копирование результата в runtime-образ ASP.NET Core.
 3. Создание `/app/keys` с владельцем `$APP_UID` и `DataProtection__KeysPath`, указывающим на этот каталог.
-4. Запуск от непривилегированного пользователя `$APP_UID` с прослушиванием порта **8080**.
+4. Запуск от непривилегированного пользователя `$APP_UID` с прослушиванием порта **8080**. В compose сервис дополнительно работает с read-only root filesystem, `no-new-privileges`, `cap_drop: ALL`, tmpfs `/tmp` и лимитами CPU/памяти.
 
 `Dockerfile.migrations` восстанавливает `dotnet-ef` из `.config/dotnet-tools.json`, собирает self-contained bundle под `linux-x64` и копирует его в образ `runtime-deps`. Артефакт деплоя — сам bundle; основной образ вне Development никогда не применяет миграции при старте.
 
@@ -26,6 +26,7 @@ docker build -f Dockerfile.migrations -t todolist-migrations:local .
 |---|---|---|
 | `ConnectionStrings__Default` | да | строка подключения Npgsql |
 | `ASPNETCORE_ENVIRONMENT` | да | `Production` включает HSTS, обработчик исключений, secure-cookie и JSON-логи в консоль |
+| `AllowedHosts` | да в production | публичные имена хостов через `;`; в образе по умолчанию `*`, что пишет предупреждение при старте |
 | `ASPNETCORE_URLS` | нет | в образе по умолчанию `http://+:8080` |
 | `DataProtection__KeysPath` | да в production | каталог key ring Data Protection; в образе `/app/keys` |
 | `DataProtection__ApplicationName` | нет | по умолчанию `TodoList`; не меняйте, чтобы ключи продолжали совпадать |
@@ -41,6 +42,10 @@ docker build -f Dockerfile.migrations -t todolist-migrations:local .
 | `Email__UserName` / `Email__Password` | нет | учётные данные SMTP |
 | `Email__FromAddress` / `Email__FromName` | нет | отправитель; в production задайте реальный проверенный домен |
 | `Reminders__Enabled` | нет | по умолчанию `true`; `false` останавливает dispatcher |
+| `Reminders__RetentionDays` | нет | удалять терминальные напоминания старше стольких дней; по умолчанию `30` |
+| `Reminders__CleanupIntervalHours` | нет | интервал retention-очистки; по умолчанию `24` |
+| `SecurityHeaders__Enabled` | нет | по умолчанию `true`; включает CSP, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` и `Permissions-Policy` |
+| `SecurityHeaders__ContentSecurityPolicy` | нет | переопределить CSP по умолчанию, совместимую с Blazor |
 | `Logging__LogLevel__Default` | нет | по умолчанию `Information` |
 
 Демо-сидер работает только в Development, поэтому в production демо-аккаунт не создаётся. Секреты передавайте через хранилище секретов платформы; не вшивайте их в образ.
@@ -66,7 +71,16 @@ docker compose --env-file .env.production -f docker-compose.production.yml up -d
 - У `postgres` нет опубликованного порта; база доступна только внутри compose-сети.
 - `migrate` ждёт health-check базы и выполняется один раз. Приложение стартует только после его успешного завершения.
 - `app` публикует `${APP_PORT:-8080}` и хранит key ring в volume `data-protection-keys`.
-- Запускайте ровно **одну** реплику приложения. Blazor Server держит circuit в памяти, а у reminder dispatcher нет межрепличного claim, поэтому две реплики обработают одни и те же due-строки дважды.
+- `app` работает с read-only root filesystem, tmpfs `/tmp`, сброшенными Linux capabilities и лимитами CPU/памяти. Единственное записываемое состояние — volume `data-protection-keys` и volume базы.
+- Держите одну реплику приложения для UI, если прокси не закрепляет каждый Blazor-circuit через sticky-сессии. Отправка напоминаний сериализуется advisory lock PostgreSQL (ADR-0007), поэтому дополнительные реплики не отправят дубли.
+
+## Security-заголовки и фильтрация Host
+
+Каждый ответ несёт browser hardening-заголовки: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` и Content Security Policy. CSP по умолчанию разрешает inline-стили и WebSocket-circuit, нужные Blazor Server; переопределите `SecurityHeaders__ContentSecurityPolicy`, если reverse proxy или новая UI-зависимость требуют другой политики.
+
+`AllowedHosts` — фильтр заголовка Host. В production задайте публичные имена, например `ALLOWED_HOSTS=example.com;www.example.com`. Значение `*` пишет предупреждение при старте: подделанный Host может дойти до приложения (например, через ссылки сброса пароля, когда эта функция появится).
+
+Опции `Email` и `Reminders` валидируются при старте (`ValidateOnStart`). Некорректный порт SMTP, невалидный адрес отправителя или бессмысленное значение retention роняют хост сразу, а не на первом напоминании.
 
 ## Миграции
 
@@ -98,7 +112,7 @@ Blazor-circuit, auth-cookie, antiforgery-токены и bearer/refresh-токе
 - Задайте `DataProtection__KeysPath` с постоянным каталогом и смонтируйте туда volume (в образе это `/app/keys`).
 - Пересоздание контейнера без постоянных ключей инвалидирует все cookie и токены — пользователей разлогинит.
 - При старте в production пишется предупреждение, если `DataProtection__KeysPath` не задан.
-- Делайте бэкап volume или key ring вместе с базой: восстановление базы без ключей всё равно заставит всех войти заново.
+- Делайте бэкап volume или key ring вместе с базой: восстановление базы без ключей всё равно заставит всех войти заново. `scripts/backup-postgres.ps1` архивирует и то, и другое; см. `docs/operations/backup-restore.ru.md`.
 - Файлы ключей по умолчанию не шифруются на диске; защитите volume правами хоста и шифрованием диска.
 - При нескольких репликах все они должны делить один key ring и `DataProtection__ApplicationName`.
 
@@ -147,7 +161,13 @@ services:
 - При пустом `Email__Host` DI регистрирует `LoggingEmailSender`: напоминания обрабатываются, но только пишутся в лог. В production в этом случае выводится предупреждение при старте.
 - `Reminders__Enabled=false` полностью останавливает dispatcher (например, пока SMTP-провайдер не выбран).
 - Доставка идёт через `System.Net.Mail.SmtpClient`; `Email__UseSsl=true` включает STARTTLS, как ожидают провайдеры на порту 587.
-- Dispatcher выбирает due-строки без row-level locking. Держите одну реплику приложения; для масштабирования сначала нужен claim (`FOR UPDATE SKIP LOCKED`).
+- `ReminderDispatcher` берёт session advisory lock PostgreSQL до выборки due-строк. За один poll отправляет только одна реплика; вторая пропускает poll вместо дублей. Блокировка освобождается при закрытии соединения или завершении процесса (ADR-0007).
+- `ReminderRetentionWorker` удаляет строки `Sent`, `Failed` и `Cancelled` старше `Reminders__RetentionDays`; строки `Pending` не удаляются. Очистка идемпотентна и работает в каждой реплике.
+
+Бэкапы, восстановление и post-deploy smoke-тест — в runbook'ах:
+
+- `docs/operations/backup-restore.ru.md` — `scripts/backup-postgres.ps1` и `scripts/restore-postgres.ps1`.
+- `docs/operations/smoke-test.ru.md` — `scripts/smoke-test.ps1`, также подключён в CI job `container`.
 
 ## Логирование
 
@@ -158,6 +178,7 @@ services:
 - [ ] База доступна из сети runtime, миграции применены.
 - [ ] `ConnectionStrings__Default` передаётся из хранилища секретов.
 - [ ] `ASPNETCORE_ENVIRONMENT=Production`.
+- [ ] `AllowedHosts` содержит публичные имена хостов, а не `*`.
 - [ ] `DataProtection__KeysPath` указывает на смонтированный volume, и этот volume входит в бэкапы.
 - [ ] Настроены liveness- и readiness-пробы.
 - [ ] TLS завершается на прокси, публичное имя хоста настроено.
@@ -165,6 +186,7 @@ services:
 - [ ] `Auth__RateLimit__*` проверены под ожидаемый трафик (общий NAT или прокси считается одним клиентом).
 - [ ] SMTP-провайдер настроен, либо `Reminders__Enabled=false` зафиксирован как осознанное решение.
 - [ ] `Email__FromAddress`/`FromName` используют реальный проверенный домен; настроены SPF, DKIM и DMARC.
-- [ ] Одна реплика приложения обеспечена; вторая реплика запрещена, пока нет claim для напоминаний.
-- [ ] Настроены бэкапы и проверено восстановление PostgreSQL **и** volume Data Protection.
-- [ ] После деплоя пройден smoke-тест: регистрация, вход, создание задачи, доска и календарь, экспорт данных, `/health/ready`.
+- [ ] Retention напоминаний соответствует нужному окну аудита (`Reminders__RetentionDays`).
+- [ ] Одна реплика приложения обеспечена, если Blazor-circuit не закреплены sticky-сессиями; защита от дублей напоминаний уже есть.
+- [ ] `scripts/backup-postgres.ps1` работает по расписанию, а `scripts/restore-postgres.ps1` прогнан на черновой базе.
+- [ ] `scripts/smoke-test.ps1` проходит против публичного URL после деплоя.

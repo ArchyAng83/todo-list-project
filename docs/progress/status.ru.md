@@ -1,9 +1,9 @@
 # Статус проекта
 
-Обновлено: 2026-11-12
+Обновлено: 2026-11-14
 
-- **Текущая фаза:** неделя 8 — импорт/экспорт, доступность и релиз v1.0 (код готов)
-- **В целом:** фундамент, работа с задачами, настройки, демо-данные, bearer API, компонентные тесты, E2E, контейнерный образ, Kanban-доска, календарь на месяц, повторяющиеся задачи, outbox напоминаний и импорт/экспорт готовы; MVP готов к продакшн-деплою.
+- **Текущая фаза:** follow-up недели 8 — production-эксплуатация, security hardening и claim для отправки напоминаний (код готов)
+- **В целом:** фундамент, работа с задачами, настройки, демо-данные, bearer API, компонентные тесты, E2E, контейнерный образ, Kanban-доска, календарь на месяц, повторяющиеся задачи, outbox напоминаний, импорт/экспорт, доступность и production-база для эксплуатации и безопасности готовы; MVP готов к продакшн-деплою.
 
 ## Сделано
 
@@ -35,7 +35,7 @@
 - OpenAPI-документ по `/openapi/v1.json` и Scalar UI по `/scalar` только в Development.
 - Сервисы Application с разделением команд и запросов, FluentValidation и `Result<T>`.
 - Unit-тесты доменных правил, повторов и настроек пользователя (54 проходят).
-- Integration-тесты на Testcontainers для аутентификации, персистентности, работы с задачами, порядка на доске, диапазонов календаря, повторов, доставки напоминаний, импорта/экспорта, ограничения частоты входа и REST API (72 проходят).
+- Integration-тесты на Testcontainers для аутентификации, персистентности, работы с задачами, порядка на доске, диапазонов календаря, повторов, доставки напоминаний, lock и retention напоминаний, импорта/экспорта, ограничения частоты входа, security-заголовков и REST API (76 проходят).
 - Компонентные bUnit-тесты списка задач, Kanban-доски, сетки календаря, layout и переключателя языка (32 проходят).
 - E2E-сценарии Playwright против реального процесса Kestrel, PostgreSQL в Testcontainers и headless Chromium (14 проходят).
 - Бэклог доработок после ревью закрыт: E2E-сценарии владеют своими пользователями, тесты доставки напоминаний используют fake-часы, а общая база integration-тестов описана в гайде и ADR 0005.
@@ -60,6 +60,10 @@
 - Страница `/data` с экспортом JSON/CSV, выбором JSON-файла и областью результата с `aria-live`; ссылка «перейти», главная разметка, локализованные подписи навигации и стили `:focus-visible` улучшают доступность.
 - Production-ассеты для деплоя: сохранение ключей Data Protection по `DataProtection:KeysPath` на volume, opt-in forwarded headers со списком доверенных прокси, secure auth/antiforgery-cookie вне Development и предупреждения при старте о несохранённом key ring или отсутствующем SMTP-хосте.
 - `Dockerfile.migrations` собирает self-contained bundle миграций EF Core, `docker-compose.production.yml` поднимает PostgreSQL + migrate + приложение, а `.env.production.example` описывает все переменные.
+- Отправка напоминаний сериализуется session advisory lock PostgreSQL (ADR-0007), поэтому дополнительные реплики приложения не отправляют дубли; `ReminderRetentionWorker` удаляет терминальные напоминания после `Reminders:RetentionDays`.
+- Security hardening: CSP и browser hardening-заголовки, `AllowedHosts` с предупреждением в production, `ValidateOnStart` для опций email/reminders, read-only контейнер со сброшенными capabilities и лимитами ресурсов.
+- Эксплуатационные runbook'и и скрипты: `backup-postgres.ps1` (база + ключи Data Protection), `restore-postgres.ps1` (восстановление в черновую базу), `smoke-test.ps1` (health, логин, задача, board, calendar, экспорт). Восстановление прогнано на реальном контейнере PostgreSQL.
+- CI security: проверка уязвимых пакетов, CodeQL, Trivy-сканы образов, Dependabot и одноразовый compose-стек, который прогоняет smoke-тест после сборки обоих образов.
 
 ## В работе
 
@@ -71,7 +75,7 @@
 
 - Docker Desktop должен быть запущен для PostgreSQL, Mailpit, integration-тестов и E2E.
 - SMTP-провайдер для прода и площадку хостинга выберем до деплоя MVP.
-- У reminder dispatcher нет межрепличного claim, поэтому в production работает одна реплика приложения, пока не появится claim через `FOR UPDATE SKIP LOCKED`.
+- Blazor Server держит circuit в памяти, поэтому горизонтальное масштабирование UI требует sticky-сессий; отправка напоминаний больше не блокирует реплики.
 
 ## Quality gates
 
@@ -79,10 +83,12 @@
 |---|---|
 | Build | ✅ 0 предупреждений, 0 ошибок |
 | Unit tests | ✅ 54 проходят |
-| Integration tests | ✅ 72 проходят (Testcontainers) |
+| Integration tests | ✅ 76 проходят (Testcontainers) |
 | Component tests | ✅ 32 проходят (bUnit) |
 | E2E tests | ✅ 14 проходят (Playwright) |
 | Container image | ✅ собирается; bundle миграций применяет миграции; health-пробы отвечают |
+| Operations | ✅ backup + restore drill пройден; smoke-тест подключён в CI |
+| Security | ✅ hardening-заголовки; проверки vulnerable packages, CodeQL, Trivy и Dependabot |
 | CI | ✅ последние запуски прошли в GitHub Actions |
 | Deployment assets | ✅ production-стек подготовлен; хостинг и SMTP остаются решением оператора |
 | Deployed | ⬜ продакшн-деплой ждёт выбора хостинга и SMTP |
@@ -90,8 +96,10 @@
 ## Заметки о деплое
 
 - Приложение запускается на Kestrel в контейнере на порту 8080 и ожидает базу PostgreSQL (`Default` строка подключения). Напоминаниям нужен `Email:Host`; без него они пишутся в лог, а при старте выводится предупреждение.
-- `DataProtection:KeysPath` должен указывать на постоянный volume; потеря key ring инвалидирует cookie, antiforgery-токены и bearer-токены.
+- `AllowedHosts` должен перечислять публичные имена хостов; `*` пишет предупреждение в production.
+- `DataProtection:KeysPath` должен указывать на постоянный volume; потеря key ring инвалидирует cookie, antiforgery-токены и bearer-токены. Копируйте его вместе с базой (`scripts/backup-postgres.ps1`).
 - За TLS-прокси включите `ForwardedHeaders:Enabled=true` и доверьте прокси через `KnownProxies`/`KnownNetworks`.
 - В продакшене миграции применяются через `Dockerfile.migrations` или compose-сервис `migrate`; в Development они применяются на старте через `MigrateDatabaseAsync`.
+- Отправка напоминаний берёт advisory lock PostgreSQL; retention удаляет терминальные напоминания после `Reminders:RetentionDays`.
 - Миграция `AddTaskRecurrence` была отредактирована вручную: значение по умолчанию для `recurrence` — строка enum `None`; не перегенерируйте её.
 - Демо-учётная запись (`demo@todolist.local` / `DemoPass123`) предназначена только для локальной оценки и должна быть удалена или заменена в продакшене.

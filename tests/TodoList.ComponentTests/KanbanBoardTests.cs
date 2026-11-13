@@ -79,6 +79,19 @@ public sealed class KanbanBoardTests : ComponentTestContext
     }
 
     [Fact]
+    public void KanbanBoard_DueDateWithTime_RendersDateAndTimeSeparated()
+    {
+        var cut = Render<KanbanBoard>(parameters => parameters
+            .Add(component => component.Today, Today)
+            .Add(component => component.Board, BoardWith(
+                [CreateTask("Call the client", dueDate: Today, dueTime: new TimeOnly(18, 0))],
+                [],
+                [])));
+
+        cut.Markup.ShouldContain("11/9/2026 6:00 PM");
+    }
+
+    [Fact]
     public void KanbanBoard_EmptyColumn_RendersPlaceholder()
     {
         var cut = Render<KanbanBoard>(parameters => parameters
@@ -198,6 +211,7 @@ public sealed class KanbanBoardTests : ComponentTestContext
         TodoTaskStatus status = TodoTaskStatus.Todo,
         TaskPriority priority = TaskPriority.None,
         DateOnly? dueDate = null,
+        TimeOnly? dueTime = null,
         string? projectName = null,
         IReadOnlyList<TagRef>? tags = null,
         int checklistTotal = 0,
@@ -208,7 +222,7 @@ public sealed class KanbanBoardTests : ComponentTestContext
             status,
             priority,
             dueDate,
-            null,
+            dueTime,
             projectName is null ? null : Guid.NewGuid(),
             projectName,
             tags ?? [],

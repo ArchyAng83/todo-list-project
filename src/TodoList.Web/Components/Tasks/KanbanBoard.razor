@@ -104,10 +104,13 @@ else
                                 {
                                     <span class="task-meta-item @(IsOverdue(task) ? "is-overdue" : null)">
                                         <MudIcon Icon="@Icons.Material.Filled.Event" Size="Size.Small" />
-                                        @dueDate.ToString("d")
                                         @if (task.DueTime is { } dueTime)
                                         {
-                                            <text>@dueTime.ToString("t")</text>
+                                            <text>@dueDate.ToString("d") @dueTime.ToString("t")</text>
+                                        }
+                                        else
+                                        {
+                                            @dueDate.ToString("d")
                                         }
                                     </span>
                                 }

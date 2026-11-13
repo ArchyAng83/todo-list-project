@@ -89,6 +89,19 @@ public sealed class TaskListTests : ComponentTestContext
     }
 
     [Fact]
+    public void TaskList_DueDateWithTime_RendersDateAndTimeSeparated()
+    {
+        var cut = Render<TaskList>(parameters => parameters
+            .Add(component => component.Today, Today)
+            .Add(component => component.Tasks, new[]
+            {
+                CreateTask("Call the client", dueDate: Today, dueTime: new TimeOnly(18, 0))
+            }));
+
+        cut.Markup.ShouldContain("11/9/2026 6:00 PM");
+    }
+
+    [Fact]
     public void TaskList_OverdueTodo_IsMarkedButDoneTaskIsNot()
     {
         var cut = Render<TaskList>(parameters => parameters
@@ -163,6 +176,7 @@ public sealed class TaskListTests : ComponentTestContext
         TodoTaskStatus status = TodoTaskStatus.Todo,
         TaskPriority priority = TaskPriority.None,
         DateOnly? dueDate = null,
+        TimeOnly? dueTime = null,
         string? projectName = null,
         IReadOnlyList<TagRef>? tags = null,
         int checklistTotal = 0,
@@ -174,7 +188,7 @@ public sealed class TaskListTests : ComponentTestContext
             status,
             priority,
             dueDate,
-            null,
+            dueTime,
             projectName is null ? null : Guid.NewGuid(),
             projectName,
             tags ?? [],

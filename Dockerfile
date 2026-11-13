@@ -17,7 +17,7 @@ RUN dotnet publish src/TodoList.Web/TodoList.Web.csproj \
     /p:UseAppHost=false
 
 # Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS runtime
 WORKDIR /app
 
 # Npgsql probes for GSSAPI; installing it avoids a loader warning on connect.
